@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-we7)b()@5!&gwg+s2a%59+ejbp42td+j8i*a@_w80d3qhd=j-p'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-fallback-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -99,12 +99,12 @@ CELERY_BROKER_URL = 'memory://' #Es solo para desarrollo ojo luego cambiar!!!!!!
 
 DATABASES = {
     'default': {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "CentroEstudios",
-        "USER": "postgres",
-        "PASSWORD": "Beto2386",
-        "HOST": "",
-        "PORT": "5432",
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'centro_estudios'),
+        'USER': os.environ.get('DB_USER', 'school_user'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
         'OPTIONS': {
             # Prevenir errores de cursor
         'client_encoding': 'UTF8',
@@ -188,7 +188,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'appgestioniacl@gmail.com'
-EMAIL_HOST_PASSWORD = 'qrjw rvnm znyh ypvs'# Para Gmail 
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = 'appgestioniacl@gmail.com'
 SERVER_EMAIL = 'appgestioniacl@gmail.com'
 EMAIL_TIMEOUT = 30
