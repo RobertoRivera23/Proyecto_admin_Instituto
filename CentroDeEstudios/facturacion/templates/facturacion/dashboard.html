@@ -1,0 +1,242 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Facturación{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-chart-line text-primary me-2"></i>
+                Dashboard Facturación
+            </h1>
+        </div>
+    </div>
+
+    <!-- Tarjetas de estadísticas -->
+    <div class="row">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Comprobantes Mes</h5>
+                            <h2 class="display-6 mb-0">{{ total_comprobantes_mes }}</h2>
+                            <small>Total emitidos este mes</small>
+                        </div>
+                        <i class="fas fa-file-invoice fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Ventas Mes</h5>
+                            <h2 class="display-6 mb-0">${{ total_ventas_mes|floatformat:2 }}</h2>
+                            <small>Total vendido este mes</small>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Contribuyentes</h5>
+                            <h2 class="display-6 mb-0">{{ contribuyentes.count }}</h2>
+                            <small>Activos en el sistema</small>
+                        </div>
+                        <i class="fas fa-building fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Comprobantes</h5>
+                            <h2 class="display-6 mb-0">{{ comprobantes_recientes|length }}</h2>
+                            <small>Total en sistema</small>
+                        </div>
+                        <i class="fas fa-receipt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comprobantes recientes -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Comprobantes Recientes
+                        </h5>
+                        <a href="{% url 'facturacion:listar_comprobantes' %}" class="btn btn-sm btn-primary">
+                            Ver Todos
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if comprobantes_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Tipo</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Total</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comp in comprobantes_recientes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ comp.numero_completo|default:comp.numero }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ comp.get_tipo_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ comp.cliente_razon_social|truncatechars:20 }}</td>
+                                    <td>{{ comp.fecha_emision|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="fw-bold">${{ comp.total|floatformat:2 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if comp.estado == 'ACEPTADO_ARCA' %}bg-success
+                                            {% elif comp.estado == 'IMPRESO' %}bg-info
+                                            {% elif comp.estado == 'BORRADOR' %}bg-secondary
+                                            {% elif comp.estado == 'RECHAZADO_ARCA' %}bg-danger
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ comp.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'facturacion:detalle_comprobante' comp.uuid %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No hay comprobantes registrados</p>
+                        <a href="{% url 'facturacion:crear_comprobante' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Crear Primer Comprobante
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-rocket me-2"></i>
+                        Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{% url 'facturacion:crear_comprobante' %}" 
+                               class="btn btn-primary btn-lg w-100 h-100 py-3">
+                                <i class="fas fa-plus fa-2x mb-2"></i><br>
+                                Nuevo Comprobante
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{% url 'facturacion:listar_comprobantes' %}" 
+                               class="btn btn-info btn-lg w-100 h-100 py-3">
+                                <i class="fas fa-list fa-2x mb-2"></i><br>
+                                Ver Todos
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{% url 'facturacion:listar_contribuyentes' %}" 
+                               class="btn btn-success btn-lg w-100 h-100 py-3">
+                                <i class="fas fa-building fa-2x mb-2"></i><br>
+                                Contribuyentes
+                            </a>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3">
+                            <a href="{% url 'facturacion:listar_productos' %}" 
+                               class="btn btn-warning btn-lg w-100 h-100 py-3">
+                                <i class="fas fa-boxes fa-2x mb-2"></i><br>
+                                Productos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del sistema -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Información del Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Fecha Actual: {{ hoy|date:"d/m/Y" }}</h6>
+                            <p class="text-muted small">
+                                El sistema de facturación está activo y listo para usar.
+                                Puedes comenzar creando un comprobante o configurando los contribuyentes.
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Próximas Funcionalidades</h6>
+                            <ul class="text-muted small">
+                                <li>Generación automática de PDF</li>
+                                <li>Integración con ARCA para facturación electrónica</li>
+                                <li>Reportes avanzados de ventas</li>
+                                <li>Control de stock y alertas</li>
+                                <li>Dashboard con gráficos interactivos</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

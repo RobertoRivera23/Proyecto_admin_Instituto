@@ -1,0 +1,279 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Gestión de Pagos{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-money-bill-wave text-primary me-2"></i>
+                    Gestión de Pagos
+                </h1>
+                <div class="btn-group">
+                    <a href="{% url 'facturacion:registrar_pago' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Registrar Pago
+                    </a>
+                    <a href="{% url 'facturacion:reporte_pagos' %}" class="btn btn-info">
+                        <i class="fas fa-chart-bar me-2"></i>Reportes
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted mb-0">Administración de pagos y cobranzas</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Recaudado</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ total_recaudado|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Pagos Hoy</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pagos_hoy }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pagos Mes</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pagos_mes }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Deuda Activa</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ deuda_activa|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                           value="{{ fecha_desde }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                           value="{{ fecha_hasta }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="alumno" class="form-label">Alumno</label>
+                    <input type="text" class="form-control" id="alumno" name="alumno" 
+                           value="{{ alumno_filter }}" placeholder="Nombre o apellido">
+                </div>
+                <div class="col-md-3">
+                    <label for="metodo_pago" class="form-label">Método de Pago</label>
+                    <select class="form-select" id="metodo_pago" name="metodo_pago">
+                        <option value="">Todos</option>
+                        <option value="efectivo" {% if metodo_pago_filter == 'efectivo' %}selected{% endif %}>Efectivo</option>
+                        <option value="transferencia" {% if metodo_pago_filter == 'transferencia' %}selected{% endif %}>Transferencia</option>
+                        <option value="tarjeta" {% if metodo_pago_filter == 'tarjeta' %}selected{% endif %}>Tarjeta</option>
+                        <option value="cheque" {% if metodo_pago_filter == 'cheque' %}selected{% endif %}>Cheque</option>
+                        <option value="otros" {% if metodo_pago_filter == 'otros' %}selected{% endif %}>Otros</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Buscar
+                        </button>
+                        <a href="{% url 'facturacion:listar_pagos' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de pagos -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>
+                Lista de Pagos
+                <span class="badge bg-primary ms-2">{{ pagos|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if pagos %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                   <thead>
+    <tr>
+        <th>ID</th>
+        <th>Fecha</th>
+        <th>Pagador</th>
+        <th>Tipo</th>
+        <th>Monto</th>
+        <th>Método</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+    </tr>
+</thead>
+<tbody>
+    {% for pago in page_obj %}
+    <tr>
+        <td>{{ pago.id }}</td>
+        <td>{{ pago.fecha_pago|date:"d/m/Y" }}</td>
+        <td>
+            {% if pago.alumno %}
+                <span class="badge bg-primary">Alumno</span>
+                {{ pago.alumno.nombre_completo }}<br>
+                <small>DNI: {{ pago.alumno.dni }}</small>
+            {% else %}
+                <span class="badge bg-secondary">Tercero</span>
+                {{ pago.tercero_nombre }} {{ pago.tercero_apellido }}<br>
+                <small>DNI: {{ pago.tercero_dni }}</small>
+            {% endif %}
+        </td>
+        <td>
+            {% if pago.cuota %}
+                Cuota
+            {% else %}
+                Otros
+            {% endif %}
+        </td>
+        <td>${{ pago.monto }}</td>
+        <td>{{ pago.get_metodo_pago_display }}</td>
+<td>
+    {% if pago.estado == 'CONFIRMADO' %}
+        <span class="badge bg-success">Confirmado</span>
+    {% elif pago.estado == 'PENDIENTE' %}
+        <span class="badge bg-warning">Pendiente</span>
+    {% elif pago.estado == 'ANULADO' %}
+        <span class="badge bg-danger">Anulado</span>
+    {% else %}
+        <span class="badge bg-secondary">{{ pago.get_estado_display }}</span>
+    {% endif %}
+</td>
+        <td>
+            <a href="{% url 'facturacion:detalle_pago' pago.id %}" class="btn btn-sm btn-info">Ver</a>
+        {% if pago.estado != 'ANULADO' %}
+            <a href="{% url 'facturacion:editar_pago' pago.id %}" class="btn btn-sm btn-warning">Editar</a>
+        {% endif %}
+        </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8">No hay pagos registrados.</td></tr>
+    {% endfor %}
+</tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay pagos registrados</h5>
+                <p class="text-muted mb-4">
+                    {% if fecha_desde or fecha_hasta or alumno_filter or metodo_pago_filter %}
+                    No se encontraron pagos con los filtros aplicados.
+                    {% else %}
+                    No hay pagos registrados en el sistema.
+                    {% endif %}
+                </p>
+                <a href="{% url 'facturacion:registrar_pago' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Registrar Primer Pago
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if pagos.has_other_pages %}
+        <div class="card-footer">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if pagos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pagos.previous_page_number }}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}&alumno={{ alumno_filter }}&metodo_pago={{ metodo_pago_filter }}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in pagos.paginator.page_range %}
+                        {% if pagos.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}&alumno={{ alumno_filter }}&metodo_pago={{ metodo_pago_filter }}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pagos.next_page_number }}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}&alumno={{ alumno_filter }}&metodo_pago={{ metodo_pago_filter }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

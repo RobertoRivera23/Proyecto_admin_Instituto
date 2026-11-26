@@ -1,0 +1,434 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Mis Cursos - {{ profesor.nombre_completo }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2 text-gray-800">
+                <i class="fas fa-book me-2"></i>Mis Cursos
+            </h1>
+            <p class="text-muted mb-0">
+                {{ cursos|length }} curso{{ cursos|length|pluralize:"s" }} asignado{{ cursos|length|pluralize:"s" }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'dashboard_profesor' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de resumen - CORREGIDAS -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total de Cursos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ cursos|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Activos (no finalizados)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ cursos_activos_count }}  <!-- Cambiado: Usa variable del contexto -->
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-play-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Próximos a iniciar
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ cursos_proximos_count }}  <!-- Cambiado: Usa variable del contexto -->
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Alumnos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ total_alumnos }}  <!-- Cambiado: Usa variable del contexto -->
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del profesor -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-user-tie me-2"></i>Información del Profesor
+            </h6>
+            <span class="badge bg-{% if es_administrador %}danger{% else %}primary{% endif %}">
+                {% if es_administrador %}Administrador/Profesor{% else %}Profesor{% endif %}
+            </span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center mb-3">
+                        {% if profesor.foto %}
+                            <img src="{{ profesor.foto.url }}" alt="Foto" class="rounded-circle me-3" width="80" height="80">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-user text-white fa-2x"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">{{ profesor.nombre_completo }}</h5>
+                            <p class="text-muted mb-0">{{ profesor.mail|default:"Sin email" }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-2"><strong><i class="fas fa-id-card me-2"></i>CUIT:</strong></p>
+                            <p class="text-muted">{{ profesor.cuit|default:"No registrado" }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-2"><strong><i class="fas fa-phone me-2"></i>Teléfono:</strong></p>
+                            <p class="text-muted">{{ profesor.telefono|default:"No registrado" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="GET" id="filtroForm">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" name="buscar" 
+                                   value="{{ busqueda_actual }}" 
+                                   placeholder="Buscar curso...">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" name="estado" onchange="this.form.submit()">
+                            <option value="">Todos los estados</option>
+                            <option value="activos" {% if estado_filtro == 'activos' %}selected{% endif %}>Activos</option>
+                            <option value="proximos" {% if estado_filtro == 'proximos' %}selected{% endif %}>Próximos a iniciar</option>
+                            <option value="finalizados" {% if estado_filtro == 'finalizados' %}selected{% endif %}>Finalizados</option>
+                            <option value="inactivos" {% if estado_filtro == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>Filtrar
+                        </button>
+                        <a href="{% url 'mis_cursos_profesor' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de cursos - ACTUALIZADO para usar 'hoy' en lugar de 'today' -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Cursos Asignados
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if cursos %}
+                <div class="row" id="cursosContainer">
+                    {% for curso in cursos %}
+                    <div class="col-lg-4 col-md-6 mb-4 curso-item"
+                         data-nombre="{{ curso.nombre|lower }}"
+                         data-estado="{% if curso.fecha_inicio > hoy %}proximo{% elif curso.fecha_fin < hoy %}finalizado{% else %}activo{% endif %}"
+                         data-modalidad="{{ curso.modalidad|lower|default:'presencial' }}">
+                        <div class="card h-100 border-left-{% if curso.fecha_inicio > hoy %}warning{% elif curso.fecha_fin < hoy %}secondary{% else %}success{% endif %} shadow-sm">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 text-truncate">{{ curso.nombre }}</h6>
+                                <span class="badge bg-{% if curso.modalidad == 'PRESENCIAL' %}primary{% elif curso.modalidad == 'VIRTUAL' %}success{% else %}warning{% endif %}">
+                                    {{ curso.modalidad|default:"PRESENCIAL" }}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <!-- Estado del curso -->
+                                <div class="mb-3">
+                                    <span class="badge bg-{% if curso.fecha_inicio > hoy %}warning{% elif curso.fecha_fin < hoy %}secondary{% else %}success{% endif %}">
+                                        {% if curso.fecha_inicio > hoy %}
+                                            <i class="fas fa-calendar me-1"></i>Próximo
+                                        {% elif curso.fecha_fin < hoy %}
+                                            <i class="fas fa-flag-checkered me-1"></i>Finalizado
+                                        {% else %}
+                                            <i class="fas fa-play-circle me-1"></i>En curso
+                                        {% endif %}
+                                    </span>
+                                </div>
+
+                                <!-- Información del curso -->
+                                <div class="curso-info mb-3">
+                                    <p class="mb-2">
+                                        <i class="far fa-calendar-alt me-2 text-muted"></i>
+                                        <strong>Inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}
+                                    </p>
+                                    <p class="mb-2">
+                                        <i class="far fa-calendar-times me-2 text-muted"></i>
+                                        <strong>Fin:</strong> {{ curso.fecha_fin|date:"d/m/Y" }}
+                                    </p>
+                                    {% if curso.dias %}
+                                    <p class="mb-2">
+                                        <i class="fas fa-calendar-day me-2 text-muted"></i>
+                                        <strong>Días:</strong> {{ curso.dias }}
+                                    </p>
+                                    {% endif %}
+                                    {% if curso.horario %}
+                                    <p class="mb-2">
+                                        <i class="far fa-clock me-2 text-muted"></i>
+                                        <strong>Horario:</strong> {{ curso.horario }}
+                                    </p>
+                                    {% endif %}
+                                    <p class="mb-0">
+                                        <i class="fas fa-user-graduate me-2 text-muted"></i>
+                                        <strong>Alumnos:</strong> {{ curso.total_alumnos|default:"0" }}
+                                    </p>
+                                </div>
+
+                                {% if curso.descripcion %}
+                                <div class="mb-3">
+                                    <p class="text-muted small mb-0">
+                                        <i class="fas fa-align-left me-1"></i>
+                                        {{ curso.descripcion|truncatechars:120 }}
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'detalle_curso_profesor' curso.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>Ver
+                                    </a>
+                                    {% if curso.modalidad in 'VIRTUAL,HIBRIDO' and curso.enlace_clase %}
+                                    <a href="{{ curso.enlace_clase }}" target="_blank" 
+                                       class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-video me-1"></i>Clase
+                                    </a>
+                                    {% endif %}
+                                    {% if curso.fecha_inicio <= hoy and curso.fecha_fin >= hoy %}
+                                    <a href="{% url 'tomar_asistencia_profesor' curso.id %}" 
+                                       class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-clipboard-check me-1"></i>Asistencia
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Paginación -->
+                {% if cursos.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if cursos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ cursos.previous_page_number }}{% if busqueda_actual %}&buscar={{ busqueda_actual }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                                Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in cursos.paginator.page_range %}
+                            {% if cursos.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > cursos.number|add:'-3' and num < cursos.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if busqueda_actual %}&buscar={{ busqueda_actual }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if cursos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ cursos.next_page_number }}{% if busqueda_actual %}&buscar={{ busqueda_actual }}{% endif %}{% if estado_filtro %}&estado={{ estado_filtro }}{% endif %}">
+                                Siguiente
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                <!-- Mensaje cuando no hay resultados en la búsqueda -->
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No tienes cursos asignados</h5>
+                    <p class="text-muted">Contacta con el administrador para que te asignen cursos</p>
+                    <a href="{% url 'dashboard_profesor' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Guía rápida -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-left-info shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-question-circle me-2"></i>¿Qué puedes hacer aquí?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Ver todos tus cursos asignados
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Tomar asistencia de cada curso
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Ver detalles completos de cada curso
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    Acceder a clases virtuales (si aplica)
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Variables - CORREGIDO: Usamos la fecha actual de JavaScript
+    const hoyJS = new Date().toISOString().split('T')[0];
+    
+    // Función para filtrar cursos en el cliente
+    function filtrarCursos() {
+        const searchText = $('#searchCursos').val().toLowerCase();
+        const filterEstado = $('#filterEstado').val();
+        const filterModalidad = $('#filterModalidad').val();
+        
+        let visibleCount = 0;
+        
+        $('.curso-item').each(function() {
+            const nombre = $(this).data('nombre');
+            const estado = $(this).data('estado');
+            const modalidad = $(this).data('modalidad');
+            
+            // Aplicar filtros
+            const matchSearch = nombre.includes(searchText) || searchText === '';
+            const matchEstado = filterEstado === '' || estado === filterEstado;
+            const matchModalidad = filterModalidad === '' || modalidad === filterModalidad;
+            
+            if (matchSearch && matchEstado && matchModalidad) {
+                $(this).show();
+                visibleCount++;
+            } else {
+                $(this).hide();
+            }
+        });
+        
+        // Mostrar/ocultar mensaje de no resultados
+        if (visibleCount === 0) {
+            $('#noResults').show();
+        } else {
+            $('#noResults').hide();
+        }
+    }
+    
+    // Solo si tenemos los filtros en el cliente
+    if ($('#searchCursos').length) {
+        $('#searchCursos').on('keyup', filtrarCursos);
+    }
+    if ($('#filterEstado').length) {
+        $('#filterEstado').on('change', filtrarCursos);
+    }
+    if ($('#filterModalidad').length) {
+        $('#filterModalidad').on('change', filtrarCursos);
+    }
+    
+    // Tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+    
+    // Mensaje de bienvenida
+    console.log('Mis Cursos cargado correctamente');
+});
+</script>
+{% endblock %}

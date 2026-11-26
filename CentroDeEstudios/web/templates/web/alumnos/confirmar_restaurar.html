@@ -1,0 +1,121 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %} Confirmar Restauración {% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fa fa-undo"></i>
+                        Confirmar Restauración de Alumno
+                    </h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Mostrar mensajes -->
+                    {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Información del alumno -->
+                    <div class="alert alert-info">
+                        <h5>Información del Alumno a Restaurar:</h5>
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <p><strong>Nombre completo:</strong> {{ alumno.nombre_completo }}</p>
+                                <p><strong>DNI:</strong> {{ alumno.dni }}</p>
+                                <p><strong>Edad:</strong> {{ alumno.edad }} años</p>
+                                <p><strong>Email:</strong> {{ alumno.mail|default:"No especificado" }}</p>
+                                <p><strong>Teléfono:</strong> {{ alumno.telefono }}</p>
+                                <p><strong>Dirección:</strong> {{ alumno.direccion }}</p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                {% if alumno.foto %}
+                                    <img src="{{ alumno.foto.url }}" width="100" height="100" class="rounded-circle" alt="Foto del alumno">
+                                {% else %}
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                        <i class="fa fa-user fa-2x text-muted"></i>
+                                    </div>
+                                    <p class="text-muted mt-2">Sin foto</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de eliminación -->
+                    <div class="alert alert-warning">
+                        <h6><i class="fa fa-history"></i> Historial de Eliminación:</h6>
+                        <p><strong>Eliminado por:</strong> 
+                            {% if alumno.eliminado_por %}
+                                {{ alumno.eliminado_por.username }}
+                            {% else %}
+                                <span class="text-muted">Sistema</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Fecha de eliminación:</strong> 
+                            {% if alumno.fecha_eliminacion %}
+                                {{ alumno.fecha_eliminacion|date:"d/m/Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">No disponible</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>Tiempo eliminado:</strong> 
+                            {{ dias_eliminado }} día{{ dias_eliminado|pluralize }}
+                        </p>
+                    </div>
+
+                    <!-- Advertencia -->
+                    <div class="alert alert-success">
+                        <h6><i class="fa fa-check-circle"></i> ¿Qué pasa al restaurar?</h6>
+                        <ul class="mb-0">
+                            <li>✅ El alumno volverá a aparecer en las listas normales del sistema</li>
+                            <li>✅ Podrá ser inscrito en cursos nuevamente</li>
+                            <li>✅ Se activarán todas sus funcionalidades</li>
+                            <li>✅ Se creará un nuevo backup de la restauración</li>
+                            <li>📝 El historial de eliminación se conservará para auditoría</li>
+                        </ul>
+                    </div>
+
+                    <!-- Formulario de confirmación -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'alumnos_eliminados' %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left"></i> Cancelar
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fa fa-undo"></i> Sí, Restaurar Alumno
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="alert alert-light mt-3">
+                <small class="text-muted">
+                    <i class="fa fa-info-circle"></i>
+                    <strong>Nota:</strong> Esta acción restaurará el alumno a su estado activo original. 
+                    Todos los datos se conservarán intactos.
+                </small>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

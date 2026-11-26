@@ -1,0 +1,74 @@
+<!-- web/templates/permisos/confirmar_eliminar.html -->
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Confirmar Eliminación{% endblock %}
+{% block page_title %}Confirmar Eliminación del Grupo{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'permisos:listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Eliminación
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="lead">¿Está seguro de eliminar el grupo <strong class="text-danger">{{ grupo.name }}</strong>?</p>
+                
+                {% if grupo.user_set.exists %}
+                <div class="alert alert-warning">
+                    <h6><i class="bi bi-exclamation-triangle"></i> Advertencia Importante</h6>
+                    <p class="mb-2">Este grupo tiene <strong>{{ grupo.user_set.count }}</strong> usuario(s):</p>
+                    <ul class="mb-2">
+                        {% for user in grupo.user_set.all|slice:":5" %}
+                        <li><strong>{{ user.username }}</strong> ({{ user.get_full_name|default:"Sin nombre" }})</li>
+                        {% endfor %}
+                        {% if grupo.user_set.count > 5 %}
+                        <li><em>... y {{ grupo.user_set.count|add:"-5" }} más</em></li>
+                        {% endif %}
+                    </ul>
+                    <p class="mb-0"><strong>Estos usuarios perderán todos los permisos de este grupo.</strong></p>
+                </div>
+                {% endif %}
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Información del Grupo</h6>
+                    <ul class="mb-0">
+                        <li><strong>Nombre:</strong> {{ grupo.name }}</li>
+                        <li><strong>Permisos:</strong> {{ grupo.permissions.count }}</li>
+                        <li><strong>Usuarios:</strong> {{ grupo.user_set.count }}</li>
+                        <li><strong>Creado:</strong> {{ grupo.date_joined|date:"d/m/Y"|default:"No disponible" }}</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'permisos:listar_grupos_permisos' %}" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Cancelar (NO eliminar)
+                    </a>
+                    
+                    <form method="post" action="{% url 'permisos:eliminar_grupo' grupo.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Sí, Eliminar Grupo
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="mt-4 text-center">
+                    <small class="text-muted">
+                        <i class="bi bi-shield-exclamation"></i>
+                        Esta acción no se puede deshacer. Todos los datos del grupo se perderán permanentemente.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

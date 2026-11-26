@@ -1,0 +1,61 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Restaurar Notificación{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-undo me-2"></i>Restaurar Notificación
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-recycle fa-4x text-success mb-3"></i>
+                        <h4>¿Restaurar notificación?</h4>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>Título:</strong> {{ notificacion.titulo }}<br>
+                        <strong>Tipo:</strong> {{ notificacion.tipo.nombre }}<br>
+                        <strong>Prioridad:</strong> 
+                        <span class="badge 
+                            {% if notificacion.prioridad == 'URGENTE' %}bg-danger
+                            {% elif notificacion.prioridad == 'ALTA' %}bg-warning
+                            {% elif notificacion.prioridad == 'MEDIA' %}bg-info
+                            {% else %}bg-success{% endif %}">
+                            {{ notificacion.prioridad }}
+                        </span><br>
+                        <strong>Eliminada:</strong> {{ notificacion.fecha_eliminacion|date:"d/m/Y H:i" }}
+                    </div>
+                    
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <strong>Mensaje:</strong>
+                        <p class="mb-0 mt-2">{{ notificacion.mensaje|truncatewords:30 }}</p>
+                    </div>
+                    
+                    <p class="text-muted">
+                        Esta notificación será restaurada y volverá a aparecer en tu lista principal de notificaciones.
+                    </p>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <a href="{% url 'papelera_notificaciones' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-undo me-2"></i>Restaurar Notificación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

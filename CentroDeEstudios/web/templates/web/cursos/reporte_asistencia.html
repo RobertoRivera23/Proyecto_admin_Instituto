@@ -1,0 +1,393 @@
+<!-- web/templates/web/profesores/reporte_asistencia.html -->
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Reporte de Asistencia - {{ curso.nombre }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2 text-gray-800">
+                <i class="fas fa-chart-line me-2"></i>Reporte de Asistencia
+            </h1>
+            <p class="text-muted mb-0">{{ curso.nombre }}</p>
+        </div>
+        <div>
+            <a href="{% url 'tomar_asistencia' curso.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Asistencia
+            </a>
+            <a href="{% url 'exportar_asistencia' curso.id %}" class="btn btn-success">
+                <i class="fas fa-file-excel me-2"></i>Exportar Excel
+            </a>
+            <a href="{% url 'exportar_asistencia_csv' curso.id %}" class="btn btn-outline-success">
+                <i class="fas fa-file-csv me-2"></i>Exportar CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del curso -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-info-circle me-2"></i>Información del Curso
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Curso:</strong> {{ curso.nombre }}</p>
+                    <p><strong>Profesor:</strong> {{ curso.profesor.nombre_completo|default:"No asignado" }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Fecha inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+                    <p><strong>Fecha fin:</strong> {{ curso.fecha_fin|date:"d/m/Y" }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Total alumnos:</strong> {{ total_alumnos }}</p>
+                    <p><strong>Promedio asistencia:</strong> <span class="badge bg-primary">{{ promedio_curso }}%</span></p>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        <strong>Periodo del reporte:</strong> 
+                        Desde {{ curso.fecha_inicio|date:"d/m/Y" }} hasta {{ curso.fecha_fin|date:"d/m/Y" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Alumnos Inscritos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_alumnos }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Presentes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_presentes }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Ausentes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ total_asistencias|add:"-"|add:total_presentes }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Promedio Curso
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ promedio_curso }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla detallada de alumnos -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list me-2"></i>Detalle por Alumno
+            </h6>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-filter me-1"></i>Filtrar
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?filtro=todos">Todos</a></li>
+                    <li><a class="dropdown-item" href="?filtro=bajo80">Menos del 80%</a></li>
+                    <li><a class="dropdown-item" href="?filtro=bajo50">Menos del 50%</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="tablaReporte" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Apellido y Nombre</th>
+                            <th>DNI</th>
+                            <th>Total Clases</th>
+                            <th>Presentes</th>
+                            <th>Ausentes</th>
+                            <th>% Asistencia</th>
+                            <th>Última Asistencia</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for estadistica in estadisticas_alumnos %}
+                        <tr class="{% if estadistica.porcentaje_asistencia < 80 %}table-warning{% endif %}{% if estadistica.porcentaje_asistencia < 50 %}table-danger{% endif %}">
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ estadistica.alumno.apellido }}, {{ estadistica.alumno.nombre }}</strong>
+                                {% if estadistica.porcentaje_asistencia < 80 %}
+                                <span class="badge bg-warning ms-2">Bajo 80%</span>
+                                {% endif %}
+                                {% if estadistica.porcentaje_asistencia < 50 %}
+                                <span class="badge bg-danger ms-2">Bajo 50%</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ estadistica.alumno.dni|default:"-" }}</td>
+                            <td>{{ estadistica.total_clases }}</td>
+                            <td class="text-success">{{ estadistica.total_presentes }}</td>
+                            <td class="text-danger">{{ estadistica.total_ausentes }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if estadistica.porcentaje_asistencia >= 80 %}bg-success{% elif estadistica.porcentaje_asistencia >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ estadistica.porcentaje_asistencia }}%;"
+                                         aria-valuenow="{{ estadistica.porcentaje_asistencia }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ estadistica.porcentaje_asistencia }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if estadistica.ultima_asistencia %}
+                                {{ estadistica.ultima_asistencia.fecha|date:"d/m/Y" }}
+                                <span class="badge bg-{% if estadistica.ultima_asistencia.presente %}success{% else %}danger{% endif %}">
+                                    {% if estadistica.ultima_asistencia.presente %}P{% else %}A{% endif %}
+                                </span>
+                                {% else %}
+                                Sin registro
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalDetalle{{ estadistica.alumno.id }}">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        
+                        <!-- Modal para detalle del alumno -->
+                        <div class="modal fade" id="modalDetalle{{ estadistica.alumno.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Historial de Asistencia</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <h6>{{ estadistica.alumno.apellido }}, {{ estadistica.alumno.nombre }}</h6>
+                                        <p class="text-muted">DNI: {{ estadistica.alumno.dni|default:"No registrado" }}</p>
+                                        
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Fecha</th>
+                                                        <th>Asistencia</th>
+                                                        <th>Observaciones</th>
+                                                        <th>Registrado por</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for asistencia in estadistica.inscripcion.asistencia_set.all|slice:":10" %}
+                                                    <tr>
+                                                        <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                                                        <td>
+                                                            <span class="badge bg-{% if asistencia.presente %}success{% else %}danger{% endif %}">
+                                                                {% if asistencia.presente %}Presente{% else %}Ausente{% endif %}
+                                                            </span>
+                                                        </td>
+                                                        <td>{{ asistencia.observaciones|default:"-" }}</td>
+                                                        <td>{{ asistencia.registrado_por.get_full_name|default:asistencia.registrado_por.username }}</td>
+                                                    </tr>
+                                                    {% empty %}
+                                                    <tr>
+                                                        <td colspan="4" class="text-center">No hay registros de asistencia</td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No hay alumnos inscritos en este curso</h5>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de asistencia -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-bar me-2"></i>Distribución de Asistencia
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Por categorías de asistencia:</h6>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Excelente (90-100%)
+                                    <span class="badge bg-primary rounded-pill">
+                                        {{ estadisticas_alumnos|filter_porcentaje:"90,100"|length }}
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Bueno (80-89%)
+                                    <span class="badge bg-success rounded-pill">
+                                        {{ estadisticas_alumnos|filter_porcentaje:"80,89"|length }}
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Regular (50-79%)
+                                    <span class="badge bg-warning rounded-pill">
+                                        {{ estadisticas_alumnos|filter_porcentaje:"50,79"|length }}
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Crítico (0-49%)
+                                    <span class="badge bg-danger rounded-pill">
+                                        {{ estadisticas_alumnos|filter_porcentaje:"0,49"|length }}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Recomendaciones:</h6>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Alumnos con menos del 80% de asistencia:</strong>
+                                {% with bajos=estadisticas_alumnos|filter_porcentaje_max:79 %}
+                                    {% if bajos %}
+                                        {{ bajos|length }} alumno(s). Considerar contactarlos.
+                                    {% else %}
+                                        Todos los alumnos tienen buena asistencia.
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Alumnos con menos del 50% de asistencia:</strong>
+                                {% with criticos=estadisticas_alumnos|filter_porcentaje_max:49 %}
+                                    {% if criticos %}
+                                        {{ criticos|length }} alumno(s). Riesgo de abandono.
+                                    {% else %}
+                                        No hay alumnos en situación crítica.
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del reporte -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-left-secondary shadow">
+                <div class="card-body">
+                    <p class="mb-0 text-muted small">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Reporte generado el {{ fecha_reporte|date:"d/m/Y H:i" }} por {{ request.user.get_full_name|default:request.user.username }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Inicializar DataTable
+    $('#tablaReporte').DataTable({
+        "pageLength": 25,
+        "order": [[6, 'desc']], // Ordenar por % asistencia descendente
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
+        }
+    });
+    
+    // Exportar funciones
+    function exportarPDF() {
+        // Implementar exportación a PDF si es necesario
+        alert('Función de exportación a PDF en desarrollo');
+    }
+    
+    function imprimirReporte() {
+        window.print();
+    }
+});
+</script>
+{% endblock %}

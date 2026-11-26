@@ -1,0 +1,406 @@
+<!-- templates/web/inscripciones/detalle_inscripcion.html -->
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Detalle de Inscripción - {{ inscripcion.alumno.nombre_completo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-header h5 {
+    margin-bottom: 0;
+}
+.table-details th {
+    width: 30%;
+}
+.badge-estado {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+}
+.stat-card {
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+.examen-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">📋 Detalle de Inscripción</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'listar_inscripciones' %}">Inscripciones</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'inscripciones_alumno' inscripcion.alumno.id %}">{{ inscripcion.alumno.nombre_completo }}</a></li>
+                    <li class="breadcrumb-item active">Detalle</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'inscripciones_alumno' inscripcion.alumno.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Volver
+            </a>
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i> Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- Tarjetas de estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4 class="mb-1">{{ inscripcion.get_estado_display }}</h4>
+                    <small>Estado</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4 class="mb-1">{{ inscripcion.nota_final|default:"-" }}</h4>
+                    <small>Nota Final</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4 class="mb-1">{{ promedio|default:"N/A" }}</h4>
+                    <small>Promedio</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h4 class="mb-1">{{ inscripcion.duracion_curso|default:"0" }}</h4>
+                    <small>Días de curso</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Columna izquierda: Información de la inscripción -->
+        <div class="col-md-8">
+            <!-- Información General -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-details">
+                                <tr>
+                                    <th><i class="fas fa-user-graduate me-2"></i> Alumno:</th>
+                                    <td>
+                                        <a href="{% url 'mostrar_alumno' inscripcion.alumno.id %}" class="text-decoration-none">
+                                            {{ inscripcion.alumno.nombre_completo }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-book me-2"></i> Curso:</th>
+                                    <td>{{ inscripcion.curso.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-clock me-2"></i> Horario:</th>
+                                    <td>{{ inscripcion.curso.dias }} {{ inscripcion.curso.horario_estructurado }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-calendar-day me-2"></i> Fecha Inscripción:</th>
+                                    <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-details">
+                                <tr>
+                                    <th><i class="fas fa-calendar-alt me-2"></i> Período:</th>
+                                    <td>
+                                        {{ inscripcion.fecha_inicio|date:"d/m/Y"|default:"No definida" }} 
+                                        <i class="fas fa-arrow-right mx-1"></i>
+                                        {{ inscripcion.fecha_fin|date:"d/m/Y"|default:"No definida" }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-tag me-2"></i> Costo:</th>
+                                    <td>${{ inscripcion.costo_inscripicion|default:"0.00" }}</td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-money-bill-wave me-2"></i> Abono:</th>
+                                    <td>
+                                        <span class="badge bg-{% if inscripcion.abono_inscripcion %}success{% else %}danger{% endif %}">
+                                            {% if inscripcion.abono_inscripcion %}
+                                                <i class="fas fa-check me-1"></i> Abonado
+                                            {% else %}
+                                                <i class="fas fa-times me-1"></i> Pendiente
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th><i class="fas fa-chalkboard-teacher me-2"></i> Profesor:</th>
+                                    <td>{{ inscripcion.curso.profesor.nombre_completo|default:"No asignado" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exámenes -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i> Exámenes 
+                        <span class="badge bg-light text-dark ms-2">{{ total_examenes }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if examenes.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo de Examen</th>
+                                    <th>Nota</th>
+                                    <th>Estado</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for examen in examenes %}
+                                <tr class="examen-row">
+                                    <td>{{ examen.fecha|date:"d/m/Y" }}</td>
+                                    <td><span class="badge bg-secondary">{{ examen.get_tipo_display }}</span></td>
+                                    <td>
+                                        <span class="badge bg-{% if examen.nota >= 7 %}success{% else %}danger{% endif %} fs-6">
+                                            {{ examen.nota }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if examen.nota >= 7 %}success{% else %}danger{% endif %}">
+                                            {% if examen.nota >= 7 %}Aprobado{% else %}Desaprobado{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ examen.observaciones|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-info">
+                                    <td colspan="2"><strong>Promedio General:</strong></td>
+                                    <td colspan="3">
+                                        <span class="badge bg-info fs-5">
+                                            {{ promedio }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                        <h5>No hay exámenes registrados</h5>
+                        <p class="mb-0">Esta inscripción no tiene exámenes asociados.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Historial de cambios -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i> Historial de Cambios
+                        <span class="badge bg-light text-dark ms-2">{{ historial.count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if historial.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha y Hora</th>
+                                    <th>Usuario</th>
+                                    <th>Acción</th>
+                                    <th>Descripción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hist in historial %}
+                                <tr>
+                                    <td>
+                                        <small>{{ hist.fecha|date:"d/m/Y" }}</small><br>
+                                        <small class="text-muted">{{ hist.fecha|time:"H:i" }}</small>
+                                    </td>
+                                    <td>{{ hist.usuario.username|default:"Sistema" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if hist.accion == 'CREAR' %}success{% elif hist.accion == 'EDITAR' %}warning{% elif hist.accion == 'ELIMINAR' %}danger{% else %}info{% endif %}">
+                                            {{ hist.get_accion_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ hist.descripcion }}</small>
+                                        {% if hist.datos_anteriores or hist.datos_nuevos %}
+                                        <br>
+                                        <button class="btn btn-sm btn-outline-info mt-1" type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#detallesHistorial{{ hist.id }}">
+                                            <i class="fas fa-eye"></i> Ver detalles
+                                        </button>
+                                        <div class="collapse mt-2" id="detallesHistorial{{ hist.id }}">
+                                            <div class="card card-body">
+                                                {% if hist.datos_anteriores %}
+                                                <strong>Datos anteriores:</strong>
+                                                <pre class="mb-2"><code>{{ hist.datos_anteriores|pprint }}</code></pre>
+                                                {% endif %}
+                                                {% if hist.datos_nuevos %}
+                                                <strong>Datos nuevos:</strong>
+                                                <pre><code>{{ hist.datos_nuevos|pprint }}</code></pre>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-history fa-2x mb-3"></i>
+                        <h5>No hay historial registrado</h5>
+                        <p class="mb-0">No se han registrado cambios para esta inscripción.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: Información adicional y acciones -->
+        <div class="col-md-4">
+            <!-- Información del Curso -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-book-open me-2"></i> Información del Curso</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td><strong>Modalidad:</strong></td>
+                            <td>{{ inscripcion.curso.get_modalidad_display }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Duración:</strong></td>
+                            <td>{{ inscripcion.curso.duracion }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Auxiliar:</strong></td>
+                            <td>{{ inscripcion.curso.auxiliar.nombre_completo|default:"No asignado" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Plataforma:</strong></td>
+                            <td>{{ inscripcion.curso.plataforma_virtual|default:"No especificada" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Estadísticas Académicas -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i> Estadísticas Académicas</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td><strong>Estado Académico:</strong></td>
+                            <td>
+                                <span class="badge bg-{% if inscripcion.estado_academico == 'APROBADO' %}success{% elif inscripcion.estado_academico == 'DESAPROBADO' %}warning{% else %}secondary{% endif %}">
+                                    {{ inscripcion.estado_academico }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certificable:</strong></td>
+                            <td>
+                                <span class="badge bg-{% if inscripcion.puede_emitir_certificado %}success{% else %}secondary{% endif %}">
+                                    {% if inscripcion.puede_emitir_certificado %}
+                                        <i class="fas fa-check me-1"></i> Sí
+                                    {% else %}
+                                        <i class="fas fa-times me-1"></i> No
+                                    {% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Exámenes:</strong></td>
+                            <td>{{ total_examenes }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Días de curso:</strong></td>
+                            <td>{{ inscripcion.duracion_curso|default:"0" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Observaciones -->
+            {% if inscripcion.observaciones %}
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i> Observaciones</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ inscripcion.observaciones }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Acciones Rápidas -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'cambiar_estado_inscripcion' inscripcion.id %}" class="btn btn-warning">
+                            <i class="fas fa-exchange-alt me-1"></i> Cambiar Estado
+                        </a>
+                        <a href="{% url 'editar_inscripcion' inscripcion.id %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i> Editar Inscripción
+                        </a>
+                        <a href="{% url 'inscripciones_alumno' inscripcion.alumno.id %}" class="btn btn-info">
+                            <i class="fas fa-list me-1"></i> Ver todas las inscripciones
+                        </a>
+                        <a href="{% url 'mostrar_alumno' inscripcion.alumno.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-user me-1"></i> Ver alumno
+                        </a>
+                        {% if inscripcion.estado == 'APROBADO' and inscripcion.puede_emitir_certificado %}
+                        <a href="{% url 'generar_certificado_pdf' inscripcion.id %}" class="btn btn-success">
+                            <i class="fas fa-file-pdf me-1"></i> Generar Certificado
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

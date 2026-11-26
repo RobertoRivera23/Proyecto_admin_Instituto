@@ -1,0 +1,334 @@
+<!-- CentroDeEstudios/web/templates/usuarios/editar_usuario.html -->
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Editar Usuario{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .coordinador-badge {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .info-box {
+        border-left: 4px solid #0d6efd;
+        background-color: #f8f9fa;
+    }
+    .field-disabled {
+        background-color: #e9ecef;
+        opacity: 1;
+        cursor: not-allowed;
+    }
+    .persona-badge {
+        font-size: 0.8em;
+        padding: 3px 8px;
+        border-radius: 10px;
+        color: white;
+    }
+    .badge-personal { background-color: #0dcaf0; }
+    .badge-profesor { background-color: #198754; }
+    .badge-alumno { background-color: #6f42c1; }
+    .badge-usuario { background-color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">👤 Editar Usuario</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'gestion_usuarios' %}">Gestión de Usuarios</a></li>
+                    <li class="breadcrumb-item active">Editar Usuario</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message|safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Información del usuario -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-user me-2"></i>Información del Usuario
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ID:</strong> {{ usuario.id }}</p>
+                    <p><strong>Username actual:</strong> <code>{{ usuario.username }}</code></p>
+                    <p><strong>Email:</strong> {{ usuario.email|default:"No especificado" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Nombre completo:</strong> {{ usuario.get_full_name|default:"No especificado" }}</p>
+                    <p><strong>Estado:</strong> 
+                        {% if usuario.is_active %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Fecha de registro:</strong> {{ usuario.date_joined|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+            
+            <!-- Información de la persona asociada -->
+            {% if tipo_persona and persona_nombre %}
+            <div class="alert alert-info mt-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fa fa-info-circle me-2"></i>
+                        Este usuario está asociado a: 
+                        {% if tipo_persona == 'personal' or tipo_persona == 'Personal' %}
+                            <span class="badge badge-personal persona-badge">Personal</span>
+                        {% elif tipo_persona == 'profesor' or tipo_persona == 'Profesor' %}
+                            <span class="badge badge-profesor persona-badge">Profesor</span>
+                        {% elif tipo_persona == 'alumno' or tipo_persona == 'Alumno' %}
+                            <span class="badge badge-alumno persona-badge">Alumno</span>
+                        {% else %}
+                            <span class="badge badge-usuario persona-badge">{{ tipo_persona }}</span>
+                        {% endif %}
+                        <strong>{{ persona_nombre }}</strong>
+                    </div>
+                    <div>
+                        {% if tipo_persona == 'profesor' and persona_id %}
+                            <a href="{% url 'editar_profesor' persona_id %}" 
+                               class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-external-link-alt"></i> Ver Profesor
+                            </a>
+                        {% elif tipo_persona == 'personal' and persona_id %}
+                            <a href="{% url 'editar_personal' persona_id %}" 
+                               class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-external-link-alt"></i> Ver Personal
+                            </a>
+                        {% elif tipo_persona == 'alumno' and persona_id %}
+                            <!-- Si tienes vista para editar alumno -->
+                            <a href="{% url 'edit_alumno' persona_id %}" 
+                               class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-external-link-alt"></i> Ver Alumno
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% elif not tipo_persona %}
+            <div class="alert alert-warning mt-3">
+                <i class="fa fa-exclamation-triangle me-2"></i>
+                Este usuario no está asociado a ningún perfil (Personal, Profesor o Alumno).
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formulario de edición -->
+    <div class="card shadow-sm">
+        <div class="card-header {% if es_coordinador %}bg-warning{% else %}bg-secondary{% endif %} text-dark">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-edit me-2"></i>Editar Datos del Usuario
+                {% if es_coordinador %}
+                <span class="badge coordinador-badge ms-2">
+                    <i class="fa fa-star me-1"></i>Coordinador
+                </span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                
+                <!-- Campo oculto para coordinador -->
+                {{ form.es_coordinador }}
+                
+                <!-- Errores generales -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <!-- Columna 1: Datos de acceso -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-key me-2"></i>Datos de Acceso
+                        </h6>
+                        
+                        <!-- Username -->
+                        <div class="mb-3">
+                            {{ form.username|as_crispy_field }}
+                            {% if not es_coordinador %}
+                            <div class="alert alert-warning mt-2">
+                                <small>
+                                    <i class="fa fa-exclamation-triangle me-1"></i>
+                                    Solo los coordinadores pueden modificar el nombre de usuario
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Email -->
+                        <div class="mb-3">
+                            {{ form.email|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Datos personales -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-user me-2"></i>Datos Personales
+                        </h6>
+                        
+                        <!-- Nombre y Apellido -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.first_name|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.last_name|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado activo -->
+                        <div class="mb-3">
+                            {{ form.is_active|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <!-- Botón para cambiar contraseña (siempre disponible para coordinadores) -->
+                                {% if es_coordinador %}
+                                <a href="{% url 'cambiar_password_usuario' usuario.id %}" 
+                                   class="btn btn-outline-primary">
+                                    <i class="fa fa-key me-2"></i>Cambiar Contraseña
+                                </a>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-secondary" disabled
+                                        title="Solo coordinadores pueden cambiar contraseñas">
+                                    <i class="fa fa-key me-2"></i>Cambiar Contraseña
+                                </button>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex gap-3">
+                                <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                                    <i class="fa fa-times me-2"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fa fa-save me-2"></i>Actualizar Usuario
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Nota importante -->
+    <div class="alert alert-warning mt-4">
+        <i class="fa fa-exclamation-triangle me-2"></i>
+        <strong>Importante:</strong>
+        <ul class="mb-0 mt-2">
+            <li>El nombre de usuario solo puede ser modificado por usuarios con rol de <strong>Coordinador</strong></li>
+            <li>La contraseña solo puede ser cambiada por coordinadores usando el botón "Cambiar Contraseña"</li>
+            <li>Los cambios en el email pueden afectar la recuperación de contraseña</li>
+            <li>Desactivar un usuario impedirá que pueda acceder al sistema</li>
+            <li>Las modificaciones quedan registradas en el historial del sistema</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Deshabilitar el campo username si no es coordinador
+    document.addEventListener('DOMContentLoaded', function() {
+        const usernameField = document.getElementById('id_username');
+        const esCoordinador = {% if es_coordinador %}true{% else %}false{% endif %};
+        
+        if (!esCoordinador && usernameField) {
+            // Aplicar estilo visual
+            usernameField.classList.add('field-disabled');
+            
+            // Prevenir la edición
+            usernameField.addEventListener('keydown', function(e) {
+                // Permitir solo teclas de navegación y copiar/pegar
+                const allowedKeys = [
+                    'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                    'Home', 'End', 'Delete', 'Backspace'
+                ];
+                
+                const isCtrlKey = e.ctrlKey || e.metaKey;
+                const isAllowedCtrlKey = isCtrlKey && ['c', 'v', 'x', 'a'].includes(e.key.toLowerCase());
+                
+                if (!allowedKeys.includes(e.key) && !isAllowedCtrlKey) {
+                    e.preventDefault();
+                }
+            });
+            
+            usernameField.addEventListener('focus', function() {
+                // Mostrar mensaje y quitar el foco
+                setTimeout(() => {
+                    if (!esCoordinador) {
+                        this.blur();
+                    }
+                }, 100);
+            });
+        }
+        
+        // Confirmación antes de enviar el formulario
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const usernameField = document.getElementById('id_username');
+                if (usernameField && usernameField.value !== '{{ usuario.username }}' && !esCoordinador) {
+                    e.preventDefault();
+                    alert('Solo los coordinadores pueden modificar el nombre de usuario.');
+                    return false;
+                }
+                
+                if (!confirm('¿Estás seguro de guardar los cambios?')) {
+                    e.preventDefault();
+                    return false;
+                }
+                return true;
+            });
+        }
+    });
+</script>
+{% endblock %}

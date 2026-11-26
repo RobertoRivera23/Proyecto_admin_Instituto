@@ -1,0 +1,366 @@
+/* Estilos globales para formularios - Bootstrap 5 compatible */
+
+/* Inputs de texto, email, number, etc. */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="date"],
+input[type="tel"],
+input[type="url"] {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Selects */
+select.form-control,
+select {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem !important;
+    font-size: 0.925rem;
+    font-weight: 400;
+    line-height: 1.5 !important;
+    color: #2d3748;
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    appearance: none;
+    box-sizing: border-box;
+    min-height: 42px !important;
+    height: auto !important;
+}
+
+
+
+/* Textareas */
+textarea {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* File inputs */
+input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+
+/* Focus states */
+input:focus,
+select:focus,
+textarea:focus {
+    color: #212529;
+    background-color: #fff;
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Checkboxes y radios */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 1.2em;
+    height: 1.2em;
+    margin-top: 0.15em;
+    margin-right: 0.5em;
+    vertical-align: top;
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: 1px solid #ced4da;
+    appearance: none;
+    print-color-adjust: exact;
+}
+
+input[type="checkbox"] {
+    border-radius: 0.25em;
+}
+
+input[type="radio"] {
+    border-radius: 50%;
+}
+
+input[type="checkbox"]:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+}
+
+input[type="radio"]:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23fff'/%3e%3c/svg%3e");
+}
+
+/* Estados de validación */
+input:invalid,
+select:invalid,
+textarea:invalid {
+    border-color: #dc3545;
+}
+
+input:valid,
+select:valid,
+textarea:valid {
+    border-color: #198754;
+}
+
+/* Placeholders */
+::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+/* Labels */
+.form-label {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #212529;
+}
+
+/* Required field indicators */
+.required label:after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* Form groups para espaciado */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+/* Para crispy forms - asegurar que los campos tengan espaciado */
+.control-group {
+    margin-bottom: 1rem;
+}
+
+/* Estilos para campos deshabilitados */
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background-color: #e9ecef;
+    opacity: 1;
+}
+/* ========== ESTILOS ESPECÍFICOS PARA CAMPOS FALTANTES ========== */
+
+/* Para textareas específicamente */
+textarea.form-control,
+textarea {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.925rem;
+    font-weight: 400;
+    line-height: 1.6;
+    color: #2d3748;
+    background-color: #ffffff;
+    background-clip: padding-box;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+textarea:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Para selects específicamente - asegurar que muestre la flecha */
+select.form-control,
+select {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+    font-size: 0.925rem;
+    font-weight: 400;
+    line-height: 1.6;
+    color: #2d3748;
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    appearance: none;
+    box-sizing: border-box;
+}
+
+select:focus {
+    border-color: #3b82f6;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Para campos que no tienen la clase form-control pero necesitan estilos */
+.direccion-field textarea,
+.sexo-field select {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.925rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+/* Estilos específicos para Crispy Forms */
+#id_direccion,
+#id_sexo {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.925rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+#id_direccion {
+    min-height: 100px;
+    resize: vertical;
+}
+
+#id_sexo {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+#id_direccion:focus,
+#id_sexo:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Para asegurar que todos los textareas y selects tengan estilos */
+form textarea:not([class]),
+form select:not([class]) {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.925rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+form textarea:not([class]) {
+    min-height: 100px;
+    resize: vertical;
+}
+
+form select:not([class]) {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+    appearance: none;
+}
+
+form textarea:not([class]):focus,
+form select:not([class]):focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Estilos de respaldo para cualquier campo sin clase */
+.form-control-alt {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.925rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+/* Estilos consistentes para formularios de contraseña */
+.form-control {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.925rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    border-color: #3b82f6;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.925rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+}

@@ -1,0 +1,462 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Detalle de {{ profesor.nombre }} {{ profesor.apellido }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header con botones condicionales -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-chalkboard-teacher text-primary"></i>
+                {{ profesor.nombre }} {{ profesor.apellido }}
+                {% if profesor.eliminado %}
+                <span class="badge bg-danger ms-2">Eliminado</span>
+                {% endif %}
+            </h1>
+            <p class="text-muted mb-0">
+                Profesor | DNI: {{ profesor.dni }}
+                {% if profesor.cuit %}
+                | CUIT: {{ profesor.cuit }}
+                {% endif %}
+                | Estado: 
+                <span class="badge {% if profesor.activo %}bg-success{% else %}bg-warning{% endif %}">
+                    {{ profesor.estado_display }}
+                </span>
+            </p>
+        </div>
+        
+        <div class="btn-group">
+            <!-- BOTÓN EDITAR: Solo si NO está eliminado -->
+            {% if not profesor.eliminado %}
+            <a href="{% url 'editar_profesor' profesor.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            {% else %}
+            <!-- Si está eliminado, el botón Editar está deshabilitado -->
+            <button class="btn btn-warning" disabled title="No se puede editar un profesor eliminado">
+                <i class="fas fa-edit"></i> Editar
+            </button>
+            {% endif %}
+            
+            <!-- BOTÓN ELIMINAR: Solo si está activo y NO eliminado -->
+            {% if profesor.activo and not profesor.eliminado %}
+            <a href="{% url 'eliminar_profesor' profesor.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Eliminar
+            </a>
+            {% endif %}
+            
+            <!-- BOTÓN RESTAURAR: Solo si está eliminado -->
+            {% if profesor.eliminado %}
+            <a href="{% url 'restaurar_profesor' profesor.id %}" class="btn btn-success">
+                <i class="fas fa-undo"></i> Restaurar
+            </a>
+            {% endif %}
+            
+            <!-- BOTÓN VOLVER: Cambia según desde dónde vengamos -->
+            {% if request.GET.from_eliminados %}
+                <a href="{% url 'profesores_eliminados' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Eliminados
+                </a>
+            {% elif profesor.eliminado %}
+                <a href="{% url 'profesores_eliminados' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Eliminados
+                </a>
+            {% else %}
+                <a href="{% url 'listar_profesores' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver a Activos
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alerta informativa para profesores eliminados -->
+    {% if profesor.eliminado %}
+    <div class="alert alert-danger mb-4">
+        <div class="d-flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="alert-heading mb-2">⚠️ Este profesor está eliminado</h5>
+                <p class="mb-1">
+                    <strong>Eliminado por:</strong> 
+                    {{ profesor.eliminado_por.username|default:"Sistema" }}
+                    | <strong>Fecha:</strong> 
+                    {{ profesor.fecha_eliminacion|date:"d/m/Y H:i" }}
+                </p>
+                <p class="mb-0">
+                    <strong>Tiempo eliminado:</strong> 
+                    {{ profesor.fecha_eliminacion|timesince }}
+                </p>
+                <hr class="my-2">
+                <p class="mb-0">
+                    <i class="fas fa-info-circle"></i> 
+                    Para poder editar este profesor, primero debes restaurarlo desde el botón "Restaurar".
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Columna Izquierda - Foto y Estado -->
+        <div class="col-md-4 mb-4">
+            <!-- Tarjeta de Foto y Estado -->
+            <div class="card mb-4">
+                <div class="card-header {% if profesor.eliminado %}bg-danger text-white{% else %}bg-dark text-white{% endif %}">
+                    <h5 class="card-title mb-0">
+                        <i class="fas {% if profesor.eliminado %}fa-user-slash{% else %}fa-camera{% endif %}"></i> 
+                        {% if profesor.eliminado %}Profesor Eliminado{% else %}Foto de Perfil{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if profesor.foto %}
+                        <img src="{{ profesor.foto.url }}" 
+                             alt="Foto de {{ profesor.nombre }} {{ profesor.apellido }}"
+                             class="img-fluid rounded-circle mb-3 profile-photo"
+                             style="width: 180px; height: 180px; object-fit: cover; border: 4px solid {% if profesor.eliminado %}#dc3545{% else %}#e9ecef{% endif %};">
+                    {% else %}
+                        <div class="rounded-circle {% if profesor.eliminado %}bg-danger bg-opacity-10{% else %}bg-light{% endif %} d-flex align-items-center justify-content-center mx-auto mb-3 profile-placeholder"
+                             style="width: 180px; height: 180px; border: 4px solid {% if profesor.eliminado %}#dc3545{% else %}#e9ecef{% endif %};">
+                            <i class="fas {% if profesor.eliminado %}fa-user-slash{% else %}fa-user{% endif %} fa-4x {% if profesor.eliminado %}text-danger{% else %}text-muted{% endif %}"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h5 class="mb-1">{{ profesor.nombre }} {{ profesor.apellido }}</h5>
+                    <p class="text-muted mb-2">Profesor</p>
+                    
+                    <!-- Badges de Estado -->
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <span class="badge {% if profesor.activo %}bg-success{% else %}bg-warning{% endif %}">
+                            {{ profesor.activo|yesno:"Activo,Inactivo" }}
+                        </span>
+                        {% if profesor.eliminado %}
+                            <span class="badge bg-danger">Eliminado</span>
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-clock"></i> {{ profesor.fecha_eliminacion|timesince }}
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Información de eliminación si está eliminado -->
+                    {% if profesor.eliminado and profesor.fecha_eliminacion %}
+                    <div class="mt-3 small text-muted">
+                        <p class="mb-0">
+                            <i class="fas fa-calendar-times"></i>
+                            Eliminado: {{ profesor.fecha_eliminacion|date:"d/m/Y" }}
+                        </p>
+                        {% if profesor.eliminado_por %}
+                        <p class="mb-0">
+                            <i class="fas fa-user-times"></i>
+                            Por: {{ profesor.eliminado_por.username }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información de Contacto Rápida -->
+            <div class="card">
+                <div class="card-header {% if profesor.eliminado %}bg-secondary text-white{% else %}bg-primary text-white{% endif %}">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-address-card"></i> Contacto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if profesor.telefono %}
+                    <p class="mb-2">
+                        <i class="fas fa-phone text-muted me-2"></i>
+                        <a href="tel:{{ profesor.telefono }}" class="text-decoration-none">
+                            {{ profesor.telefono }}
+                        </a>
+                    </p>
+                    {% endif %}
+                    
+                    {% if profesor.mail %}
+                    <p class="mb-2">
+                        <i class="fas fa-envelope text-muted me-2"></i>
+                        <a href="mailto:{{ profesor.mail }}" class="text-decoration-none">
+                            {{ profesor.mail }}
+                        </a>
+                    </p>
+                    {% endif %}
+                    
+                    {% if profesor.telefono_contacto %}
+                    <p class="mb-0">
+                        <i class="fas fa-phone-alt text-muted me-2"></i>
+                        {{ profesor.telefono_contacto }}
+                        <small class="text-muted d-block">Tel. de contacto</small>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Acciones Rápidas -->
+            <div class="card mt-4">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt"></i> Acciones Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if profesor.eliminado %}
+                        <a href="{% url 'restaurar_profesor' profesor.id %}" 
+                           class="btn btn-success btn-sm">
+                            <i class="fas fa-undo"></i> Restaurar Profesor
+                        </a>
+                        {% else %}
+                        <a href="{% url 'editar_profesor' profesor.id %}" 
+                           class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Editar Información
+                        </a>
+                        {% endif %}
+                        
+                        {% if profesor.eliminado %}
+                        <a href="{% url 'profesores_eliminados' %}" 
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-trash"></i> Ver Todos Eliminados
+                        </a>
+                        {% else %}
+                        <a href="{% url 'eliminar_profesor' profesor.id %}" 
+                           class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i> Eliminar Profesor
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha - Información Detallada -->
+        <div class="col-md-8">
+            <div class="row">
+                <!-- Información Personal -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-user"></i> Información Personal
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td width="40%"><strong>Nombre:</strong></td>
+                                    <td>{{ profesor.nombre }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Apellido:</strong></td>
+                                    <td>{{ profesor.apellido }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>DNI:</strong></td>
+                                    <td>{{ profesor.dni }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha Nac.:</strong></td>
+                                    <td>
+                                        {% if profesor.fecha_nacimiento %}
+                                            {{ profesor.fecha_nacimiento|date:"d/m/Y" }}
+                                            ({{ profesor.edad }} años)
+                                        {% else %}
+                                            <span class="text-muted">No especificada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sexo:</strong></td>
+                                    <td>{{ profesor.get_sexo_display|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Estado:</strong></td>
+                                    <td>
+                                        <span class="badge {% if profesor.eliminado %}bg-danger{% elif profesor.activo %}bg-success{% else %}bg-warning{% endif %}">
+                                            {{ profesor.estado_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Profesional -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-briefcase"></i> Información Profesional
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td width="40%"><strong>CUIT:</strong></td>
+                                    <td>{{ profesor.cuit|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Entidad Bancaria:</strong></td>
+                                    <td>{{ profesor.entidad|default:"No especificada" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CBU:</strong></td>
+                                    <td>{{ profesor.cbu|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Registro:</strong></td>
+                                    <td>
+                                        {% if profesor.fecha_registro %}
+                                            {{ profesor.fecha_registro|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-muted">No especificada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>ID del Sistema:</strong></td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ profesor.id }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dirección -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-map-marker-alt"></i> Dirección
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {{ profesor.direccion|default:"No especificada"|linebreaksbr }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección Especial para Profesores Eliminados -->
+                {% if profesor.eliminado %}
+                <div class="col-12 mb-4">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-trash-restore"></i> Información de Eliminación
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Eliminado por:</strong></p>
+                                    <p class="mb-3">
+                                        {% if profesor.eliminado_por %}
+                                        <span class="badge bg-info">
+                                            {{ profesor.eliminado_por.username }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ profesor.eliminado_por.get_full_name|default:profesor.eliminado_por.email }}
+                                        </small>
+                                        {% else %}
+                                        <span class="text-muted">Sistema</span>
+                                        {% endif %}
+                                    </p>
+                                    
+                                    <p><strong>Fecha de Eliminación:</strong></p>
+                                    <p class="mb-3">
+                                        {% if profesor.fecha_eliminacion %}
+                                        {{ profesor.fecha_eliminacion|date:"d/m/Y H:i:s" }}
+                                        {% else %}
+                                        <span class="text-muted">No disponible</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Tiempo Eliminado:</strong></p>
+                                    <p class="mb-3">
+                                        <span class="badge bg-dark">
+                                            {{ profesor.fecha_eliminacion|timesince }}
+                                        </span>
+                                    </p>
+                                    
+                                    <p><strong>Para Restaurar:</strong></p>
+                                    <div class="alert alert-success">
+                                        <small>
+                                            <i class="fas fa-info-circle"></i>
+                                            Al restaurar este profesor, se recuperarán todos sus datos y se reassignará a sus cursos anteriores si están disponibles.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{% url 'restaurar_profesor' profesor.id %}" 
+                                   class="btn btn-success btn-lg">
+                                    <i class="fas fa-undo"></i> Restaurar este Profesor
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-borderless td {
+    border: none !important;
+    padding: 0.25rem 0.5rem;
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.profile-photo {
+    transition: transform 0.3s ease;
+}
+.profile-photo:hover {
+    transform: scale(1.03);
+}
+.btn-group .btn {
+    border-radius: 0.25rem !important;
+    margin-right: 0.25rem;
+}
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Deshabilitar clic en botones deshabilitados
+    document.querySelectorAll('button[disabled]').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (this.hasAttribute('title')) {
+                // Mostrar tooltip o alerta
+                alert(this.getAttribute('title'));
+            }
+        });
+    });
+    
+    // Confirmar restauración
+    const restoreButtons = document.querySelectorAll('a[href*="restaurar_profesor"]');
+    restoreButtons.forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            const profesorNombre = "{{ profesor.nombre }} {{ profesor.apellido }}";
+            if (!confirm(`¿Estás seguro de restaurar al profesor "${profesorNombre}"?\n\nEsta acción lo volverá a activar en el sistema.`)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

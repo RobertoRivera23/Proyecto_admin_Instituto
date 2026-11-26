@@ -1,0 +1,236 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Centro de Artes y Oficios {% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/index.css' %}">
+<style>
+    .card-hover:hover {
+        transform: translateY(-5px);
+        transition: transform 0.3s ease;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .coordinador-section {
+        border-left: 4px solid #ffc107;
+        background: linear-gradient(to right, #fff8e1, #ffffff);
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header principal -->
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h1 class="display-4 text-primary mb-3">Bienvenidos al Sistema de Gestión</h1>
+            <h2 class="h3 text-muted">Instituto Argentino de Capacitación Laboral</h2>
+        </div>
+    </div>
+
+    <!-- Logo y mensaje de bienvenida -->
+    <div class="row mb-5">
+        <div class="col-md-6 mx-auto text-center">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <img src="{% static 'web/image/Logo_sf.jpg' %}" class="img-fluid rounded mb-4" alt="Logo IACL" style="max-height: 200px;">
+                    <p class="lead text-muted">
+                        Sistema integral de gestión académica y administrativa
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tarjetas de acceso rápido -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 card-hover">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="icon ion-md-people fa-3x text-primary"></i>
+                    </div>
+                    <h5 class="card-title">Gestión de Alumnos</h5>
+                    <p class="card-text text-muted small">
+                        Administre la información de estudiantes, inscripciones y seguimiento académico.
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'listar_alumno' %}" class="btn btn-outline-primary btn-sm">Acceder</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 card-hover">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="icon ion-md-contacts fa-3x text-success"></i>
+                    </div>
+                    <h5 class="card-title">Gestión de Profesores</h5>
+                    <p class="card-text text-muted small">
+                        Administre el personal docente, asignaciones y información profesional.
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'listar_profesores' %}" class="btn btn-outline-success btn-sm">Acceder</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 card-hover">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="icon ion-md-school fa-3x text-warning"></i>
+                    </div>
+                    <h5 class="card-title">Gestión de Cursos</h5>
+                    <p class="card-text text-muted small">
+                        Cree y administre programas académicos, horarios y materiales de cursos.
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="{% url 'listar_cursos' %}" class="btn btn-outline-warning btn-sm">Acceder</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN ESPECIAL PARA COORDINADORES -->
+    {% if user.is_authenticated and user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-warning coordinador-section">
+                <div class="card-header bg-warning text-dark border-0">
+                    <h5 class="mb-0">
+                        <i class="icon ion-md-star me-2"></i>
+                        Herramientas de Administración - Coordinador
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Acceso a funciones avanzadas de gestión del sistema</p>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="fas fa-user-lock fa-3x text-danger"></i>
+                                    </div>
+                                    <h6 class="card-title">Gestión de Permisos</h6>
+                                    <p class="card-text text-muted small">
+                                        Administre grupos, permisos y accesos del sistema.
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent border-0">
+                                    <a href="{% url 'dashboard_permisos' %}" class="btn btn-outline-danger btn-sm">
+                                        <i class="icon ion-md-search me-1"></i> Ver Permisos
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="icon ion-md-analytics fa-3x text-info"></i>
+                                    </div>
+                                    <h6 class="card-title">Seguimiento de Moras</h6>
+                                    <p class="card-text text-muted small">
+                                        Monitoreo y gestión de deudas y pagos pendientes.
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent border-0">
+                                    <a href="{% url 'seguimiento_moras' %}" class="btn btn-outline-info btn-sm">
+                                        <i class="icon ion-md-search me-1"></i> Ver Moras
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="icon ion-md-stats fa-3x text-success"></i>
+                                    </div>
+                                    <h6 class="card-title">Dashboard Notificaciones</h6>
+                                    <p class="card-text text-muted small">
+                                        Panel completo de gestión de notificaciones.
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent border-0">
+                                    <a href="{% url 'dashboard_notificaciones' %}" class="btn btn-outline-success btn-sm">
+                                        <i class="icon ion-md-pie me-1"></i> Ver Dashboard
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="icon ion-md-document fa-3x text-primary"></i>
+                                    </div>
+                                    <h6 class="card-title">Reportes de Moras</h6>
+                                    <p class="card-text text-muted small">
+                                        Generar reportes PDF de moras y deudas.
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent border-0">
+                                    <a href="{% url 'facturacion:reporte_moras_pdf' %}" class="btn btn-outline-primary btn-sm">
+                                        <i class="icon ion-md-download me-1"></i> Generar PDF
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas rápidas -->
+    {% if user.is_authenticated %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0">Resumen del Sistema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light">
+                                <h4 class="text-primary mb-1">{{ total_alumnos|default:"0" }}</h4>
+                                <small class="text-muted">Alumnos Activos</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light">
+                                <h4 class="text-success mb-1">{{ total_profesores|default:"0" }}</h4>
+                                <small class="text-muted">Profesores</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light">
+                                <h4 class="text-warning mb-1">{{ total_cursos|default:"0" }}</h4>
+                                <small class="text-muted">Cursos Activos</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light">
+                                <h4 class="text-info mb-1">{{ total_inscripciones|default:"0" }}</h4>
+                                <small class="text-muted">Inscripciones</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

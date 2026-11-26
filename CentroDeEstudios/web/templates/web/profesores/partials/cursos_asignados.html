@@ -1,0 +1,90 @@
+<!-- web/templates/web/profesores/partials/cursos_asignados.html -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-book me-2"></i>
+            {% if es_administrador and es_otro_profesor %}
+                Cursos de {{ profesor.nombre_completo }}
+            {% else %}
+                Mis Cursos
+            {% endif %}
+        </h6>
+        <a href="{% if es_administrador and es_otro_profesor %}{% url 'mis_cursos_profesor_detalle' profesor.id %}{% else %}{% url 'mis_cursos_profesor' %}{% endif %}" 
+           class="btn btn-sm btn-primary">
+            <i class="fas fa-list me-1"></i> Ver todos
+        </a>
+    </div>
+    <div class="card-body">
+        {% if cursos_asignados %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Modalidad</th>
+                            <th>Horario</th>
+                            <th>Inicio</th>
+                            <th>Alumnos</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for curso in cursos_asignados|slice:":5" %}
+                        <tr>
+                            <td>
+                                <strong>{{ curso.nombre }}</strong>
+                                {% if not curso.activo %}
+                                    <span class="badge bg-warning ms-1">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ curso.modalidad.nombre|default:"-" }}</td>
+                            <td>{{ curso.horario|default:"-" }}</td>
+                            <td>{{ curso.fecha_inicio|date:"d/m/Y" }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info">
+                                    {{ curso.inscripcion_set.count }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'detalle_curso_profesor' curso.id %}" 
+                                   class="btn btn-sm btn-info" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if es_administrador %}
+                                <a href="{% url 'editar_curso' curso.id %}" 
+                                   class="btn btn-sm btn-warning" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if cursos_asignados.count > 5 %}
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        Mostrando 5 de {{ cursos_asignados.count }} cursos.
+                        <a href="{% if es_administrador and es_otro_profesor %}{% url 'mis_cursos_profesor_detalle' profesor.id %}{% else %}{% url 'mis_cursos_profesor' %}{% endif %}">
+                            Ver todos
+                        </a>
+                    </small>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay cursos asignados</h5>
+                {% if es_administrador %}
+                    <p class="text-muted">Este profesor no tiene cursos asignados.</p>
+                    <a href="{% url 'listar_cursos' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Asignar cursos
+                    </a>
+                {% else %}
+                    <p class="text-muted">No tienes cursos asignados actualmente.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>

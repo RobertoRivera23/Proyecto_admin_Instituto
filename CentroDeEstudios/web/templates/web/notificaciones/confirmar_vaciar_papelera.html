@@ -1,0 +1,58 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Vaciar Papelera{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-broom me-2"></i>Vaciar Papelera
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-trash-restore fa-4x text-danger mb-3"></i>
+                        <h4>¿Vaciar papelera completamente?</h4>
+                    </div>
+                    
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Se eliminarán permanentemente {{ notificaciones_count }} notificaciones</strong>
+                    </div>
+                    
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <h6>Esta acción:</h6>
+                        <ul class="list-unstyled text-start">
+                            <li><i class="fas fa-check text-danger me-2"></i>Eliminará {{ notificaciones_count }} notificaciones permanentemente</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>No se podrán recuperar los datos</li>
+                            <li><i class="fas fa-check text-danger me-2"></i>Liberará espacio en la base de datos</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-radiation me-2"></i>
+                        <strong>¡Advertencia crítica!</strong> Esta acción no se puede deshacer. 
+                        Todas las notificaciones en la papelera serán eliminadas permanentemente.
+                    </div>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <a href="{% url 'papelera_notificaciones' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-broom me-2"></i>Vaciar Papelera
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

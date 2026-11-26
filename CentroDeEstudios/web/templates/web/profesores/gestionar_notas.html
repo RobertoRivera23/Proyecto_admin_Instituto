@@ -1,0 +1,436 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load filtros_curso %}
+
+{% block title %}Gestionar Notas - {{ curso.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tabla-notas {
+        overflow-x: auto;
+        border-radius: 0.5rem;
+    }
+    .tabla-notas table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .tabla-notas th {
+        background-color: #343a40;
+        color: white;
+        font-weight: 500;
+        text-align: center;
+        vertical-align: middle;
+        padding: 12px 8px;
+        white-space: nowrap;
+    }
+    .tabla-notas td {
+        padding: 10px 8px;
+        vertical-align: middle;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .tabla-notas tr:hover td {
+        background-color: #f8f9fa;
+    }
+    .alumno-nombre {
+        font-weight: 600;
+        color: #212529;
+    }
+    .nota-input {
+        width: 70px;
+        text-align: center;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        padding: 4px;
+        transition: border-color 0.15s ease-in-out;
+    }
+    .nota-input:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .incluir-checkbox {
+        margin-left: 5px;
+        transform: scale(1.2);
+        cursor: pointer;
+    }
+    .incluir-checkbox:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    .fecha-input {
+        width: 110px;
+        font-size: 0.8rem;
+        padding: 4px;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+    }
+    .btn-eliminar {
+        padding: 4px 8px;
+        margin-left: 5px;
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 0.25rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background-color 0.15s;
+    }
+    .btn-eliminar:hover {
+        background-color: #c82333;
+    }
+    .btn-agregar-examen {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 0.25rem;
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        transition: background-color 0.15s;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-agregar-examen:hover {
+        background-color: #218838;
+        text-decoration: none;
+        color: white;
+    }
+    .promedio-badge {
+        font-size: 1rem;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .bg-success-custom {
+        background-color: #28a745;
+        color: white;
+    }
+    .bg-warning-custom {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .bg-danger-custom {
+        background-color: #dc3545;
+        color: white;
+    }
+    .bg-secondary-custom {
+        background-color: #6c757d;
+        color: white;
+    }
+    .btn-volver {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        transition: background-color 0.15s;
+    }
+    .btn-volver:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    /* Estilos adicionales para mantener consistencia con asistencia */
+    .text-gray-800 {
+        color: #5a5c69;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid mt-4">
+    <!-- Header estilo asistencia -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2 text-gray-800">
+                <i class="fas fa-edit me-2"></i>Gestionar Notas
+            </h1>
+            <p class="text-muted mb-0">
+                {{ curso.nombre }} - {{ hoy|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div>
+            <span class="badge bg-primary me-2">Alumnos: {{ inscripciones_con_datos|length }}</span>
+            <a href="{% url 'detalle_curso_profesor' curso.id %}" class="btn btn-sm btn-outline-secondary btn-volver">
+                <i class="fas fa-arrow-left"></i> Volver al curso
+            </a>
+        </div>
+    </div>
+
+    <!-- Menú de pestañas -->
+    {% include 'web/profesores/_menu_curso.html' %}
+
+    <!-- Tarjetas de información del curso (opcional, similar a asistencia) -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>Información del Curso
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong><i class="fas fa-book me-2"></i>Curso:</strong>
+                                {{ curso.nombre }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="fas fa-user-tie me-2"></i>Profesor:</strong>
+                                {{ curso.profesor.nombre_completo|default:"No asignado" }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="fas fa-calendar-day me-2"></i>Días:</strong>
+                                {{ curso.dias|default:"No especificado" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong><i class="far fa-clock me-2"></i>Horario:</strong>
+                                {{ curso.horario|default:"No especificado" }}
+                            </p>
+                            <p class="mb-2">
+                                <strong><i class="fas fa-user-graduate me-2"></i>Alumnos inscritos:</strong>
+                                {{ inscripciones_con_datos|length }}
+                            </p>
+                            <p class="mb-0">
+                                <strong><i class="fas fa-map-marker-alt me-2"></i>Modalidad:</strong>
+                                <span class="badge bg-{% if curso.modalidad == 'PRESENCIAL' %}primary{% elif curso.modalidad == 'VIRTUAL' %}success{% else %}warning{% endif %}">
+                                    {{ curso.modalidad }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>Estadísticas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Promedio general del curso:</strong>
+                        <span class="badge bg-info">-</span>
+                    </p>
+                    <p class="mb-0">
+                        <strong>Cantidad de exámenes:</strong>
+                        <span class="badge bg-secondary">{{ total_examenes|default:"0" }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de notas -->
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>Notas de Alumnos
+            </h6>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="calcularTodosLosPromedios()">
+                    <i class="fas fa-calculator me-1"></i>Calcular promedios
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="form-notas">
+                {% csrf_token %}
+                <div class="tabla-notas">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 180px;">Alumno</th>
+                                {% for tipo, label in tipos_a_mostrar %}
+                                    <th style="min-width: 150px;">{{ label }}<br><small class="fw-light">Fecha</small></th>
+                                {% endfor %}
+                                <th style="min-width: 100px;">Promedio</th>
+                                <th style="min-width: 100px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inscripciones_con_datos %}
+                            <tr data-inscripcion="{{ item.inscripcion.id }}">
+                                <td class="alumno-nombre">
+                                    {{ item.inscripcion.alumno.apellido }}, {{ item.inscripcion.alumno.nombre }}
+                                    <small class="text-muted d-block">{{ item.inscripcion.alumno.dni }}</small>
+                                </td>
+                                
+                                {% for tipo, label in tipos_a_mostrar %}
+                                    {% with datos=item.notas|get_item:tipo %}
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <input type="number" step="0.1" min="0" max="10" 
+                                                   name="nota_{{ item.inscripcion.id }}_{{ tipo }}"
+                                                   class="form-control form-control-sm nota-input"
+                                                   value="{{ datos.nota|default:'' }}"
+                                                   data-inscripcion="{{ item.inscripcion.id }}"
+                                                   data-tipo="{{ tipo }}"
+                                                   placeholder="Nota">
+                                            <input type="checkbox" 
+                                                   name="incluir_{{ item.inscripcion.id }}_{{ tipo }}"
+                                                   class="incluir-checkbox"
+                                                   {% if datos.incluir %}checked{% endif %}
+                                                   {% if not datos.nota %}disabled{% endif %}
+                                                   title="Incluir en promedio">
+                                        </div>
+                                        <div class="mt-1">
+                                            <input type="date" 
+                                                   name="fecha_{{ item.inscripcion.id }}_{{ tipo }}"
+                                                   class="form-control form-control-sm fecha-input"
+                                                   value="{{ datos.fecha|date:'Y-m-d'|default:'' }}">
+                                        </div>
+                                        {% if datos.id %}
+                                        <div class="mt-1">
+                                            <form method="POST" style="display:inline;" class="form-eliminar">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="eliminar_examen" value="{{ datos.id }}">
+                                                <button type="submit" class="btn-eliminar" 
+                                                        onclick="return confirm('¿Eliminar este examen?')">
+                                                    <i class="fas fa-trash"></i> Eliminar
+                                                </button>
+                                            </form>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    {% endwith %}
+                                {% endfor %}
+                                
+                                <td class="text-center">
+                                    <span class="badge promedio-badge" data-inscripcion="{{ item.inscripcion.id }}">-</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'agregar_examen_individual' item.inscripcion.id %}" 
+                                       class="btn-agregar-examen">
+                                        <i class="fas fa-plus-circle"></i> Agregar examen
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{{ tipos_a_mostrar|length|add:3 }}" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    No hay alumnos inscritos activos en este curso.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-end gap-3 mt-3">
+                    <a href="{% url 'detalle_curso_profesor' curso.id %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Guardar Notas
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function calcularPromedio(inscripcionId) {
+        let suma = 0;
+        let cantidad = 0;
+        const inputs = document.querySelectorAll(`input[name^="nota_${inscripcionId}_"]`);
+        inputs.forEach(input => {
+            const tipo = input.dataset.tipo;
+            const checkbox = document.querySelector(`input[name="incluir_${inscripcionId}_${tipo}"]`);
+            const valor = parseFloat(input.value);
+            if (!isNaN(valor) && checkbox && !checkbox.disabled && checkbox.checked) {
+                suma += valor;
+                cantidad++;
+            }
+        });
+        const promedioSpan = document.querySelector(`.promedio-badge[data-inscripcion="${inscripcionId}"]`);
+        if (promedioSpan) {
+            if (cantidad > 0) {
+                const promedio = (suma / cantidad).toFixed(2);
+                promedioSpan.textContent = promedio;
+                // Actualizar clase según valor
+                promedioSpan.className = 'badge promedio-badge';
+                if (promedio >= 7) {
+                    promedioSpan.classList.add('bg-success-custom');
+                } else if (promedio >= 4) {
+                    promedioSpan.classList.add('bg-warning-custom');
+                } else {
+                    promedioSpan.classList.add('bg-danger-custom');
+                }
+            } else {
+                promedioSpan.textContent = '-';
+                promedioSpan.className = 'badge promedio-badge bg-secondary-custom';
+            }
+        }
+    }
+
+    function actualizarCheckbox(input) {
+        const inscripcionId = input.dataset.inscripcion;
+        const tipo = input.dataset.tipo;
+        const checkbox = document.querySelector(`input[name="incluir_${inscripcionId}_${tipo}"]`);
+        if (checkbox) {
+            if (input.value.trim() !== '') {
+                checkbox.disabled = false;
+            } else {
+                checkbox.disabled = true;
+                checkbox.checked = false;
+            }
+        }
+    }
+
+    function calcularTodosLosPromedios() {
+        const filas = document.querySelectorAll('tr[data-inscripcion]');
+        filas.forEach(row => {
+            const inscripcionId = row.dataset.inscripcion;
+            calcularPromedio(inscripcionId);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const filas = document.querySelectorAll('tr[data-inscripcion]');
+        filas.forEach(row => {
+            const inscripcionId = row.dataset.inscripcion;
+            calcularPromedio(inscripcionId);
+            
+            const inputs = row.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                actualizarCheckbox(input);
+                input.addEventListener('input', function() {
+                    actualizarCheckbox(this);
+                    calcularPromedio(inscripcionId);
+                });
+            });
+            
+            const checkboxes = row.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    calcularPromedio(inscripcionId);
+                });
+            });
+        });
+    });
+
+    // Previene el envío del formulario al presionar Enter en los inputs
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+
+    document.getElementById('form-notas').addEventListener('submit', function(e) {
+        if (!confirm('¿Guardar las notas ingresadas?')) {
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

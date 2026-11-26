@@ -1,0 +1,178 @@
+<!-- web/templates/permisos/listar_grupos.html -->
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Grupos y Permisos{% endblock %}
+{% block page_title %}Grupos del Sistema{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'crear_nuevo_grupo' %}" class="btn btn-success">
+    <i class="bi bi-plus-circle"></i> Nuevo Grupo
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Grupos principales -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Grupos del Sistema</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Grupo</th>
+                                <th>Usuarios</th>
+                                <th>Permisos</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for grupo in grupos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ grupo.name }}</strong>
+                                    {% if grupo.name in "Coordinador,Administrativo,Secretaría,Consulta" %}
+                                    <span class="badge bg-info ms-2">Crítico</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ grupo.user_set.count }}</span>
+                                </td>
+                                <td>
+                                    {% with permisos=grupo.permissions.all %}
+                                        {% if permisos %}
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for perm in permisos|slice:":3" %}
+                                                    <span class="badge bg-primary permiso-badge" 
+                                                          title="{{ perm.name }}">
+                                                        {{ perm.codename|truncatechars:15 }}
+                                                    </span>
+                                                {% endfor %}
+                                                {% if permisos.count > 3 %}
+                                                    <span class="badge bg-light text-dark permiso-badge">
+                                                        +{{ permisos.count|add:"-3" }}
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Sin permisos</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'editar_permisos_grupo' grupo.id %}" 
+                                           class="btn btn-outline-primary" title="Editar permisos">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        {% if grupo.name not in "Coordinador,Administrativo,Secretaría,Consulta,Personal,Administración,Alumnos,Profesores" %}
+                                        <button type="button" class="btn btn-outline-danger" 
+                                            data-bs-toggle="modal" data-bs-target="#modalEliminar{{ grupo.id }}"
+                                            title="Eliminar grupo">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Modal de confirmación para eliminar -->
+                                    {% if grupo.name not in "Coordinador,Administrativo,Secretaría,Consulta,Personal,Administración,Alumnos,Profesores" %}
+                                    <div class="modal fade" id="modalEliminar{{ grupo.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el grupo <strong>"{{ grupo.name }}"</strong>?</p>
+                <p class="text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Esta acción no se puede deshacer. Se eliminarán todas las asignaciones de este grupo.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <!-- Solo mostrar el botón de eliminar si el grupo no está protegido -->
+                {% if grupo.name not in grupos_protegidos %}
+                <form method="post" action="{% url 'eliminar_grupo' grupo.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permisos disponibles -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-shield"></i> Permisos de Web (Personal)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for perm in permisos_web %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ perm.codename }}</strong>
+                            <small class="d-block text-muted">{{ perm.name }}</small>
+                        </div>
+                        <span class="badge bg-info">web</span>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-center text-muted">
+                        No hay permisos de web
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-badge"></i> Permisos de Auth (Usuarios)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for perm in permisos_auth %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ perm.codename }}</strong>
+                            <small class="d-block text-muted">{{ perm.name }}</small>
+                        </div>
+                        <span class="badge bg-success">auth</span>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-center text-muted">
+                        No hay permisos de auth
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

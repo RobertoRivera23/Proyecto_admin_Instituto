@@ -1,0 +1,2041 @@
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.db.models import Q, Avg, Count, Sum
+from django.http import HttpResponse, JsonResponse
+from django.core.paginator import Paginator
+from django.views.decorators.http import require_POST, require_GET
+import json
+from datetime import datetime, date
+import xlwt
+from .decorators import tiene_acceso_vistas_profesor, es_administrador_o_coordinador
+
+
+# Importar los NUEVOS decoradores
+from .decorators import (
+    puede_ver_vistas_profesor, 
+    puede_ver_cursos_profesor,
+    profesor_solo_lectura,
+    es_administrador_o_coordinador,
+    obtener_profesor_usuario,
+    tiene_acceso_vistas_profesor,
+    requiere_permiso_profesor,
+    puede_tomar_asistencia,
+)
+
+from .models import (
+    Personal, Profesor, Curso, Inscripcion, Alumno, 
+    Asistencia, Examen, ObservacionAlumno,
+    Notificacion, HistorialCambios, CuotaAlumno, TipoNotificacion,
+)
+
+# web/views_profesores.py - Agrega al inicio del archivo
+
+def obtener_profesor_para_vista(request, profesor_id=None):
+    """
+    Función auxiliar para obtener el profesor correcto según el contexto:
+    1. Si se pasa profesor_id: devuelve ese profesor (para admin viendo otros)
+    2. Si no: devuelve el profesor del usuario actual (si es profesor)
+    3. Si es admin sin profesor: devuelve None y un mensaje apropiado
+    """
+    
+    es_admin = getattr(request, 'es_administrador', False)
+    profesor_actual = getattr(request, 'profesor', None)
+    
+    # CASO 1: Se solicita un profesor específico por ID
+    if profesor_id:
+        if not es_admin:
+            return None, "No tienes permiso para ver información de otros profesores"
+        
+        try:
+            profesor = Profesor.objects.get(
+                id=profesor_id,
+                activo=True,
+                eliminado=False
+            )
+            return profesor, None
+        except Profesor.DoesNotExist:
+            return None, "El profesor solicitado no existe o no está activo"
+    
+    # CASO 2: Usuario es profesor, devolver su perfil
+    elif profesor_actual:
+        return profesor_actual, None
+    
+    # CASO 3: Es admin sin profesor específico
+    elif es_admin:
+        return None, "Selecciona un profesor para ver su información"
+    
+    # CASO 4: No es admin ni tiene perfil
+    else:
+        return None, "No tienes un perfil de profesor activo"
+
+# ============================================
+# DASHBOARD Y PERFIL (ACCESO AMPLIADO)
+# ============================================
+from django.utils import timezone
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from .models import Curso, Notificacion, Asistencia
+
+@login_required
+@requiere_permiso_profesor
+def dashboard_profesor(request):
+    """Dashboard principal - Acceso para profesores y administradores"""
+    
+    # Determinar qué mostrar según el tipo de usuario
+    es_admin = getattr(request, 'es_administrador', False)
+    profesor = getattr(request, 'profesor_actual', None)  # Usar profesor_actual según logs
+    
+    if es_admin and not profesor:
+        # Administrador sin perfil de profesor - redirigir a dashboard admin
+        return redirect('dashboard_admin_general')
+    
+    # Si llega aquí, es un profesor (o admin con perfil de profesor)
+    hoy = timezone.now().date()
+    
+    if profesor:
+        # Obtener cursos asignados
+        cursos_asignados = profesor.cursos_asignados.filter(activo=True, eliminado=False)
+        total_cursos = cursos_asignados.count()
+        
+        # Calcular total de alumnos en todos los cursos
+        total_alumnos = 0
+        for curso in cursos_asignados:
+            total_alumnos += curso.total_alumnos  # Usa la propiedad total_alumnos del modelo Curso
+        
+        # Cursos próximos (con fecha de inicio mayor o igual a hoy)
+        proximas_clases = cursos_asignados.filter(
+            fecha_inicio__gte=hoy
+        ).order_by('fecha_inicio')[:3]
+        
+        # Calcular asistencias pendientes para hoy
+        asistencias_pendientes = 0
+        try:
+            from .models import Asistencia
+            # Contar cursos activos hoy que no tienen asistencia registrada
+            cursos_hoy = cursos_asignados.filter(
+                fecha_inicio__lte=hoy,
+                fecha_fin__gte=hoy
+            )
+            for curso in cursos_hoy:
+                if not Asistencia.objects.filter(
+                    curso=curso,
+                    fecha=hoy
+                ).exists():
+                    asistencias_pendientes += 1
+        except Exception as e:
+            print(f"⚠️ Error calculando asistencias pendientes: {e}")
+            asistencias_pendientes = 0
+        
+    else:
+        cursos_asignados = []
+        total_cursos = 0
+        total_alumnos = 0
+        proximas_clases = []
+        asistencias_pendientes = 0
+    
+    # Notificaciones
+    notificaciones = Notificacion.objects.filter(
+        usuario_destino=request.user,
+        eliminada=False
+    ).order_by('-fecha_creacion')[:5]
+    
+    context = {
+        'titulo': 'Dashboard del Profesor',
+        'profesor': profesor,
+        'cursos_asignados': cursos_asignados,
+        'total_cursos': total_cursos,
+        'total_alumnos': total_alumnos,  # ¡Añadido!
+        'proximas_clases': proximas_clases,  # ¡Añadido! (no cursos_proximos)
+        'asistencias_pendientes': asistencias_pendientes,  # ¡Añadido!
+        'notificaciones': notificaciones,
+        'hoy': hoy,
+        'es_administrador': es_admin,
+        'es_profesor': True,
+        'modo_vista': 'profesor',  # ¡Añadido! (necesario para el template)
+    }
+    
+    return render(request, 'web/profesores/dashboard.html', context)
+
+
+def perfil_profesor(request, profesor_id=None):
+    """Perfil de profesor - Versión unificada"""
+    
+    profesor, error_msg = obtener_profesor_para_vista(request, profesor_id)
+    
+    if error_msg:
+        messages.info(request, error_msg)
+        # Si es admin, redirigir a lista para seleccionar profesor
+        if getattr(request, 'es_administrador', False):
+            return redirect('listar_profesores')
+        else:
+            return redirect('dashboard_profesor')
+    
+    # Obtener información adicional del profesor
+    cursos = profesor.cursos_asignados.filter(activo=True, eliminado=False)
+    
+    context = {
+        'profesor': profesor,
+        'cursos': cursos,
+        'total_cursos': cursos.count(),
+        'es_administrador': getattr(request, 'es_administrador', False),
+        'es_mi_perfil': (getattr(request, 'profesor', None) and 
+                        getattr(request, 'profesor').id == profesor.id),
+    }
+    
+    return render(request, 'web/profesores/perfil.html', context)
+
+# ============================================
+# CURSOS (DIFERENCIADO POR ROL)
+# ============================================
+
+@login_required
+@requiere_permiso_profesor
+def mis_cursos(request):
+    """Lista de cursos - Diferente para profesores y administradores"""
+    
+    # OBTENER PROFESOR DE FORMA SEGURA
+    profesor = None
+    
+    # 1. Intentar obtener de request.profesor
+    if hasattr(request, 'profesor'):
+        profesor = request.profesor
+        print(f"✅ Profesor obtenido de request.profesor: {profesor}")
+    
+    # 2. Si no, intentar obtener de request.profesor_obj
+    elif hasattr(request, 'profesor_obj'):
+        profesor = request.profesor_obj
+        print(f"✅ Profesor obtenido de request.profesor_obj: {profesor}")
+    
+    # 3. Si no, intentar obtener por usuario
+    else:
+        try:
+            profesor = Profesor.objects.get(user=request.user)
+            print(f"✅ Profesor obtenido de base de datos: {profesor}")
+        except Profesor.DoesNotExist:
+            profesor = None
+            print(f"⚠️ No se encontró profesor para el usuario: {request.user.username}")
+    
+    # DETERMINAR SI ES ADMINISTRADOR
+    es_admin = False
+    if hasattr(request, 'es_administrador'):
+        es_admin = request.es_administrador
+    else:
+        # Calcular manualmente
+        es_admin = request.user.is_superuser or request.user.groups.filter(
+            name__in=['Administrativo', 'Coordinador']
+        ).exists()
+    
+    print(f"🔍 Es administrador: {es_admin}")
+    
+    # OBTENER FECHA ACTUAL
+    hoy = timezone.now().date()
+    
+    # Filtros comunes
+    estado = request.GET.get('estado', 'activos')
+    busqueda = request.GET.get('buscar', '')
+    
+    # Determinar qué cursos mostrar
+    if es_admin:
+        # Administradores ven TODOS los cursos
+        if estado == 'activos':
+            cursos = Curso.objects.filter(
+                activo=True, 
+                eliminado=False,
+                fecha_fin__gte=hoy  # Filtro para cursos activos (no finalizados)
+            )
+        elif estado == 'finalizados':
+            cursos = Curso.objects.filter(
+                fecha_fin__lt=hoy, 
+                activo=True, 
+                eliminado=False
+            )
+        elif estado == 'inactivos':
+            cursos = Curso.objects.filter(
+                activo=False, 
+                eliminado=False
+            )
+        else:  # todos (incluye inactivos pero no eliminados)
+            cursos = Curso.objects.filter(eliminado=False)
+        
+        titulo = "Todos los Cursos"
+        mostrar_profesor = True
+    else:
+        # Profesores ven solo SUS cursos
+        if not profesor:
+            # Si no es profesor ni admin, redirigir
+            from django.contrib import messages
+            messages.error(request, "No tienes permisos para acceder a esta sección.")
+            return redirect('home')
+        
+        if estado == 'activos':
+            cursos = profesor.cursos_asignados.filter(
+                activo=True, 
+                eliminado=False,
+                fecha_fin__gte=hoy  # Filtro para cursos activos (no finalizados)
+            )
+        elif estado == 'finalizados':
+            cursos = profesor.cursos_asignados.filter(
+                fecha_fin__lt=hoy, 
+                activo=True, 
+                eliminado=False
+            )
+        elif estado == 'inactivos':
+            cursos = profesor.cursos_asignados.filter(
+                activo=False, 
+                eliminado=False
+            )
+        else:  # todos (sus cursos no eliminados)
+            cursos = profesor.cursos_asignados.filter(eliminado=False)
+        
+        titulo = "Mis Cursos"
+        mostrar_profesor = False
+    
+    # Búsqueda
+    if busqueda:
+        if es_admin:
+            cursos = cursos.filter(
+                Q(nombre__icontains=busqueda) |
+                Q(dias__icontains=busqueda) |
+                Q(horario__icontains=busqueda) |
+                Q(profesor__nombre__icontains=busqueda) |
+                Q(profesor__apellido__icontains=busqueda)
+            )
+        else:
+            cursos = cursos.filter(
+                Q(nombre__icontains=busqueda) |
+                Q(dias__icontains=busqueda) |
+                Q(horario__icontains=busqueda)
+            )
+    
+    # Ordenar
+    cursos = cursos.order_by('-fecha_inicio')
+    
+    # CALCULAR ESTADÍSTICAS PARA EL TEMPLATE
+    if es_admin:
+        # Estadísticas para administrador
+        total_cursos = Curso.objects.filter(eliminado=False).count()
+        cursos_activos_total = Curso.objects.filter(
+            activo=True, 
+            eliminado=False,
+            fecha_fin__gte=hoy
+        ).count()
+        cursos_finalizados_total = Curso.objects.filter(
+            fecha_fin__lt=hoy,
+            activo=True,
+            eliminado=False
+        ).count()
+        cursos_inactivos_total = Curso.objects.filter(
+            activo=False,
+            eliminado=False
+        ).count()
+        
+        # Para el template, también necesitamos los QuerySets filtrados para mostrar en las tarjetas
+        cursos_activos_queryset = Curso.objects.filter(
+            activo=True, 
+            eliminado=False,
+            fecha_fin__gte=hoy
+        )
+        cursos_finalizados_queryset = Curso.objects.filter(
+            fecha_fin__lt=hoy,
+            activo=True,
+            eliminado=False
+        )
+    else:
+        # Estadísticas para profesor
+        total_cursos = profesor.cursos_asignados.filter(eliminado=False).count()
+        cursos_activos_total = profesor.cursos_asignados.filter(
+            activo=True, 
+            eliminado=False,
+            fecha_fin__gte=hoy
+        ).count()
+        cursos_finalizados_total = profesor.cursos_asignados.filter(
+            fecha_fin__lt=hoy,
+            activo=True,
+            eliminado=False
+        ).count()
+        cursos_inactivos_total = profesor.cursos_asignados.filter(
+            activo=False,
+            eliminado=False
+        ).count()
+        
+        # QuerySets filtrados para el profesor
+        cursos_activos_queryset = profesor.cursos_asignados.filter(
+            activo=True, 
+            eliminado=False,
+            fecha_fin__gte=hoy
+        )
+        cursos_finalizados_queryset = profesor.cursos_asignados.filter(
+            fecha_fin__lt=hoy,
+            activo=True,
+            eliminado=False
+        )
+    
+    # Paginación
+    page = request.GET.get('page', 1)
+    paginator = Paginator(cursos, 10)
+    
+    try:
+        cursos_paginados = paginator.page(page)
+    except:
+        cursos_paginados = paginator.page(1)
+    
+    context = {
+        'titulo': titulo,
+        'cursos': cursos_paginados,
+        'es_administrador': es_admin,
+        'mostrar_profesor': mostrar_profesor,
+        'cursos_activos': cursos_activos_total,  # Conteo para estadísticas
+        'cursos_finalizados': cursos_finalizados_total,  # Conteo para estadísticas
+        'cursos_inactivos': cursos_inactivos_total,  # Conteo para estadísticas
+        'total_cursos': total_cursos,
+        'estado_filtro': estado,
+        'busqueda_actual': busqueda,
+        'tipo_acceso': getattr(request, 'tipo_acceso', 'profesor'),
+        
+        # NUEVAS VARIABLES PARA EL TEMPLATE (QuerySets)
+        'cursos_activos_queryset': cursos_activos_queryset,  # Para usar en el template con .count
+        'cursos_finalizados_queryset': cursos_finalizados_queryset,  # Para usar en el template
+        'hoy': hoy,  # Pasar la fecha actual al template
+    }
+    
+    return render(request, 'web/profesores/mis_cursos.html', context)
+
+@login_required
+@requiere_permiso_profesor
+def detalle_curso_profesor(request, curso_id):
+    """Vista de solo lectura - Muestra detalles del curso"""
+    # Lógica de solo lectura
+    curso = get_object_or_404(Curso, id=curso_id)
+    inscripciones = Inscripcion.objects.filter(curso=curso, activo=True)
+    
+    context = {
+        'curso': curso,
+        'inscripciones': inscripciones,
+        'modo_vista': 'detalle',
+        'permisos': {
+            'puede_editar': False,  # En detalle no se puede editar
+            'puede_gestionar': request.user.has_perm('web.change_curso'),
+        }
+    }
+    return render(request, 'web/profesores/detalle_curso.html', context)
+
+@login_required
+@requiere_permiso_profesor
+def gestionar_curso(request, curso_id):
+    """Vista de gestión - Permite acciones administrativas"""
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Formularios de gestión
+    form_curso = CursoForm(instance=curso) if request.user.has_perm('web.change_curso') else None
+    form_alumno = AgregarAlumnoForm(curso=curso)
+    
+    if request.method == 'POST':
+        if 'actualizar_curso' in request.POST and form_curso:
+            # Lógica para actualizar curso
+            pass
+        elif 'agregar_alumno' in request.POST:
+            # Lógica para agregar alumno
+            pass
+    
+    context = {
+        'curso': curso,
+        'form_curso': form_curso,
+        'form_alumno': form_alumno,
+        'modo_vista': 'gestion',
+        'permisos': {
+            'puede_editar': request.user.has_perm('web.change_curso'),
+            'puede_eliminar': request.user.has_perm('web.delete_curso'),
+        }
+    }
+    return render(request, 'web/profesores/gestionar_curso.html', context)
+
+# ============================================
+# ASISTENCIA (DIFERENCIADO POR ROL)
+# ============================================
+
+def debug_view_info():
+    """Función para debug que muestra qué vista se está ejecutando"""
+    print("=" * 60)
+    print(f"🔍 EJECUTANDO VISTA: {sys._getframe(1).f_code.co_name}")
+    print(f"📂 MÓDULO: {__name__}")
+    print("=" * 60)
+
+
+def generar_fechas_clase(fecha_inicio, fecha_fin, dias_curso):
+    """
+    Genera las fechas de clase basado en los días configurados
+    """
+    # Mapeo de días en español a números de dateutil
+    dias_map = {
+        'LUNES': rrule.MO,
+        'MARTES': rrule.TU,
+        'MIERCOLES': rrule.WE,
+        'JUEVES': rrule.TH,
+        'VIERNES': rrule.FR,
+        'SABADO': rrule.SA,
+        'DOMINGO': rrule.SU
+    }
+    
+    dias_rrule = []
+    if dias_curso:
+        for dia in dias_curso.split(','):
+            dia_limpio = dia.strip().upper()
+            if dia_limpio in dias_map:
+                dias_rrule.append(dias_map[dia_limpio])
+    
+    if not dias_rrule:
+        return []
+    
+    # Convertir a objetos datetime si son date
+    if isinstance(fecha_inicio, datetime):
+        start_dt = fecha_inicio
+    else:
+        start_dt = datetime.combine(fecha_inicio, datetime.min.time())
+    
+    if isinstance(fecha_fin, datetime):
+        end_dt = fecha_fin
+    else:
+        end_dt = datetime.combine(fecha_fin, datetime.min.time())
+    
+    fechas = list(rrule.rrule(
+        rrule.WEEKLY,
+        dtstart=start_dt,
+        until=end_dt,
+        byweekday=dias_rrule
+    ))
+    
+    return [fecha.date() for fecha in fechas]
+
+@login_required
+def tomar_asistencia_unificada(request, curso_id):
+    """
+    Vista unificada para tomar asistencia - Acceso para:
+    - Profesor del curso
+    - Auxiliar asignado al curso  
+    - Personal ADMINISTRATIVO
+    - Personal COORDINADOR
+    - Personal SECRETARIA
+    - Superusuarios
+    """
+    print("=" * 60)
+    print(f"🎯 VISTA tomar_asistencia_unificada - Usuario: {request.user.username}")
+    
+    # Obtener el curso
+    curso = get_object_or_404(Curso, id=curso_id, activo=True, eliminado=False)
+    print(f"🎯 Curso: {curso.nombre}")
+    print(f"🎯 Profesor asignado: {curso.profesor}")
+    print(f"🎯 Auxiliar asignado: {curso.auxiliar}")
+    
+    # Determinar roles del usuario
+    es_profesor_del_curso = False
+    es_auxiliar_del_curso = False
+    es_personal_autorizado = False
+    es_superusuario = request.user.is_superuser
+    
+    # Verificar si es profesor del curso
+    try:
+        profesor_usuario = Profesor.objects.get(user=request.user, activo=True, eliminado=False)
+        print(f"🎯 Profesor encontrado en DB: {profesor_usuario}")
+        
+        if curso.profesor == profesor_usuario:
+            es_profesor_del_curso = True
+            print("✅ ES EL PROFESOR ASIGNADO AL CURSO")
+    except Profesor.DoesNotExist:
+        print("⚠️ Usuario no tiene perfil de profesor")
+    
+    # ==============================================
+    # VERIFICACIÓN MEJORADA DEL AUXILIAR
+    # ==============================================
+    try:
+        if curso.auxiliar:
+            print(f"🎯 Auxiliar asignado en curso: {curso.auxiliar}")
+            print(f"🎯 ID auxiliar: {curso.auxiliar.id}")
+            print(f"🎯 Usuario del auxiliar: {curso.auxiliar.user}")
+            print(f"🎯 Es usuario None?: {curso.auxiliar.user is None}")
+            print(f"🎯 Usuario actual: {request.user}")
+            print(f"🎯 ID Usuario actual: {request.user.id}")
+            
+            # Verificar primero si el auxiliar tiene un usuario asignado
+            if curso.auxiliar.user:
+                if curso.auxiliar.user.id == request.user.id:
+                    es_auxiliar_del_curso = True
+                    print("✅ ES EL AUXILIAR ASIGNADO AL CURSO (verificado por usuario)")
+                else:
+                    print(f"❌ Usuarios no coinciden: {curso.auxiliar.user.id} != {request.user.id}")
+            else:
+                print("⚠️ El auxiliar asignado no tiene usuario del sistema")
+                # Intentar crear usuario automáticamente si no existe
+                try:
+                    user_creado = curso.auxiliar.crear_usuario_sistema()
+                    if user_creado:
+                        print(f"✅ Usuario creado automáticamente: {user_creado}")
+                        # Refrescar el objeto desde la base de datos
+                        curso.auxiliar.refresh_from_db()
+                        
+                        # Ahora verificar si coincide con el usuario actual
+                        if curso.auxiliar.user and curso.auxiliar.user.id == request.user.id:
+                            es_auxiliar_del_curso = True
+                            print("✅ ES EL AUXILIAR ASIGNADO AL CURSO (usuario creado automáticamente)")
+                        else:
+                            print("⚠️ Usuario creado no coincide con usuario actual")
+                    else:
+                        print("❌ No se pudo crear usuario para el auxiliar")
+                except Exception as e:
+                    print(f"❌ Error al crear usuario para auxiliar: {e}")
+    except Exception as e:
+        print(f"❌ Error al verificar auxiliar: {e}")
+    
+    # Verificar si es personal autorizado (ADMINISTRATIVO, COORDINADOR, SECRETARIA)
+    try:
+        personal = Personal.objects.get(user=request.user, activo=True, eliminado=False)
+        print(f"🎯 Personal encontrado en DB: {personal}, Tipo: {personal.tipo}")
+        
+        # Verificar si este personal es el auxiliar del curso
+        if curso.auxiliar and curso.auxiliar.id == personal.id:
+            es_auxiliar_del_curso = True
+            print("✅ ES EL AUXILIAR ASIGNADO AL CURSO (verificado por ID de Personal)")
+        
+        # Verificar si es personal autorizado para tomar asistencia
+        if personal.tipo in ['ADMINISTRATIVO', 'COORDINADOR', 'SECRETARIA']:
+            es_personal_autorizado = True
+            print(f"✅ Es {personal.tipo} - AUTORIZADO para tomar asistencia")
+            
+    except Personal.DoesNotExist:
+        print("⚠️ Usuario no tiene perfil de personal")
+    
+    # ==============================================
+    # VERIFICACIÓN ADICIONAL POR EMAIL/LEGAJO
+    # ==============================================
+    if not es_auxiliar_del_curso and curso.auxiliar:
+        print("🎯 Verificación adicional de auxiliar:")
+        print(f"   Email auxiliar: {curso.auxiliar.mail}")
+        print(f"   Email usuario: {request.user.email}")
+        print(f"   Legajo auxiliar: {curso.auxiliar.legajo}")
+        
+        # Verificar por email
+        if curso.auxiliar.mail and curso.auxiliar.mail == request.user.email:
+            es_auxiliar_del_curso = True
+            print("✅ ES EL AUXILIAR (verificado por email)")
+        
+        # Verificar por legajo (si el username es el legajo)
+        if curso.auxiliar.legajo and curso.auxiliar.legajo == request.user.username:
+            es_auxiliar_del_curso = True
+            print("✅ ES EL AUXILIAR (verificado por legajo/username)")
+    
+    # ==============================================
+    # VERIFICACIÓN DE PERMISOS - SOBREESCRIBE CUALQUIER DECORADOR
+    # ==============================================
+    
+    # Lista de todos los roles autorizados para ACCEDER a la página
+    roles_autorizados_acceso = [
+        es_profesor_del_curso,
+        es_auxiliar_del_curso, 
+        es_personal_autorizado,
+        es_superusuario
+    ]
+    
+    # Si NINGUNO de los roles es verdadero, el usuario NO tiene permiso
+    if not any(roles_autorizados_acceso):
+        print("❌ USUARIO NO AUTORIZADO:")
+        print(f"   - Es profesor del curso: {es_profesor_del_curso}")
+        print(f"   - Es auxiliar del curso: {es_auxiliar_del_curso}")
+        print(f"   - Es personal autorizado: {es_personal_autorizado}")
+        print(f"   - Es superusuario: {es_superusuario}")
+        
+        messages.error(
+            request, 
+            "No tienes permiso para acceder a esta página. "
+            "Solo pueden acceder: profesor del curso, auxiliar asignado, "
+            "personal administrativo, coordinadores, secretarías o superusuarios."
+        )
+        
+        # Redirigir según el tipo de usuario
+        try:
+            Profesor.objects.get(user=request.user, activo=True, eliminado=False)
+            return redirect('mis_cursos_profesor')
+        except Profesor.DoesNotExist:
+            pass
+        
+        try:
+            Personal.objects.get(user=request.user, activo=True, eliminado=False)
+            return redirect('dashboard_personal')
+        except Personal.DoesNotExist:
+            pass
+        
+        return redirect('dashboard')
+    
+    # ==============================================
+    # DETERMINAR SI PUEDE EDITAR
+    # ==============================================
+    
+    # Reglas para editar:
+    # 1. Profesor del curso: SIEMPRE puede editar
+    # 2. Auxiliar del curso: SIEMPRE puede editar  
+    # 3. Personal autorizado: depende del parámetro ?editar=1
+    # 4. Superusuarios: SIEMPRE pueden editar
+    
+    puede_editar = False
+    
+    if es_profesor_del_curso:
+        puede_editar = True
+        print("✅ Puede editar (es profesor del curso)")
+    elif es_auxiliar_del_curso:
+        puede_editar = True
+        print("✅ Puede editar (es auxiliar del curso)")
+    elif es_superusuario:
+        puede_editar = True
+        print("✅ Puede editar (es superusuario)")
+    elif es_personal_autorizado:
+        # Para personal administrativo/coordinador/secretaría, usar parámetro editar
+        puede_editar = request.GET.get('editar') == '1'
+        print(f"✅ Personal autorizado - Puede editar: {puede_editar}")
+    else:
+        print("❌ No puede editar (no tiene permisos)")
+    
+    hoy = timezone.now().date()
+    
+    # Obtener inscripciones
+    inscripciones = Inscripcion.objects.filter(
+        curso=curso,
+        activo=True,
+        estado__in=['INSCRIPTO', 'CURSANDO']
+    ).select_related('alumno')
+    
+    print(f"📊 Total alumnos inscritos: {inscripciones.count()}")
+    
+    # Manejar POST (guardar asistencia)
+    if request.method == 'POST' and puede_editar:
+        try:
+            fecha_str = request.POST.get('fecha', hoy.isoformat())
+            fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+            
+            # Verificar que la fecha no sea futura
+            if fecha > hoy:
+                messages.error(request, 'No puedes tomar asistencia para fechas futuras')
+                return redirect('tomar_asistencia_profesor', curso_id=curso.id)
+            
+            # Lista para almacenar alumnos con ausencias consecutivas
+            alumnos_con_ausencias_consecutivas = []
+            
+            # Procesar cada alumno
+            for inscripcion in inscripciones:
+                alumno_id = str(inscripcion.alumno.id)
+                presente = request.POST.get(f'presente_{alumno_id}') == 'on'
+                observaciones = request.POST.get(f'observaciones_{alumno_id}', '').strip()
+                
+                # Crear o actualizar asistencia
+                Asistencia.objects.update_or_create(
+                    inscripcion=inscripcion,
+                    fecha=fecha,
+                    defaults={
+                        'presente': presente,
+                        'observaciones': observaciones,
+                        'registrado_por': request.user,
+                    }
+                )
+                
+                # ==============================================
+                # VERIFICAR AUSENCIAS CONSECUTIVAS
+                # ==============================================
+                if not presente:  # Si el alumno está ausente hoy
+                    # 1. Obtener todas las fechas de clase hasta hoy
+                    fechas_clase = generar_fechas_clase(
+                        curso.fecha_inicio,
+                        fecha,
+                        curso.dias
+                    )
+                    
+                    if len(fechas_clase) >= 2:
+                        # 2. Encontrar la posición de la fecha actual en la lista
+                        try:
+                            indice_actual = fechas_clase.index(fecha)
+                        except ValueError:
+                            # La fecha actual no es día de clase
+                            continue
+                        
+                        # 3. Si no es la primera clase, verificar la anterior
+                        if indice_actual > 0:
+                            fecha_clase_anterior = fechas_clase[indice_actual - 1]
+                            
+                            # 4. Buscar asistencia de la clase anterior
+                            try:
+                                asistencia_anterior = Asistencia.objects.get(
+                                    inscripcion=inscripcion,
+                                    fecha=fecha_clase_anterior
+                                )
+                                
+                                # 5. Si también estuvo ausente en la clase anterior
+                                if not asistencia_anterior.presente:
+                                    alumnos_con_ausencias_consecutivas.append({
+                                        'alumno': inscripcion.alumno,
+                                        'fecha_actual': fecha,
+                                        'fecha_anterior': fecha_clase_anterior
+                                    })
+                                    print(f"⚠️ ALERTA: {inscripcion.alumno.nombre_completo()} falta 2 veces consecutivas")
+                                    
+                            except Asistencia.DoesNotExist:
+                                # No hay registro de la clase anterior
+                                pass
+            
+            messages.success(request, f'Asistencia del {fecha.strftime("%d/%m/%Y")} guardada correctamente')
+            
+            # ==============================================
+            # NOTIFICACIONES POR AUSENCIAS CONSECUTIVAS
+            # ==============================================
+            if alumnos_con_ausencias_consecutivas and curso.auxiliar and curso.auxiliar.user:
+                try:
+                    # Buscar o crear tipo de notificación
+                    tipo_ausencia_consecutiva, created = TipoNotificacion.objects.get_or_create(
+                        codigo='AUSENCIA_CONSECUTIVA',
+                        defaults={
+                            'nombre': 'Ausencia Consecutiva de Alumno',
+                            'descripcion': 'Notificaciones por ausencias consecutivas de alumnos',
+                            'prioridad': 'ALTA',
+                            'color': 'warning',
+                            'icono': 'fa-user-times',
+                            'ES_MANUAL': False,
+                        }
+                    )
+                    
+                    if created:
+                        coordinadores = Personal.objects.filter(
+                            tipo__in=['COORDINADOR', 'ADMINISTRATIVO', 'SECRETARIA'],
+                            activo=True,
+                            eliminado=False
+                        )
+                        tipo_ausencia_consecutiva.PUEDE_ASIGNAR.set(coordinadores)
+                        tipo_ausencia_consecutiva.save()
+                        print(f"✅ Tipo de notificación creado: {tipo_ausencia_consecutiva}")
+                    
+                    # Crear notificaciones
+                    notificaciones_creadas = 0
+                    
+                    for registro in alumnos_con_ausencias_consecutivas:
+                        alumno = registro['alumno']
+                        fecha_actual = registro['fecha_actual']
+                        fecha_anterior = registro['fecha_anterior']
+                        
+                        # Verificar si ya existe notificación reciente
+                        notificacion_existente = Notificacion.objects.filter(
+                            usuario_destino=curso.auxiliar.user,
+                            tipo=tipo_ausencia_consecutiva,
+                            titulo__icontains=f"Ausencia consecutiva - {alumno.nombre_completo()}",
+                            fecha_creacion__gte=timezone.now() - timedelta(days=7)
+                        ).exists()
+                        
+                        if not notificacion_existente:
+                            Notificacion.objects.create(
+                                usuario_destino=curso.auxiliar.user,
+                                usuario_origen=None,
+                                tipo=tipo_ausencia_consecutiva,
+                                titulo=f'Ausencia consecutiva - {alumno.nombre_completo()}',
+                                mensaje=(
+                                    f'El alumno {alumno.nombre_completo()} ha faltado a 2 clases consecutivas del curso "{curso.nombre}".\n'
+                                    f'• Última ausencia: {fecha_actual.strftime("%d/%m/%Y")}\n'
+                                    f'• Ausencia anterior: {fecha_anterior.strftime("%d/%m/%Y")}\n'
+                                    f'• DNI: {alumno.dni}\n'
+                                    f'• Teléfono: {alumno.telefono or "No disponible"}\n'
+                                    f'• Email: {alumno.email or "No disponible"}'
+                                ),
+                                estado='PENDIENTE',
+                                prioridad='ALTA',
+                                es_manual=False
+                            )
+                            notificaciones_creadas += 1
+                            print(f"✅ Notificación creada para auxiliar por ausencia consecutiva de {alumno.nombre_completo()}")
+                    
+                    if notificaciones_creadas > 0:
+                        print(f"✅ {notificaciones_creadas} notificaciones de ausencia consecutiva creadas")
+                        
+                        # Informar al usuario
+                        messages.info(request, 
+                            f'Se ha notificado al auxiliar administrativo sobre {notificaciones_creadas} '
+                            f'alumno(s) con ausencias consecutivas.'
+                        )
+                            
+                except Exception as e:
+                    print(f"⚠️ Error al crear notificaciones por ausencia consecutiva: {e}")
+            
+            return redirect('tomar_asistencia_profesor', curso_id=curso.id)
+            
+        except Exception as e:
+            print(f"❌ Error al guardar asistencia: {e}")
+            messages.error(request, f'Error al guardar asistencia: {str(e)}')
+    
+    # Para GET: mostrar formulario
+    fecha_str = request.GET.get('fecha', hoy.isoformat())
+    try:
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+    except:
+        fecha = hoy
+    
+    print(f"📅 Fecha seleccionada: {fecha}")
+    
+    # Obtener asistencias para la fecha seleccionada
+    asistencias_fecha = Asistencia.objects.filter(
+        inscripcion__curso=curso,
+        fecha=fecha
+    ).select_related('inscripcion', 'inscripcion__alumno', 'registrado_por')
+    
+    print(f"📝 Asistencias encontradas para {fecha}: {asistencias_fecha.count()}")
+    
+    # Crear diccionario para fácil acceso
+    asistencias_dict = {}
+    for asistencia in asistencias_fecha:
+        asistencias_dict[asistencia.inscripcion.alumno.id] = asistencia
+    
+    # Calcular porcentaje de asistencia del curso
+    try:
+        total_asistencias = Asistencia.objects.filter(inscripcion__curso=curso).count()
+        total_presentes = Asistencia.objects.filter(inscripcion__curso=curso, presente=True).count()
+        porcentaje_asistencia = (total_presentes / total_asistencias * 100) if total_asistencias > 0 else 0
+    except:
+        porcentaje_asistencia = 0
+    
+    context = {
+        'curso': curso,
+        'inscripciones': inscripciones,
+        'es_profesor_del_curso': es_profesor_del_curso,
+        'es_auxiliar_del_curso': es_auxiliar_del_curso,
+        'es_personal_autorizado': es_personal_autorizado,
+        'es_superusuario': es_superusuario,
+        'puede_editar': puede_editar,
+        'hoy': hoy,
+        'fecha_seleccionada': fecha,
+        'asistencias_dict': asistencias_dict,
+        'porcentaje_asistencia': round(porcentaje_asistencia, 2),
+        'total_alumnos': inscripciones.count(),
+        'puede_ver_reportes': True,  # Todos los autorizados pueden ver reportes
+    }
+    
+    print("=" * 60)
+    return render(request, 'web/profesores/tomar_asistencia.html', context)
+
+# ============================================
+# NOTAS Y EXÁMENES
+# ============================================
+
+@login_required
+@requiere_permiso_profesor
+def gestionar_notas(request, curso_id):
+    curso = get_object_or_404(Curso, id=curso_id, activo=True)
+    
+    if not (getattr(request, 'es_administrador', False) or curso.profesor_id == request.profesor.id):
+        messages.error(request, "No tienes permiso para gestionar este curso.")
+        return redirect('dashboard_profesor')
+    
+    inscripciones = Inscripcion.objects.filter(
+        curso=curso,
+        activo=True,
+        estado__in=['INSCRIPTO', 'CURSANDO']
+    ).select_related('alumno')
+    
+    # Tipos de examen disponibles
+    tipos_examen = Examen.TIPO_CHOICES  # lista de tuplas
+    
+    # Obtener exámenes existentes
+    examenes = Examen.objects.filter(inscripcion__curso=curso).select_related('inscripcion')
+    examenes_dict = {}
+    for examen in examenes:
+        insc_id = examen.inscripcion.id
+        if insc_id not in examenes_dict:
+            examenes_dict[insc_id] = {}
+        examenes_dict[insc_id][examen.tipo] = examen
+    
+    if request.method == 'POST':
+        # Verificar si es una eliminación
+        if 'eliminar_examen' in request.POST:
+            examen_id = request.POST.get('eliminar_examen')
+            try:
+                examen = Examen.objects.get(id=examen_id, inscripcion__curso=curso)
+                examen.delete()
+                messages.success(request, "Examen eliminado correctamente.")
+            except Examen.DoesNotExist:
+                messages.error(request, "El examen no existe.")
+            return redirect('gestionar_notas', curso_id=curso.id)
+        
+        # Procesar guardado de notas
+        try:
+            for inscripcion in inscripciones:
+                for tipo, _ in tipos_examen:
+                    nota_key = f"nota_{inscripcion.id}_{tipo}"
+                    incluir_key = f"incluir_{inscripcion.id}_{tipo}"
+                    
+                    if nota_key in request.POST and request.POST[nota_key].strip():
+                        # Hay nota, procesar
+                        try:
+                            nota = float(request.POST[nota_key])
+                            incluir = incluir_key in request.POST  # True si el checkbox está marcado
+                            Examen.objects.update_or_create(
+                                inscripcion=inscripcion,
+                                tipo=tipo,
+                                defaults={
+                                    'nota': nota,
+                                    'incluir_en_promedio': incluir,
+                                    'fecha': timezone.now().date(),
+                                    # observaciones? Podríamos agregar un campo de observaciones si se necesita
+                                }
+                            )
+                        except ValueError:
+                            continue
+                    # Si no hay nota, no hacemos nada (no eliminamos exámenes existentes)
+            messages.success(request, 'Notas guardadas correctamente.')
+        except Exception as e:
+            messages.error(request, f'Error al guardar notas: {str(e)}')
+        
+        return redirect('gestionar_notas', curso_id=curso.id)
+    
+    context = {
+        'curso': curso,
+        'inscripciones': inscripciones,
+        'tipos_examen': tipos_examen,
+        'examenes_dict': examenes_dict,
+    }
+    return render(request, 'web/profesores/gestionar_notas.html', context)
+
+# ============================================
+# VISTAS ESPECIALES PARA ADMINISTRADORES
+# ============================================
+
+@login_required
+def switch_modo_profesor(request):
+    """
+    Cambia entre modo 'admin' y modo 'profesor'
+    Solo para administradores/coordinadores que también son profesores
+    """
+    modo = request.GET.get('modo', 'profesor')
+    
+    # Verificar que es administrador
+    if not getattr(request, 'es_administrador', False):
+        messages.error(request, "Solo administradores pueden cambiar de modo")
+        return redirect('dashboard_profesor')
+    
+    # Verificar que tiene perfil de profesor
+    profesor = getattr(request, 'profesor', None)
+    if not profesor and modo == 'profesor':
+        messages.error(request, "No tienes perfil de profesor para activar este modo")
+        return redirect('dashboard_admin_general')  # Redirigir al dashboard admin
+    
+    # Cambiar modo
+    request.session['modo_profesor'] = modo
+    
+    if modo == 'profesor':
+        messages.success(request, f"Modo profesor activado. Viendo como: {profesor.nombre_completo()}")
+        return redirect('dashboard_profesor')
+    else:
+        messages.success(request, "Modo administrador activado")
+        return redirect('dashboard_admin_general')  # Redirigir al dashboard admin
+    
+# ============================================
+# AJAX/RÁPIDAS
+# ============================================
+
+@login_required
+@requiere_permiso_profesor
+@require_GET
+def obtener_estadisticas_curso(request, curso_id):
+    """Obtener estadísticas del curso (AJAX)"""
+    try:
+        from django.db.models import Avg, Count
+        
+        es_admin = request.es_administrador
+        profesor = request.profesor
+        
+        # Obtener curso con permisos
+        from .models import Curso
+        if es_admin:
+            curso = Curso.objects.get(id=curso_id, activo=True, eliminado=False)
+        else:
+            curso = Curso.objects.get(id=curso_id, profesor=profesor, activo=True, eliminado=False)
+        
+        # Estadísticas
+        inscripciones = Inscripcion.objects.filter(
+            curso=curso,
+            activo=True,
+            estado__in=['INSCRIPTO', 'CURSANDO']
+        )
+        
+        total_alumnos = inscripciones.count()
+        
+        # Asistencia del mes
+        hoy = timezone.now().date()
+        asistencias_mes = Asistencia.objects.filter(
+            inscripcion__curso=curso,
+            fecha__month=hoy.month,
+            fecha__year=hoy.year
+        )
+        total_asistencias = asistencias_mes.count()
+        presentes = asistencias_mes.filter(presente=True).count()
+        porcentaje_asistencia = (presentes / total_asistencias * 100) if total_asistencias > 0 else 0
+        
+        # Notas
+        examenes = Examen.objects.filter(inscripcion__curso=curso)
+        promedio_notas = examenes.aggregate(prom=Avg('nota'))['prom'] if examenes.exists() else None
+        
+        # Alumnos con bajo rendimiento (< 6)
+        alumnos_bajo_rendimiento = 0
+        for inscripcion in inscripciones:
+            examenes_alumno = Examen.objects.filter(inscripcion=inscripcion)
+            if examenes_alumno.exists():
+                promedio = examenes_alumno.aggregate(prom=Avg('nota'))['prom']
+                if promedio and promedio < 6:
+                    alumnos_bajo_rendimiento += 1
+        
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'total_alumnos': total_alumnos,
+                'porcentaje_asistencia': round(porcentaje_asistencia, 1),
+                'promedio_notas': round(promedio_notas, 2) if promedio_notas else None,
+                'alumnos_bajo_rendimiento': alumnos_bajo_rendimiento,
+                'presentes_mes': presentes,
+                'total_clases_mes': total_asistencias // total_alumnos if total_alumnos > 0 else 0,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+    
+    
+# ============================================
+# VISTAS PARA EXÁMENES INDIVIDUALES
+# ============================================
+
+@login_required
+@requiere_permiso_profesor
+def agregar_examen_individual(request, inscripcion_id):
+    """
+    Vista para agregar un examen individual a un alumno inscrito en un curso.
+    Accesible para profesores y administradores.
+    """
+    # Obtener la inscripción
+    inscripcion = get_object_or_404(Inscripcion, id=inscripcion_id, activo=True)
+    alumno = inscripcion.alumno
+    curso = inscripcion.curso
+    
+    # Verificar permisos específicos
+    es_admin = request.es_administrador
+    profesor = request.profesor
+    
+    if not es_admin and curso.profesor != profesor:
+        messages.error(request, "Solo el profesor asignado puede agregar exámenes en este curso")
+        return redirect('detalle_curso_profesor', curso_id=curso.id)
+    
+    # Obtener exámenes existentes para este alumno en el curso
+    examenes_existentes = Examen.objects.filter(inscripcion=inscripcion)
+    tipos_existentes = [examen.tipo for examen in examenes_existentes]
+    
+    # Filtrar tipos disponibles (excluir los ya existentes)
+    TIPO_CHOICES_FILTRADOS = [
+        choice for choice in Examen.TIPO_CHOICES 
+        if choice[0] not in tipos_existentes
+    ]
+    
+    if request.method == 'POST':
+        # Crear formulario con datos POST
+        form = ExamenForm(request.POST, TIPO_CHOICES=TIPO_CHOICES_FILTRADOS)
+        
+        if form.is_valid():
+            try:
+                examen = form.save(commit=False)
+                examen.inscripcion = inscripcion
+                
+                # Verificar que no exista ya un examen del mismo tipo
+                if Examen.objects.filter(inscripcion=inscripcion, tipo=examen.tipo).exists():
+                    messages.error(request, f"Ya existe un examen de tipo {examen.get_tipo_display()} para este alumno")
+                else:
+                    examen.save()
+                    
+                    # Registrar en historial
+                    HistorialCambios.objects.create(
+                        usuario=request.user,
+                        modelo_afectado='EXAMEN',
+                        objeto_id=examen.id,
+                        accion='CREACION',
+                        detalles=f"Examen agregado: {examen.get_tipo_display()} - Nota: {examen.nota}",
+                        ip_address=request.META.get('REMOTE_ADDR')
+                    )
+                    
+                    messages.success(request, f"Examen {examen.get_tipo_display()} agregado exitosamente")
+                    
+                    # Redirigir según parámetro
+                    redireccion = request.GET.get('redirect_to', 'detalle_alumno_curso')
+                    if redireccion == 'detalle_curso':
+                        return redirect('detalle_curso_profesor', curso_id=curso.id)
+                    else:
+                        return redirect('detalle_alumno_curso', curso_id=curso.id, alumno_id=alumno.id)
+                        
+            except Exception as e:
+                messages.error(request, f"Error al guardar el examen: {str(e)}")
+        else:
+            messages.error(request, "Por favor, corrige los errores en el formulario")
+    else:
+        # Formulario inicial con fecha actual
+        form = ExamenForm(TIPO_CHOICES=TIPO_CHOICES_FILTRADOS, initial={
+            'fecha': timezone.now().date()
+        })
+    
+    # Calcular estadísticas del alumno
+    promedio_examenes = examenes_existentes.aggregate(Avg('nota'))['nota__avg']
+    mejor_examen = examenes_existentes.order_by('-nota').first()
+    peor_examen = examenes_existentes.order_by('nota').first()
+    
+    context = {
+        'titulo': f'Agregar Examen - {alumno.nombre_completo()}',
+        'form': form,
+        'alumno': alumno,
+        'curso': curso,
+        'inscripcion': inscripcion,
+        'es_administrador': es_admin,
+        'examenes_existentes': examenes_existentes,
+        'tipos_disponibles': TIPO_CHOICES_FILTRADOS,
+        'promedio_actual': round(promedio_examenes, 2) if promedio_examenes else None,
+        'mejor_examen': mejor_examen,
+        'peor_examen': peor_examen,
+        'tipo_acceso': request.tipo_acceso,
+    }
+    
+    return render(request, 'web/profesores/agregar_examen.html', context)
+
+
+@login_required
+@requiere_permiso_profesor
+def editar_examen(request, examen_id):
+    """
+    Vista para editar un examen existente
+    """
+    examen = get_object_or_404(Examen, id=examen_id)
+    inscripcion = examen.inscripcion
+    alumno = inscripcion.alumno
+    curso = inscripcion.curso
+    
+    # Verificar permisos
+    es_admin = request.es_administrador
+    profesor = request.profesor
+    
+    if not es_admin and curso.profesor != profesor:
+        messages.error(request, "No tienes permiso para editar este examen")
+        return redirect('detalle_curso_profesor', curso_id=curso.id)
+    
+    if request.method == 'POST':
+        form = ExamenForm(request.POST, instance=examen)
+        if form.is_valid():
+            examen_original = Examen.objects.get(id=examen_id)
+            nota_original = examen_original.nota
+            tipo_original = examen_original.get_tipo_display()
+            
+            examen_editado = form.save()
+            
+            # Registrar en historial
+            HistorialCambios.objects.create(
+                usuario=request.user,
+                modelo_afectado='EXAMEN',
+                objeto_id=examen.id,
+                accion='MODIFICACION',
+                detalles=f"Examen modificado: {tipo_original} - Nota: {nota_original} → {examen_editado.nota}",
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            messages.success(request, "Examen actualizado correctamente")
+            
+            redireccion = request.GET.get('redirect_to', 'detalle_alumno_curso')
+            if redireccion == 'detalle_curso':
+                return redirect('detalle_curso_profesor', curso_id=curso.id)
+            else:
+                return redirect('detalle_alumno_curso', curso_id=curso.id, alumno_id=alumno.id)
+    else:
+        form = ExamenForm(instance=examen)
+    
+    context = {
+        'titulo': f'Editar Examen - {alumno.nombre_completo()}',
+        'form': form,
+        'examen': examen,
+        'alumno': alumno,
+        'curso': curso,
+        'es_administrador': es_admin,
+        'tipo_acceso': request.tipo_acceso,
+    }
+    
+    return render(request, 'web/profesores/editar_examen.html', context)
+
+
+@login_required
+@requiere_permiso_profesor
+@require_POST
+def eliminar_examen(request, examen_id):
+    """
+    Eliminar un examen (solo administradores)
+    """
+    examen = get_object_or_404(Examen, id=examen_id)
+    inscripcion = examen.inscripcion
+    curso = inscripcion.curso
+    
+    # Solo administradores pueden eliminar
+    if not request.es_administrador:
+        return JsonResponse({
+            'success': False,
+            'error': 'Solo administradores pueden eliminar exámenes'
+        })
+    
+    try:
+        # Registrar antes de eliminar
+        HistorialCambios.objects.create(
+            usuario=request.user,
+            modelo_afectado='EXAMEN',
+            objeto_id=examen.id,
+            accion='ELIMINACION',
+            detalles=f"Examen eliminado: {examen.get_tipo_display()} - Nota: {examen.nota}",
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        examen.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Examen eliminado correctamente'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+        
+# web/views_profesores.py
+
+# @login_required
+# @requiere_permiso_profesor  # Este decorador ya permite acceso a ambos
+# def dashboard_profesor(request, profesor_id=None):
+#     """
+#     Dashboard unificado que funciona para:
+#     1. Profesores (ven su propio dashboard)
+#     2. Administradores viendo un profesor específico
+#     3. Administradores en modo gestión general
+#     """
+    
+#     # Obtener información del usuario actual
+#     es_admin = getattr(request, 'es_administrador', False)
+#     profesor_actual = getattr(request, 'profesor', None)
+#     modo_admin = request.session.get('modo_profesor', 'admin')
+    
+#     print(f"🎯 DASHBOARD PROFESOR - es_admin: {es_admin}, profesor_actual: {profesor_actual}, profesor_id: {profesor_id}")
+    
+#     # ===== DETERMINAR MODO DE OPERACIÓN =====
+#     profesor_a_mostrar = None
+#     modo_vista = None
+    
+#     # CASO A: Se pasó un profesor_id explícito (admin viendo otro profesor)
+#     if profesor_id:
+#         if not es_admin:
+#             messages.error(request, "No tienes permiso para ver el dashboard de otros profesores.")
+#             return redirect('dashboard_profesor')
+        
+#         try:
+#             profesor_a_mostrar = Profesor.objects.get(
+#                 id=profesor_id,
+#                 activo=True,
+#                 eliminado=False
+#             )
+#             modo_vista = 'admin_viendo_profesor'
+#             print(f"✅ Admin viendo profesor específico: {profesor_a_mostrar.nombre_completo()}")
+#         except Profesor.DoesNotExist:
+#             messages.error(request, "El profesor solicitado no existe o no está activo.")
+#             return redirect('listar_profesores')
+    
+#     # CASO B: Usuario es profesor y quiere ver su dashboard
+#     elif profesor_actual and modo_admin == 'profesor':
+#         profesor_a_mostrar = profesor_actual
+#         modo_vista = 'profesor'
+#         print(f"✅ Profesor viendo SU propio dashboard: {profesor_a_mostrar.nombre_completo()}")
+    
+#     # CASO C: Admin en modo gestión (sin profesor específico)
+#     elif es_admin:
+#         # Redirigir o mostrar dashboard administrativo general
+#         return dashboard_admin_general(request)
+    
+#     # CASO D: No es admin ni tiene perfil de profesor
+#     else:
+#         messages.error(request, "No tienes un perfil de profesor activo.")
+#         return redirect('inicio')
+    
+#     # ===== OBTENER DATOS PARA EL DASHBOARD =====
+#     # Aquí obtenemos todos los datos específicos del profesor
+#     cursos_asignados = profesor_a_mostrar.curso_set.filter(
+#         activo=True, 
+#         eliminado=False
+#     ).select_related('modalidad').prefetch_related('inscripcion_set')
+    
+#     # Calcular estadísticas
+#     total_cursos = cursos_asignados.count()
+    
+#     # Total de alumnos en todos los cursos del profesor
+#     total_alumnos = 0
+#     for curso in cursos_asignados:
+#         total_alumnos += curso.inscripcion_set.filter(
+#             activo=True, 
+#             estado__in=['INSCRIPTO', 'CURSANDO']
+#         ).count()
+    
+#     # Próximas clases (simplificado: cursos que empiezan hoy o en el futuro)
+#     hoy = timezone.now().date()
+#     proximas_clases = cursos_asignados.filter(
+#         fecha_inicio__gte=hoy
+#     ).order_by('fecha_inicio')[:5]
+    
+#     # Obtener asistencias pendientes (si tienes modelo Asistencia)
+#     asistencias_pendientes = 0
+#     try:
+#         from .models import Asistencia
+#         for curso in cursos_asignados:
+#             asistencias_pendientes += Asistencia.objects.filter(
+#                 curso=curso,
+#                 fecha=hoy,
+#                 tomada=False
+#             ).count()
+#     except:
+#         pass
+    
+#     # ===== PREPARAR CONTEXTO =====
+#     context = {
+#         'profesor': profesor_a_mostrar,
+#         'cursos_asignados': cursos_asignados,
+#         'total_cursos': total_cursos,
+#         'total_alumnos': total_alumnos,
+#         'proximas_clases': proximas_clases,
+#         'asistencias_pendientes': asistencias_pendientes,
+        
+#         # Variables de control
+#         'es_administrador': es_admin,
+#         'es_profesor': not es_admin,
+#         'modo_vista': modo_vista,
+#         'es_mi_dashboard': (profesor_actual and 
+#                           profesor_actual.id == profesor_a_mostrar.id),
+        
+#         # Para el template específico
+#         'tiene_foto': profesor_a_mostrar.foto and os.path.exists(profesor_a_mostrar.foto.path),
+#     }
+    
+#     return render(request, 'web/profesores/dashboard.html', context)
+
+
+@login_required
+@login_required
+def dashboard_admin_general(request):
+    """Dashboard administrativo general - Versión simplificada"""
+    
+    # Verificar que es administrador
+    if not getattr(request, 'es_administrador', False):
+        messages.error(request, "No tienes permisos administrativos")
+        return redirect('dashboard_profesor')
+    
+    try:
+        # Estadísticas generales
+        total_cursos = Curso.objects.filter(activo=True, eliminado=False).count()
+        total_profesores = Profesor.objects.filter(activo=True, eliminado=False).count()
+        total_alumnos = Alumno.objects.filter(activo=True, eliminado=False).count()
+        
+        # Cursos recientes
+        cursos_recientes = Curso.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('-fecha_creacion')[:5]
+        
+        # Profesores recientes
+        profesores_recientes = Profesor.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('-fecha_creacion')[:5]
+        
+        # Notificaciones pendientes - VERSIÓN SIMPLIFICADA
+        notificaciones_pendientes = 0
+        try:
+            # Intenta con el campo correcto
+            notificaciones_pendientes = Notificacion.objects.filter(
+                usuario_destino=request.user,
+                eliminada=False
+            ).filter(fecha_leida__isnull=True).count()
+        except Exception as e:
+            # Si falla, muestra 0 pero registra el error
+            print(f"⚠️ Error al contar notificaciones: {e}")
+            notificaciones_pendientes = 0
+        
+        context = {
+            'titulo': 'Dashboard Administrativo',
+            'es_administrador': True,
+            'modo_vista': 'admin_general',
+            
+            # Estadísticas
+            'total_cursos': total_cursos,
+            'total_profesores': total_profesores,
+            'total_alumnos': total_alumnos,
+            'notificaciones_pendientes': notificaciones_pendientes,
+            
+            # Listas para acciones rápidas
+            'profesores_recientes': profesores_recientes,
+            'cursos_recientes': cursos_recientes,
+        }
+        
+        return render(request, 'web/profesores/dashboard_admin.html', context)
+        
+    except Exception as e:
+        messages.error(request, f"Error al cargar el dashboard: {str(e)}")
+        return redirect('listar_profesores')
+
+# ============================================
+# VISTAS CON PARÁMETROS PARA ADMINISTRADORES
+# ============================================
+
+@login_required
+@requiere_permiso_profesor
+def perfil_profesor_detalle(request, profesor_id):
+    """Perfil de profesor específico (para administradores)"""
+    return perfil_profesor(request, profesor_id)
+
+@login_required
+@requiere_permiso_profesor
+def mis_cursos_detalle(request, profesor_id):
+    """Cursos de un profesor específico (para administradores)"""
+    
+    # Obtener el profesor
+    profesor = get_object_or_404(Profesor, 
+        id=profesor_id,
+        activo=True,
+        eliminado=False
+    )
+    
+    # Verificar permisos (solo admin puede ver otros profesores)
+    if not request.es_administrador:
+        messages.error(request, "No tienes permiso para ver los cursos de otros profesores")
+        return redirect('mis_cursos_profesor')
+    
+    # Obtener cursos del profesor
+    cursos = profesor.cursos_asignados.filter(
+        activo=True,
+        eliminado=False
+    ).order_by('-fecha_inicio')
+    
+    # Estadísticas
+    total_cursos = cursos.count()
+    cursos_activos = cursos.filter(activo=True).count()
+    cursos_finalizados = cursos.filter(fecha_fin__lt=timezone.now().date()).count()
+    
+    context = {
+        'titulo': f'Cursos de {profesor.nombre_completo()}',
+        'cursos': cursos,
+        'profesor': profesor,
+        'es_administrador': True,
+        'mostrar_profesor': False,  # Ya sabemos que son todos de este profesor
+        'cursos_activos': cursos_activos,
+        'cursos_finalizados': cursos_finalizados,
+        'total_cursos': total_cursos,
+        'es_otro_profesor': True,
+        'tipo_acceso': request.tipo_acceso,
+    }
+    
+    return render(request, 'web/profesores/mis_cursos.html', context)
+
+@login_required
+@requiere_permiso_profesor
+def dashboard_profesor_detalle(request, profesor_id):
+    """Dashboard de un profesor específico (para administradores)"""
+    
+    # Verificar que es administrador
+    if not request.es_administrador:
+        messages.error(request, "No tienes permiso para ver el dashboard de otros profesores")
+        return redirect('dashboard_profesor')
+    
+    # Obtener el profesor
+    profesor = get_object_or_404(Profesor,
+        id=profesor_id,
+        activo=True,
+        eliminado=False
+    )
+    
+    # Datos para el dashboard
+    cursos_asignados = profesor.cursos_asignados.filter(
+        activo=True,
+        eliminado=False
+    )
+    
+    total_cursos = cursos_asignados.count()
+    hoy = timezone.now().date()
+    
+    # Cursos próximos
+    cursos_proximos = cursos_asignados.filter(
+        fecha_inicio__gte=hoy
+    ).order_by('fecha_inicio')[:3]
+    
+    context = {
+        'titulo': f'Dashboard de {profesor.nombre_completo()}',
+        'profesor': profesor,
+        'cursos_asignados': cursos_asignados,
+        'total_cursos': total_cursos,
+        'cursos_proximos': cursos_proximos,
+        'es_administrador': True,
+        'es_profesor': False,
+        'es_otro_profesor': True,
+        'hoy': hoy,
+        'tipo_acceso': request.tipo_acceso,
+        'modo_vista': 'admin_viendo_profesor',  # <-- AÑADIR ESTO
+    }
+    
+    return render(request, 'web/profesores/dashboard.html', context)
+
+# ============================================
+# VISTAS ADMINISTRATIVAS
+# ============================================
+
+@login_required
+@login_required
+def dashboard_admin_general(request):
+    """Dashboard administrativo general - VERSIÓN CORREGIDA"""
+    
+    # Verificar que es administrador
+    if not getattr(request, 'es_administrador', False):
+        messages.error(request, "No tienes permisos administrativos")
+        return redirect('dashboard_profesor')
+    
+    try:
+        # Importar los modelos necesarios
+        from .models import Curso, Profesor, Alumno, Notificacion
+        
+        # Estadísticas generales
+        total_cursos = Curso.objects.filter(activo=True, eliminado=False).count()
+        total_profesores = Profesor.objects.filter(activo=True, eliminado=False).count()
+        total_alumnos = Alumno.objects.filter(activo=True, eliminado=False).count()
+        
+        # Cursos recientes
+        cursos_recientes = Curso.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('-fecha_creacion')[:5]
+        
+        # Profesores recientes
+        profesores_recientes = Profesor.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('-fecha_creacion')[:5]
+        
+        # Notificaciones pendientes - SOLUCIÓN DEFINITIVA
+        # Usa solo campos que SÍ existen según el error
+        notificaciones_pendientes = Notificacion.objects.filter(
+            usuario_destino=request.user,
+            eliminada=False
+        ).filter(
+            fecha_leida__isnull=True  # Notificaciones no leídas
+        ).count()
+        
+        context = {
+            'titulo': 'Dashboard Administrativo',
+            'es_administrador': True,
+            'modo_vista': 'admin_general',
+            
+            # Estadísticas
+            'total_cursos': total_cursos,
+            'total_profesores': total_profesores,
+            'total_alumnos': total_alumnos,
+            'notificaciones_pendientes': notificaciones_pendientes,
+            
+            # Listas para acciones rápidas
+            'profesores_recientes': profesores_recientes,
+            'cursos_recientes': cursos_recientes,
+            
+            # Datos para gráficos
+            'tipo_acceso': request.tipo_acceso,
+        }
+        
+        return render(request, 'web/profesores/dashboard_admin.html', context)
+        
+    except Exception as e:
+        # Manejo de errores
+        print(f"❌ ERROR en dashboard_admin_general: {str(e)}")
+        messages.error(request, f"Error al cargar el dashboard: {str(e)}")
+        return redirect('listar_profesores')
+    
+    
+    
+    
+    
+    # Agrega esto al final de views_profesores.py
+
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def test_permisos(request):
+    """Vista temporal para debug de permisos"""
+    user = request.user
+    
+    data = {
+        'username': user.username,
+        'is_authenticated': user.is_authenticated,
+        'is_superuser': user.is_superuser,
+        'groups': [g.name for g in user.groups.all()],
+        'permissions': list(user.get_all_permissions()),
+    }
+    
+    # Verificar si tiene perfil de profesor
+    try:
+        profesor = Profesor.objects.get(user=user)
+        data['profesor'] = {
+            'nombre': profesor.nombre_completo(),
+            'activo': profesor.activo,
+            'eliminado': profesor.eliminado,
+        }
+    except Profesor.DoesNotExist:
+        data['profesor'] = None
+    
+    # Verificar si tiene perfil de personal
+    try:
+        personal = Personal.objects.get(user=user)
+        data['personal'] = {
+            'tipo': personal.tipo,
+            'activo': personal.activo,
+            'eliminado': personal.eliminado,
+        }
+    except Personal.DoesNotExist:
+        data['personal'] = None
+    
+    # Retornar JSON en lugar de template (más simple)
+    return JsonResponse(data)
+
+# En views_profesores.py - VERSIÓN CORREGIDA
+
+@login_required
+def reporte_asistencia_curso(request, curso_id):
+    """
+    Reporte completo de asistencia para un curso
+    - Permitir a profesores ver reportes de SUS cursos
+    - Permitir a administradores ver reportes de TODOS los cursos
+    """
+    print("=" * 60)
+    print(f"📊 EJECUTANDO reporte_asistencia_curso - Curso ID: {curso_id}")
+    print(f"📊 Usuario: {request.user.username}")
+    
+    # Obtener el curso
+    curso = get_object_or_404(Curso, id=curso_id, activo=True, eliminado=False)
+    print(f"📊 Curso: {curso.nombre}")
+    print(f"📊 Profesor asignado: {curso.profesor}")
+    
+    # Determinar permisos
+    es_profesor_del_curso = False
+    es_administrador = False
+    
+    # Verificar si es profesor del curso
+    try:
+        profesor = Profesor.objects.get(user=request.user, activo=True, eliminado=False)
+        print(f"📊 Profesor usuario: {profesor}")
+        
+        if curso.profesor == profesor:
+            es_profesor_del_curso = True
+            print("✅ ES EL PROFESOR ASIGNADO - PERMITIR ACCESO")
+        else:
+            print("⚠️ NO ES EL PROFESOR ASIGNADO")
+    except Profesor.DoesNotExist:
+        print("⚠️ Usuario no tiene perfil de profesor")
+    
+    # Verificar si es administrador/coordinador
+    if not es_profesor_del_curso:
+        if request.user.is_superuser:
+            es_administrador = True
+            print("✅ Es superusuario - PERMITIR ACCESO")
+        else:
+            try:
+                personal = Personal.objects.get(user=request.user, activo=True, eliminado=False)
+                if personal.tipo in ['ADMINISTRATIVO', 'COORDINADOR']:
+                    es_administrador = True
+                    print(f"✅ Es {personal.tipo} - PERMITIR ACCESO")
+            except Personal.DoesNotExist:
+                pass
+    
+    # Verificar permisos
+    if not (es_profesor_del_curso or es_administrador):
+        print("❌ NO TIENE PERMISOS - REDIRIGIR")
+        messages.error(request, 
+            "No tienes permiso para ver este reporte. "
+            "Solo el profesor asignado o administradores pueden acceder."
+        )
+        # Redirigir a la vista de tomar asistencia (que ya verifica permisos)
+        return redirect('tomar_asistencia', curso_id=curso_id)
+    
+    print("✅ TIENE PERMISOS - GENERANDO REPORTE")
+    
+    # Obtener todas las inscripciones
+    inscripciones = Inscripcion.objects.filter(
+        curso=curso,
+        activo=True
+    ).select_related('alumno')
+    
+    print(f"📊 Total alumnos inscritos: {inscripciones.count()}")
+    
+    # Obtener todas las fechas de asistencia del curso
+    fechas_asistencia = Asistencia.objects.filter(
+        inscripcion__curso=curso
+    ).values_list('fecha', flat=True).distinct().order_by('fecha')
+    
+    print(f"📊 Total fechas con asistencia: {fechas_asistencia.count()}")
+    
+    # Calcular estadísticas por alumno
+    estadisticas_alumnos = []
+    for inscripcion in inscripciones:
+        asistencias = Asistencia.objects.filter(inscripcion=inscripcion)
+        total_clases = asistencias.count()
+        total_presentes = asistencias.filter(presente=True).count()
+        porcentaje = (total_presentes / total_clases * 100) if total_clases > 0 else 0
+        
+        estadisticas_alumnos.append({
+            'alumno': inscripcion.alumno,
+            'inscripcion': inscripcion,
+            'total_clases': total_clases,
+            'total_presentes': total_presentes,
+            'total_ausentes': total_clases - total_presentes,
+            'porcentaje_asistencia': round(porcentaje, 2),
+            'ultima_asistencia': asistencias.order_by('-fecha').first(),
+        })
+    
+    # Estadísticas generales del curso
+    total_alumnos = inscripciones.count()
+    total_asistencias = Asistencia.objects.filter(inscripcion__curso=curso).count()
+    total_presentes = Asistencia.objects.filter(inscripcion__curso=curso, presente=True).count()
+    promedio_curso = (total_presentes / total_asistencias * 100) if total_asistencias > 0 else 0
+    
+    print(f"📊 Estadísticas - Alumnos: {total_alumnos}, Asistencias: {total_asistencias}, Presentes: {total_presentes}, Promedio: {promedio_curso}%")
+    
+    context = {
+        'curso': curso,
+        'estadisticas_alumnos': estadisticas_alumnos,
+        'fechas_asistencia': fechas_asistencia,
+        'total_alumnos': total_alumnos,
+        'total_asistencias': total_asistencias,
+        'total_presentes': total_presentes,
+        'promedio_curso': round(promedio_curso, 2),
+        'fecha_reporte': timezone.now(),
+        'es_profesor_del_curso': es_profesor_del_curso,
+        'es_administrador': es_administrador,
+    }
+    
+    return render(request, 'web/profesores/reporte_asistencia.html', context)
+
+
+@login_required
+def exportar_asistencia(request, curso_id):
+    """
+    Exportar asistencia a Excel
+    """
+    print("=" * 60)
+    print(f"📈 EJECUTANDO exportar_asistencia - Curso ID: {curso_id}")
+    print(f"📈 Usuario: {request.user.username}")
+    
+    # Obtener el curso
+    curso = get_object_or_404(Curso, id=curso_id, activo=True, eliminado=False)
+    
+    # Determinar permisos (misma lógica que reporte_asistencia_curso)
+    es_profesor_del_curso = False
+    es_administrador = False
+    
+    # Verificar si es profesor del curso
+    try:
+        profesor = Profesor.objects.get(user=request.user, activo=True, eliminado=False)
+        if curso.profesor == profesor:
+            es_profesor_del_curso = True
+            print("✅ ES EL PROFESOR ASIGNADO - PERMITIR EXPORTACIÓN")
+    except Profesor.DoesNotExist:
+        pass
+    
+    # Verificar si es administrador/coordinador
+    if not es_profesor_del_curso:
+        if request.user.is_superuser:
+            es_administrador = True
+            print("✅ Es superusuario - PERMITIR EXPORTACIÓN")
+        else:
+            try:
+                personal = Personal.objects.get(user=request.user, activo=True, eliminado=False)
+                if personal.tipo in ['ADMINISTRATIVO', 'COORDINADOR']:
+                    es_administrador = True
+                    print(f"✅ Es {personal.tipo} - PERMITIR EXPORTACIÓN")
+            except Personal.DoesNotExist:
+                pass
+    
+    # Verificar permisos
+    if not (es_profesor_del_curso or es_administrador):
+        print("❌ NO TIENE PERMISOS - REDIRIGIR")
+        messages.error(request, 
+            "No tienes permiso para exportar este reporte. "
+            "Solo el profesor asignado o administradores pueden acceder."
+        )
+        return redirect('tomar_asistencia', curso_id=curso_id)
+    """
+    Exportar asistencia a Excel
+    """
+    curso = get_object_or_404(Curso, id=curso_id, activo=True, eliminado=False)
+    
+    # Verificar permisos
+    if not (request.user.is_superuser or 
+            curso.profesor == request.user.profesor if hasattr(request.user, 'profesor') else False):
+        messages.error(request, "No tienes permiso para exportar este reporte")
+        return redirect('mis_cursos')
+    
+    # Obtener datos
+    inscripciones = Inscripcion.objects.filter(
+        curso=curso,
+        activo=True
+    ).select_related('alumno')
+    
+    fechas_asistencia = Asistencia.objects.filter(
+        inscripcion__curso=curso
+    ).values_list('fecha', flat=True).distinct().order_by('fecha')
+    
+    # Crear respuesta Excel
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = f'attachment; filename="asistencia_{curso.nombre}_{timezone.now().date()}.xls"'
+    
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('Asistencia')
+    
+    # Estilos
+    style_header = xlwt.easyxf('font: bold on; align: horiz center')
+    style_date = xlwt.easyxf(num_format_str='DD/MM/YYYY')
+    style_percent = xlwt.easyxf(num_format_str='0.00%')
+    
+    # Escribir encabezados
+    headers = ['ID', 'Apellido', 'Nombre', 'DNI', 'Email', 'Teléfono']
+    for fecha in fechas_asistencia:
+        headers.append(fecha.strftime('%d/%m'))
+    headers.extend(['Total Clases', 'Presentes', 'Ausentes', '% Asistencia'])
+    
+    for col, header in enumerate(headers):
+        ws.write(0, col, header, style_header)
+    
+    # Escribir datos de alumnos
+    for row, inscripcion in enumerate(inscripciones, 1):
+        alumno = inscripcion.alumno
+        ws.write(row, 0, alumno.id)
+        ws.write(row, 1, alumno.apellido)
+        ws.write(row, 2, alumno.nombre)
+        ws.write(row, 3, alumno.dni or '')
+        ws.write(row, 4, alumno.email or '')
+        ws.write(row, 5, alumno.telefono or '')
+        
+        # Asistencias por fecha
+        total_presentes = 0
+        for col, fecha in enumerate(fechas_asistencia, 6):
+            try:
+                asistencia = Asistencia.objects.get(
+                    inscripcion=inscripcion,
+                    fecha=fecha
+                )
+                ws.write(row, col, 'P' if asistencia.presente else 'A')
+                if asistencia.presente:
+                    total_presentes += 1
+            except Asistencia.DoesNotExist:
+                ws.write(row, col, '-')
+        
+        # Estadísticas
+        total_clases = len(fechas_asistencia)
+        total_ausentes = total_clases - total_presentes
+        porcentaje = total_presentes / total_clases if total_clases > 0 else 0
+        
+        ws.write(row, 6 + len(fechas_asistencia), total_clases)
+        ws.write(row, 7 + len(fechas_asistencia), total_presentes)
+        ws.write(row, 8 + len(fechas_asistencia), total_ausentes)
+        ws.write(row, 9 + len(fechas_asistencia), porcentaje, style_percent)
+    
+    # Ajustar anchos de columna
+    for i in range(len(headers)):
+        ws.col(i).width = 256 * 15  # 15 caracteres
+    
+    wb.save(response)
+    return response
+
+@login_required
+def exportar_asistencia_csv(request, curso_id):
+    """
+    Exportar asistencia a CSV (alternativa más simple)
+    """
+    curso = get_object_or_404(Curso, id=curso_id, activo=True, eliminado=False)
+    
+    # Verificar permisos
+    if not (request.user.is_superuser or 
+            curso.profesor == request.user.profesor if hasattr(request.user, 'profesor') else False):
+        messages.error(request, "No tienes permiso para exportar este reporte")
+        return redirect('mis_cursos')
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="asistencia_{curso.nombre}_{timezone.now().date()}.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Encabezados
+    writer.writerow(['Reporte de Asistencia', curso.nombre, f'Generado: {timezone.now().strftime("%d/%m/%Y %H:%M")}'])
+    writer.writerow([])
+    
+    # Datos del curso
+    writer.writerow(['Curso:', curso.nombre])
+    writer.writerow(['Profesor:', curso.profesor.nombre_completo() if curso.profesor else 'No asignado'])
+    writer.writerow(['Fecha inicio:', curso.fecha_inicio.strftime('%d/%m/%Y')])
+    writer.writerow(['Fecha fin:', curso.fecha_fin.strftime('%d/%m/%Y')])
+    writer.writerow([])
+    
+    # Encabezados de tabla
+    writer.writerow(['ID', 'Apellido', 'Nombre', 'DNI', 'Total Clases', 'Presentes', 'Ausentes', '% Asistencia'])
+    
+    # Datos de alumnos
+    inscripciones = Inscripcion.objects.filter(
+        curso=curso,
+        activo=True
+    ).select_related('alumno')
+    
+    for inscripcion in inscripciones:
+        alumno = inscripcion.alumno
+        asistencias = Asistencia.objects.filter(inscripcion=inscripcion)
+        total_clases = asistencias.count()
+        total_presentes = asistencias.filter(presente=True).count()
+        total_ausentes = total_clases - total_presentes
+        porcentaje = (total_presentes / total_clases * 100) if total_clases > 0 else 0
+        
+        writer.writerow([
+            alumno.id,
+            alumno.apellido,
+            alumno.nombre,
+            alumno.dni or '',
+            total_clases,
+            total_presentes,
+            total_ausentes,
+            f'{porcentaje:.2f}%'
+        ])
+    
+    return response
+
+# En utils.py o en tu views_profesores.py
+def verificar_ausencias_consecutivas_alumno(inscripcion, fecha_actual):
+    """
+    Verifica si un alumno tiene 2 ausencias consecutivas.
+    Retorna True si es así.
+    """
+    try:
+        # Obtener las últimas 4 asistencias para verificar patrones
+        asistencias_recientes = Asistencia.objects.filter(
+            inscripcion=inscripcion,
+            fecha__lte=fecha_actual  # Solo fechas anteriores o iguales a hoy
+        ).order_by('-fecha')[:4]  # Últimas 4 clases
+        
+        if len(asistencias_recientes) < 2:
+            return False
+        
+        # Verificar si las últimas 2 son ausencias
+        ultimas_dos = list(asistencias_recientes[:2])
+        
+        # Ambas deben ser ausencias (presente=False)
+        if not ultimas_dos[0].presente and not ultimas_dos[1].presente:
+            # Verificar que sean clases consecutivas (misma semana o sin clases intermedias)
+            # Esto depende de cómo tengas organizadas las clases
+            return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"⚠️ Error al verificar ausencias consecutivas: {e}")
+        return False

@@ -1,0 +1,247 @@
+<!-- CentroDeEstudios/web/templates/usuarios/cambiar_contrasena.html -->
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .persona-badge {
+        font-size: 0.8em;
+        padding: 3px 8px;
+        border-radius: 10px;
+    }
+    .badge-personal {
+        background-color: #0dcaf0;
+        color: white;
+    }
+    .badge-profesor {
+        background-color: #198754;
+        color: white;
+    }
+    .badge-alumno {
+        background-color: #6f42c1;
+        color: white;
+    }
+    .badge-usuario {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">🔐 {{ titulo }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'gestion_usuarios' %}">Gestión de Usuarios</a></li>
+                    <li class="breadcrumb-item active">Cambiar Contraseña</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message|safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Información del usuario -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-user me-2"></i>Información del Usuario
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Username:</strong> <code>{{ usuario.username }}</code></p>
+                    <p><strong>Email:</strong> {{ usuario.email|default:"No especificado" }}</p>
+                    <p><strong>Tipo:</strong> 
+                        {% if persona_tipo_display == 'Personal' %}
+                            <span class="badge badge-personal persona-badge">{{ persona_tipo_display }}</span>
+                        {% elif persona_tipo_display == 'Profesor' %}
+                            <span class="badge badge-profesor persona-badge">{{ persona_tipo_display }}</span>
+                        {% elif persona_tipo_display == 'Alumno' %}
+                            <span class="badge badge-alumno persona-badge">{{ persona_tipo_display }}</span>
+                        {% else %}
+                            <span class="badge badge-usuario persona-badge">{{ persona_tipo_display }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Nombre completo:</strong> {{ usuario.get_full_name|default:persona_nombre }}</p>
+                    <p><strong>Estado:</strong> 
+                        {% if usuario.is_active %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Último acceso:</strong> {{ usuario.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</p>
+                </div>
+            </div>
+            
+            <!-- Enlace al perfil de la persona si existe -->
+            {% if persona_id and tipo_persona == 'profesor' %}
+            <div class="alert alert-warning mt-3">
+                <i class="fa fa-exclamation-triangle me-2"></i>
+                Este usuario está asociado al profesor: <strong>{{ persona_nombre }}</strong>
+                <a href="{% url 'editar_profesor' persona_id %}" class="btn btn-sm btn-outline-warning ms-2">
+                    <i class="fas fa-external-link-alt"></i> Ver Profesor
+                </a>
+            </div>
+            {% elif persona_id and tipo_persona == 'personal' %}
+            <div class="alert alert-warning mt-3">
+                <i class="fa fa-exclamation-triangle me-2"></i>
+                Este usuario está asociado al personal: <strong>{{ persona_nombre }}</strong>
+                <a href="{% url 'editar_personal' persona_id %}" class="btn btn-sm btn-outline-warning ms-2">
+                    <i class="fas fa-external-link-alt"></i> Ver Personal
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formulario de cambio de contraseña -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-key me-2"></i>Nueva Contraseña
+                {% if es_coordinador %}
+                <span class="badge bg-dark ms-2">
+                    <i class="fa fa-user-shield"></i> Coordinador
+                </span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="passwordForm">
+                {% csrf_token %}
+                
+                <!-- Errores generales -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.nueva_password|as_crispy_field }}
+                            <small class="form-text text-muted">
+                                <i class="fa fa-info-circle me-1"></i>
+                                Mínimo 8 caracteres, no solo números
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.confirmar_password|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Requisitos de contraseña -->
+                <div class="alert alert-info">
+                    <h6><i class="fa fa-shield-alt me-2"></i>Requisitos de seguridad:</h6>
+                    <ul class="mb-0">
+                        <li>Mínimo 8 caracteres</li>
+                        <li>No puede ser solo números</li>
+                        <li>Se recomienda usar mayúsculas, minúsculas y números</li>
+                        <li>Evitar contraseñas comunes o predecibles</li>
+                    </ul>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end gap-3">
+                            <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                                <i class="fa fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning" id="submitBtn">
+                                <i class="fa fa-save me-2"></i>Actualizar Contraseña
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Nota importante -->
+    <div class="alert alert-warning mt-4">
+        <i class="fa fa-exclamation-triangle me-2"></i>
+        <strong>Importante:</strong>
+        <ul class="mb-0 mt-2">
+            <li>La contraseña se cambiará inmediatamente después de guardar</li>
+            <li>El usuario deberá usar la nueva contraseña en su próximo acceso</li>
+            <li>Se recomienda notificar al usuario del cambio</li>
+            <li>Esta acción quedará registrada en el historial del sistema</li>
+            <li>Solo los coordinadores pueden realizar esta acción</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const submitBtn = document.getElementById('submitBtn');
+        const form = document.getElementById('passwordForm');
+        
+        if (submitBtn && form) {
+            form.addEventListener('submit', function(e) {
+                if (!confirm('¿Estás seguro de cambiar la contraseña? El usuario deberá usar la nueva contraseña inmediatamente.')) {
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        // Validación en tiempo real
+        const passwordField = document.getElementById('id_nueva_password');
+        const confirmField = document.getElementById('id_confirmar_password');
+        
+        if (passwordField && confirmField) {
+            function validatePasswordMatch() {
+                if (passwordField.value && confirmField.value && 
+                    passwordField.value !== confirmField.value) {
+                    confirmField.setCustomValidity('Las contraseñas no coinciden');
+                } else {
+                    confirmField.setCustomValidity('');
+                }
+            }
+            
+            passwordField.addEventListener('input', validatePasswordMatch);
+            confirmField.addEventListener('input', validatePasswordMatch);
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,291 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %} Confirmar Restauración de Profesor {% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fa fa-undo me-2"></i>Confirmar Restauración de Profesor
+                    </h4>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Mostrar mensajes -->
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Información del profesor -->
+                    <div class="card mb-4 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fa fa-chalkboard-teacher me-2"></i>Información del Profesor a Restaurar
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 text-center">
+                                    {% if profesor.foto %}
+                                    <img src="{{ profesor.foto.url }}" 
+                                         class="rounded-circle mb-3 border border-3 border-primary" 
+                                         style="width: 120px; height: 120px; object-fit: cover;"
+                                         alt="Foto del profesor">
+                                    {% else %}
+                                    <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mb-3 mx-auto"
+                                         style="width: 120px; height: 120px;">
+                                        <i class="fa fa-user-tie fa-3x text-primary"></i>
+                                    </div>
+                                    {% endif %}
+                                    <span class="badge bg-primary">ID: {{ profesor.id }}</span>
+                                </div>
+                                <div class="col-md-9">
+                                    <h4 class="text-primary">{{ profesor.nombre_completo }}</h4>
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <p><strong>DNI:</strong> {{ profesor.dni }}</p>
+                                            <p><strong>CUIT:</strong> {{ profesor.cuit|default:"No especificado" }}</p>
+                                            <p><strong>CBU:</strong> {{ profesor.cbu|default:"No especificado" }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Email:</strong> {{ profesor.mail|default:"No especificado" }}</p>
+                                            <p><strong>Teléfono:</strong> {{ profesor.telefono|default:"No especificado" }}</p>
+                                            <p><strong>Banco:</strong> {{ profesor.entidad|default:"No especificado" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cursos Asignados -->
+                    {% if cursos_asignados %}
+                    <div class="card mb-4 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fa fa-book me-2"></i>Cursos Asignados ({{ cursos_asignados|length }})
+                                <span class="badge bg-dark ms-2">Se reassignarán automáticamente</span>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-warning">
+                                        <tr>
+                                            <th>Código</th>
+                                            <th>Nombre del Curso</th>
+                                            <th>Horario</th>
+                                            <th>Aula</th>
+                                            <th>Estado</th>
+                                            <th>Alumnos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for curso in cursos_asignados %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ curso.codigo|default:"N/A" }}</span>
+                                            </td>
+                                            <td>
+                                                <strong>{{ curso.nombre }}</strong>
+                                            </td>
+                                            <td>
+                                                {{ curso.horario|default:"Sin horario" }}
+                                            </td>
+                                            <td>
+                                                {{ curso.aula|default:"Sin aula" }}
+                                            </td>
+                                            <td>
+                                                {% if curso.activo %}
+                                                <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">Inactivo</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ curso.total_alumnos }} alumno{{ curso.total_alumnos|pluralize }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="card mb-4 border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="fa fa-book me-2"></i>Cursos Asignados
+                            </h5>
+                        </div>
+                        <div class="card-body text-center text-muted">
+                            <i class="fa fa-book fa-2x mb-3 opacity-50"></i>
+                            <p>Este profesor no tiene cursos asignados actualmente.</p>
+                            <p class="small">Podrás asignarle cursos después de restaurarlo.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Información de eliminación -->
+                    <div class="card mb-4 border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="fa fa-history me-2"></i>Historial de Eliminación
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Eliminado por:</strong> 
+                                        {% if profesor.eliminado_por %}
+                                        <span class="badge bg-info">{{ profesor.eliminado_por.username }}</span>
+                                        {% else %}
+                                        <span class="text-muted">Sistema</span>
+                                        {% endif %}
+                                    </p>
+                                    <p><strong>Fecha de eliminación:</strong> 
+                                        {% if profesor.fecha_eliminacion %}
+                                        <span class="badge bg-dark">{{ profesor.fecha_eliminacion|date:"d/m/Y H:i" }}</span>
+                                        {% else %}
+                                        <span class="text-muted">No disponible</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Tiempo eliminado:</strong> 
+                                        <span class="badge {% if dias_eliminado > 30 %}bg-danger{% elif dias_eliminado > 7 %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ dias_eliminado }} día{{ dias_eliminado|pluralize }}
+                                        </span>
+                                    </p>
+                                    <p><strong>Estado actual:</strong> 
+                                        <span class="badge bg-danger">Eliminado</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Qué pasa al restaurar -->
+                    <div class="card mb-4 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fa fa-check-circle me-2"></i>¿Qué pasa al restaurar este profesor?
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="fa-ul">
+                                        <li><span class="fa-li"><i class="fa fa-check text-success"></i></span>El profesor volverá a la lista de profesores activos</li>
+                                        <li><span class="fa-li"><i class="fa fa-check text-success"></i></span>Se reactivarán todas sus funcionalidades</li>
+                                        <li><span class="fa-li"><i class="fa fa-check text-success"></i></span>Podrá ser asignado a nuevos cursos</li>
+                                        <li><span class="fa-li"><i class="fa fa-check text-success"></i></span>Se creará un backup de la restauración</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="fa-ul">
+                                        {% if cursos_asignados %}
+                                        <li><span class="fa-li"><i class="fa fa-sync text-warning"></i></span>Se reassignará automáticamente a {{ cursos_asignados|length }} curso{{ cursos_asignados|pluralize }}</li>
+                                        {% endif %}
+                                        <li><span class="fa-li"><i class="fa fa-history text-info"></i></span>El historial de eliminación se conservará</li>
+                                        <li><span class="fa-li"><i class="fa fa-user-check text-primary"></i></span>Podrá iniciar sesión nuevamente (si tiene usuario)</li>
+                                        <li><span class="fa-li"><i class="fa fa-database text-secondary"></i></span>Los datos permanecerán intactos</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de confirmación -->
+                    <div class="card border-dark">
+                        <div class="card-header bg-dark text-white">
+                            <h5 class="mb-0">
+                                <i class="fa fa-shield-alt me-2"></i>Confirmación Final
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-dark">
+                                <p class="mb-0">
+                                    <strong>¿Estás seguro de restaurar al profesor {{ profesor.nombre_completo }}?</strong><br>
+                                    Esta acción no se puede deshacer automáticamente. Si necesitas eliminarlo nuevamente, deberás hacerlo manualmente.
+                                </p>
+                            </div>
+                            
+                            <form method="POST">
+                                {% csrf_token %}
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <a href="{% url 'profesores_eliminados' %}" class="btn btn-lg btn-secondary">
+                                        <i class="fa fa-times me-2"></i>Cancelar y Volver
+                                    </a>
+                                    <button type="submit" class="btn btn-lg btn-success" id="btn-confirmar-restaurar">
+                                        <i class="fa fa-undo me-2"></i>Sí, Restaurar Profesor
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="alert alert-light mt-3 border">
+                <div class="d-flex">
+                    <div class="flex-shrink-0">
+                        <i class="fa fa-info-circle fa-2x text-primary me-3"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <small class="text-muted">
+                            <strong>Nota importante:</strong> Al restaurar este profesor, todos sus datos originales se mantendrán intactos. 
+                            Si tenía cursos asignados antes de ser eliminado, el sistema intentará reassignarlos automáticamente. 
+                            Este proceso es registrado en el historial del sistema para auditoría.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnConfirmar = document.getElementById('btn-confirmar-restaurar');
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', function(e) {
+            const profesorNombre = "{{ profesor.nombre_completo }}";
+            const cursosCount = {{ cursos_asignados|length|default:0 }};
+            
+            let mensaje = `¿ESTÁS SEGURO DE RESTAURAR AL PROFESOR "${profesorNombre}"?\n\n`;
+            
+            if (cursosCount > 0) {
+                mensaje += `✅ Se reassignará automáticamente a ${cursosCount} curso${cursosCount > 1 ? 's' : ''}\n`;
+            }
+            
+            mensaje += `\nEsta acción:\n`;
+            mensaje += `• Reactivará al profesor en el sistema\n`;
+            mensaje += `• Permitirá su asignación a cursos\n`;
+            mensaje += `• Creará un registro de auditoría\n`;
+            mensaje += `\n¿Continuar?`;
+            
+            if (!confirm(mensaje)) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

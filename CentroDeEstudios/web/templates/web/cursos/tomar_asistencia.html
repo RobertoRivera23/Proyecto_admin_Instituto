@@ -1,0 +1,610 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load dias_filters %}  
+
+{% block title %} Tomar Asistencia - {{ curso.nombre }} {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/styles.css' %}">
+<style>
+    .table-fixed { 
+        table-layout: fixed; 
+        min-width: 800px;
+    }
+    .fecha-col { 
+        min-width: 70px; 
+        width: 70px; 
+        position: relative; /* Asegura que los checkboxes sean relativos a su celda */
+    }
+    .alumno-col { 
+        min-width: 200px; 
+        width: 200px; 
+        position: sticky; 
+        left: 0; 
+        background: white; 
+        z-index: 10; 
+    }
+    .nota-col { 
+        min-width: 90px; 
+        width: 90px; 
+        position: relative; /* Importante para checkboxes */
+    }
+    .sticky-header { 
+        position: sticky; 
+        top: 0; 
+        background: white; 
+        z-index: 20; 
+    }
+    .asistencia-cell { 
+        text-align: center; 
+        padding: 2px !important; 
+        position: relative; /* Asegura contexto de posicionamiento */
+    }
+    
+    /* CRÍTICO: Asegurar que los checkboxes sean relativos a su celda */
+    .asistencia-checkbox {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        transform: none !important;
+        margin: 0 auto;
+        display: inline-block;
+    }
+    
+    .presente { background-color: #d4edda !important; }
+    .ausente { background-color: #f8d7da !important; }
+    .hoy-indicator { background-color: #fff3cd !important; font-weight: bold; }
+    .nota-guardada { 
+        background-color: #e9ecef; 
+        border: 1px solid #ced4da;
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        min-width: 60px;
+        text-align: center;
+    }
+    .examen-col {
+        background-color: #e3f2fd !important;
+        position: relative;
+    }
+    .eliminar-examen {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: rgba(255,255,255,0.8);
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #dc3545;
+    }
+    .eliminar-examen:hover {
+        background: rgba(255,255,255,1);
+        color: #c82333;
+    }
+    
+    /* Scroll horizontal - CONTENEDOR PRINCIPAL */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+        width: 100%;
+    }
+    
+    /* Asegurar que la tabla ocupe todo el ancho necesario */
+    #tabla-asistencia {
+        width: auto;
+        min-width: 100%;
+    }
+    
+    /* Reset de posicionamiento para todas las celdas de datos */
+    #tabla-asistencia tbody td {
+        position: relative;
+    }
+    
+    /* Específico para celdas de asistencia */
+    #tabla-asistencia tbody .asistencia-cell {
+        position: relative;
+    }
+    
+    /* Asegurar que los inputs de nota también se desplacen correctamente */
+    .nota-input {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+    }
+    
+    /* Mejoras para móviles */
+    @media (max-width: 768px) {
+        .fecha-col { min-width: 60px; width: 60px; }
+        .alumno-col { min-width: 150px; width: 150px; }
+        .nota-col { min-width: 80px; width: 80px; }
+        .table th, .table td { padding: 4px; font-size: 0.8rem; }
+    }
+
+    .ver-alumno-btn {
+        padding: 2px 8px;
+        font-size: 0.8rem;
+        position: relative; /* Asegurar que el botón se desplace */
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">📝 Tomar Asistencia - {{ curso.nombre }}</h1>
+        <div>
+            <a href="{% url 'listar_alumnos_curso' curso.id %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver a Alumnos
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del curso -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Días:</strong> {{ curso.dias }}</p>
+                    <p><strong>Horario:</strong> {{ curso.horario }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Profesor:</strong> {{ curso.profesor.nombre_completo }}</p>
+                    <p><strong>Alumnos:</strong> {{ alumnos|length }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+                    <p><strong>Hoy:</strong> {{ hoy|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de asistencia -->
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-table me-2"></i>Registro de Asistencia y Notas
+            </h5>
+            <div>
+                <button type="button" id="agregar-examen" class="btn btn-info btn-sm me-2">
+                    <i class="fa fa-plus me-1"></i>Agregar Examen
+                </button>
+                <button type="button" id="marcar-todos-hoy" class="btn btn-light btn-sm">
+                    <i class="fa fa-check-double me-1"></i>Marcar Hoy
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            <form method="POST" action="{% url 'tomar_asistencia' curso.id %}" id="asistencia-form">
+                {% csrf_token %}
+                
+                {% if alumnos %}
+                <div class="table-container">
+                    <table class="table table-bordered table-hover table-sm table-fixed mb-0" id="tabla-asistencia">
+                        <thead class="table-light sticky-header">
+                            <tr>
+                                <th class="alumno-col">Nombre y Apellido</th>
+                                <th class="alumno-col">DNI</th>
+                                
+                                <!-- Columnas de fechas -->
+                                {% for fecha in fechas_clase %}
+                                <th class="fecha-col text-center {% if fecha == hoy %}hoy-indicator{% endif %}">
+                                    <small>
+                                        <div>{{ fecha|date:"d/m" }}</div>
+                                        <div class="fw-normal">
+                                            {% if fecha == hoy %}HOY
+                                            {% else %}{{ fecha|dia_semana_es }}
+                                            {% endif %}
+                                        </div>
+                                    </small>
+                                </th>
+                                {% endfor %}
+                                
+                                <!-- Columnas de notas fijas -->
+                                {% for examen in tipos_examen_fijos %}
+                                <th class="nota-col bg-info text-white">{{ examen.nombre }}</th>
+                                {% endfor %}
+                                
+                                <!-- Columnas de notas adicionales -->
+                                {% for examen in examenes_adicionales %}
+                                <th class="nota-col examen-col text-white" style="background-color: #17a2b8 !important;">
+                                    {{ examen.nombre }}
+                                    {% if es_admin %}
+                                    <button type="button" class="eliminar-examen" data-tipo="{{ examen.tipo }}" title="Eliminar examen y todas sus notas">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                </th>
+                                {% endfor %}
+                                
+                                <th class="nota-col bg-success text-white">Prom.</th>
+                                <th class="alumno-col">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumno_data in alumnos %}
+                            <tr data-inscripcion-id="{{ alumno_data.inscripcion.id }}">
+                                <!-- Información del alumno -->
+                                <td class="alumno-col position-sticky left-0 bg-white">
+                                    <strong>{{ alumno_data.alumno.nombre_completo }}</strong>
+                                </td>
+                                <td class="alumno-col">
+                                    {{ alumno_data.alumno.dni }}
+                                </td>
+                                
+                                <!-- Asistencias por fecha -->
+                                {% for fecha in fechas_clase %}
+                                {% with asistencia=alumno_data.asistencias|get_item:fecha %}
+                                <td class="asistencia-cell {% if fecha == hoy %}border-warning border-2{% endif %} 
+                                    {% if asistencia and asistencia.presente %}presente{% else %}ausente{% endif %}">
+                                    
+                                    {% if fecha <= hoy %}
+                                    <input type="checkbox" 
+                                           name="asistencia_{{ alumno_data.inscripcion.id }}_{{ fecha|date:'Y-m-d' }}"
+                                           {% if asistencia and asistencia.presente %}checked{% endif %}
+                                           class="form-check-input asistencia-checkbox"
+                                           data-fecha="{{ fecha|date:'Y-m-d' }}"
+                                           {% if not es_admin and asistencia %}disabled{% endif %}>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                                
+                                <!-- Campos de notas fijas -->
+                                {% for examen in tipos_examen_fijos %}
+                                <td class="nota-col">
+                                    {% with examen_data=alumno_data.examenes|get_item:examen.tipo %}
+                                    {% if examen_data %}
+                                        {% if es_admin %}
+                                        <input type="number" 
+                                               name="nota_{{ alumno_data.inscripcion.id }}_{{ examen.tipo }}" 
+                                               value="{{ examen_data.nota }}"
+                                               class="form-control form-control-sm nota-input" 
+                                               min="0" max="10" step="0.1"
+                                               data-tipo="{{ examen.tipo }}">
+                                        {% else %}
+                                        <span class="nota-guardada">{{ examen_data.nota }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <input type="number" 
+                                           name="nota_{{ alumno_data.inscripcion.id }}_{{ examen.tipo }}" 
+                                           class="form-control form-control-sm nota-input" 
+                                           min="0" max="10" step="0.1"
+                                           placeholder="0-10"
+                                           data-tipo="{{ examen.tipo }}">
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                {% endfor %}
+                                
+                                <!-- Campos de notas adicionales -->
+                                {% for examen in examenes_adicionales %}
+                                <td class="nota-col">
+                                    {% with examen_data=alumno_data.examenes|get_item:examen.tipo %}
+                                    {% if examen_data %}
+                                        {% if es_admin %}
+                                        <input type="number" 
+                                               name="nota_{{ alumno_data.inscripcion.id }}_{{ examen.tipo }}" 
+                                               value="{{ examen_data.nota }}"
+                                               class="form-control form-control-sm nota-input" 
+                                               min="0" max="10" step="0.1"
+                                               data-tipo="{{ examen.tipo }}">
+                                        {% else %}
+                                        <span class="nota-guardada">{{ examen_data.nota }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                    <input type="number" 
+                                           name="nota_{{ alumno_data.inscripcion.id }}_{{ examen.tipo }}" 
+                                           class="form-control form-control-sm nota-input" 
+                                           min="0" max="10" step="0.1"
+                                           placeholder="0-10"
+                                           data-tipo="{{ examen.tipo }}">
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                {% endfor %}
+                                
+                                <td class="nota-col text-center">
+                                    <span class="fw-bold promedio" id="promedio_{{ alumno_data.inscripcion.id }}">
+                                        {{ alumno_data.promedio|default:"-" }}
+                                    </span>
+                                </td>
+                                
+                                <!-- Botón Ver Alumno -->
+                                <td class="alumno-col">
+                                    <a href="{% url 'mostrar_alumno' alumno_data.alumno.id %}" 
+                                       class="btn btn-outline-primary btn-sm ver-alumno-btn">
+                                        <i class="fa fa-eye me-1"></i>Ver Alumno
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Resumen y acciones -->
+                <div class="p-3 border-top">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div id="resumen-asistencia" class="text-muted"></div>
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle"></i> 
+                                {% if es_admin %}
+                                    Puede modificar asistencias y notas existentes
+                                {% else %}
+                                    Solo puede modificar asistencias y notas no guardadas
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-save me-2"></i>Guardar Todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="text-muted">
+                        <i class="fa fa-users fa-3x mb-3"></i>
+                        <h4>No hay alumnos inscritos</h4>
+                        <p>No se puede tomar asistencia sin alumnos.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar examen -->
+<div class="modal fade" id="modalAgregarExamen" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Nuevo Examen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'tomar_asistencia' curso.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="agregar_examen" value="true">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tipoExamen" class="form-label">Tipo de Examen:</label>
+                        <select class="form-select" id="tipoExamen" name="tipo_examen" required>
+                            <option value="RECUPERATORIO_1">Recuperatorio 1</option>
+                            <option value="RECUPERATORIO_2">Recuperatorio 2</option>
+                            <option value="TERCER_EXAMEN">Tercer Examen</option>
+                            <option value="CUARTO_EXAMEN">Cuarto Examen</option>
+                            <option value="PRACTICO_1">Práctico 1</option>
+                            <option value="PRACTICO_2">Práctico 2</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombreExamen" class="form-label">Nombre para mostrar:</label>
+                        <input type="text" class="form-control" id="nombreExamen" name="nombre_examen" placeholder="Ej: Recuperatorio" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Formulario oculto para eliminar examen -->
+<form method="POST" action="{% url 'tomar_asistencia' curso.id %}" id="form-eliminar-examen" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="eliminar_examen" value="true">
+    <input type="hidden" name="tipo_examen" id="input-tipo-examen">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.asistencia-checkbox');
+    const marcarTodosHoyBtn = document.getElementById('marcar-todos-hoy');
+    const resumenSpan = document.getElementById('resumen-asistencia');
+    const agregarExamenBtn = document.getElementById('agregar-examen');
+    const form = document.getElementById('asistencia-form');
+    const formEliminarExamen = document.getElementById('form-eliminar-examen');
+    const hoy = '{{ hoy|date:"Y-m-d" }}';
+    
+    // Botón "Marcar Todos Hoy"
+    marcarTodosHoyBtn.addEventListener('click', function() {
+        const checkboxesHoy = document.querySelectorAll(`.asistencia-checkbox[data-fecha="${hoy}"]:not([disabled])`);
+        const algunMarcado = Array.from(checkboxesHoy).some(cb => cb.checked);
+        
+        checkboxesHoy.forEach(checkbox => {
+            checkbox.checked = !algunMarcado;
+            checkbox.dispatchEvent(new Event('change'));
+        });
+        
+        actualizarResumen();
+    });
+    
+    // Actualizar estilos de celdas cuando cambia checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const cell = this.closest('td');
+            if (this.checked) {
+                cell.classList.add('presente');
+                cell.classList.remove('ausente');
+            } else {
+                cell.classList.add('ausente');
+                cell.classList.remove('presente');
+            }
+            actualizarResumen();
+        });
+        
+        // Inicializar estilos
+        const cell = checkbox.closest('td');
+        if (checkbox.checked) {
+            cell.classList.add('presente');
+            cell.classList.remove('ausente');
+        } else {
+            cell.classList.add('ausente');
+            cell.classList.remove('presente');
+        }
+    });
+
+    // Calcular promedio en tiempo real
+    document.querySelectorAll('.nota-input').forEach(input => {
+        input.addEventListener('input', calcularPromedio);
+        
+        // Calcular promedio inicial
+        calcularPromedio({ target: input });
+    });
+
+    function calcularPromedio(event) {
+        const input = event.target;
+        const row = input.closest('tr');
+        const inscripcionId = row.dataset.inscripcionId;
+        const notaInputs = row.querySelectorAll('.nota-input');
+        
+        let suma = 0;
+        let count = 0;
+        
+        notaInputs.forEach(notaInput => {
+            const valor = parseFloat(notaInput.value);
+            if (!isNaN(valor) && valor >= 0 && valor <= 10) {
+                suma += valor;
+                count++;
+            }
+        });
+        
+        const promedioElement = document.getElementById(`promedio_${inscripcionId}`);
+        if (count > 0) {
+            const promedio = suma / count;
+            promedioElement.textContent = promedio.toFixed(2);
+            
+            // Colorear según el promedio
+            if (promedio >= 7) {
+                promedioElement.className = 'fw-bold promedio text-success';
+            } else if (promedio >= 4) {
+                promedioElement.className = 'fw-bold promedio text-warning';
+            } else {
+                promedioElement.className = 'fw-bold promedio text-danger';
+            }
+        } else {
+            promedioElement.textContent = '-';
+            promedioElement.className = 'fw-bold promedio';
+        }
+    }
+
+    // Agregar examen
+    agregarExamenBtn.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('modalAgregarExamen'));
+        modal.show();
+    });
+
+    // Eliminar examen
+    document.querySelectorAll('.eliminar-examen').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tipoExamen = this.dataset.tipo;
+            const nombreExamen = this.closest('th').textContent.trim();
+            
+            // Contar cuántas notas hay guardadas para este examen
+            let notasGuardadas = 0;
+            document.querySelectorAll(`input[data-tipo="${tipoExamen}"]`).forEach(input => {
+                if (input.value && !isNaN(parseFloat(input.value))) {
+                    notasGuardadas++;
+                }
+            });
+            
+            let mensaje = `¿Está seguro de que desea eliminar el examen "${nombreExamen}"?`;
+            
+            if (notasGuardadas > 0) {
+                mensaje += `\n\nSe eliminarán ${notasGuardadas} notas guardadas permanentemente.`;
+            } else {
+                mensaje += `\n\nNo hay notas guardadas para este examen.`;
+            }
+            
+            mensaje += `\n\nEsta acción no se puede deshacer.`;
+            
+            if (confirm(mensaje)) {
+                document.getElementById('input-tipo-examen').value = tipoExamen;
+                formEliminarExamen.submit();
+            }
+        });
+    });
+
+    // Confirmación antes de guardar
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (confirm('¿Está seguro de que desea guardar los cambios en asistencias y notas?\n\nEsta acción no se puede deshacer.')) {
+            // Crear campo hidden para confirmación
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'confirmar';
+            hiddenInput.value = 'true';
+            form.appendChild(hiddenInput);
+            
+            form.submit();
+        }
+    });
+    
+    function actualizarResumen() {
+        const totalAlumnos = {{ alumnos|length }};
+        const checkboxesHoy = document.querySelectorAll(`.asistencia-checkbox[data-fecha="${hoy}"]`);
+        const presentesHoy = Array.from(checkboxesHoy).filter(cb => cb.checked).length;
+        
+        resumenSpan.textContent = `Hoy: ${presentesHoy} de ${totalAlumnos} presentes`;
+    }
+    
+    // Inicializar
+    actualizarResumen();
+    
+    // Inicializar promedios para notas existentes
+    document.querySelectorAll('.nota-input').forEach(input => {
+        calcularPromedio({ target: input });
+    });
+});
+
+// FIX PARA CHECKBOXES - Ejecutar después de que la página cargue completamente
+window.addEventListener('load', function() {
+    // Resetear posición de todos los checkboxes
+    document.querySelectorAll('.asistencia-checkbox').forEach(checkbox => {
+        checkbox.style.position = 'relative';
+        checkbox.style.left = 'auto';
+        checkbox.style.top = 'auto';
+        checkbox.style.transform = 'none';
+    });
+    
+    // Resetear posición de todos los inputs de nota
+    document.querySelectorAll('.nota-input').forEach(input => {
+        input.style.position = 'relative';
+        input.style.left = 'auto';
+        input.style.top = 'auto';
+    });
+});
+
+// También ejecutar después de cualquier cambio en la tabla
+function fixCheckboxPositions() {
+    document.querySelectorAll('.asistencia-checkbox, .nota-input').forEach(element => {
+        element.style.position = 'relative';
+        element.style.left = 'auto';
+        element.style.top = 'auto';
+        element.style.transform = 'none';
+    });
+}
+
+// Ejecutar el fix periódicamente por si hay cambios dinámicos
+setInterval(fixCheckboxPositions, 1000);
+</script>
+{% endblock %}

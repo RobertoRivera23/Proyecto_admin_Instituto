@@ -1,0 +1,205 @@
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Editar Permisos del Grupo{% endblock %}
+
+{% block page_title %}Editar Permisos del Grupo{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'listar_grupos_permisos' %}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    Editando permisos para: <strong>{{ grupo.name }}</strong>
+                    <span class="badge bg-info ms-2">{{ grupo.user_set.count }} usuario(s)</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Selecciona los permisos que deseas asignar a este grupo.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Grupo</label>
+                        <input type="text" class="form-control" value="{{ grupo.name }}" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Permisos Asignados ({{ permisos_grupo.count }})</label>
+                        <div class="border p-3 rounded" style="max-height: 400px; overflow-y: auto;">
+                            {% if todos_permisos %}
+                            <div class="row">
+                                {% for permiso in todos_permisos %}
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="permisos" value="{{ permiso.id }}" 
+                                               id="permiso{{ permiso.id }}"
+                                               {% if permiso in permisos_grupo %}checked{% endif %}>
+                                        <label class="form-check-label" for="permiso{{ permiso.id }}">
+                                            <strong>{{ permiso.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ permiso.content_type.app_label }} | 
+                                                {{ permiso.content_type.model }}
+                                                <code class="ms-2">{{ permiso.codename }}</code>
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center text-muted py-3">
+                                <i class="bi bi-exclamation-circle"></i>
+                                No hay permisos disponibles en el sistema.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <div>
+                            <button type="reset" class="btn btn-warning me-2">
+                                <i class="bi bi-arrow-clockwise"></i> Restablecer
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-square"></i> Información del Grupo
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Nombre:</span>
+                        <strong>{{ grupo.name }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>ID:</span>
+                        <code>{{ grupo.id }}</code>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Permisos actuales:</span>
+                        <span class="badge bg-primary">{{ permisos_grupo.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Usuarios en el grupo:</span>
+                        <span class="badge bg-info">{{ grupo.user_set.count }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <small class="text-muted">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Consejo:</strong> Los permisos se heredan, por lo que los usuarios
+                            de este grupo tendrán acceso a todas las funcionalidades seleccionadas.
+                        </small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-people"></i> Usuarios en este Grupo
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if grupo.user_set.all %}
+                <div class="list-group list-group-flush">
+                    {% for usuario in grupo.user_set.all|slice:":5" %}
+                    <div class="list-group-item">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-circle me-2"></i>
+                            <div>
+                                <strong>{{ usuario.username }}</strong><br>
+                                <small class="text-muted">{{ usuario.email|default:"Sin email" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if grupo.user_set.count > 5 %}
+                    <div class="list-group-item text-center">
+                        <small class="text-muted">
+                            Y {{ grupo.user_set.count|add:"-5" }} usuario(s) más...
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="bi bi-person-x"></i>
+                    <p class="mb-0">No hay usuarios en este grupo.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Contador de permisos seleccionados
+    const checkboxes = document.querySelectorAll('input[name="permisos"]');
+    const counterBadge = document.getElementById('permisos-counter');
+    
+    function updateCounter() {
+        const checked = document.querySelectorAll('input[name="permisos"]:checked').length;
+        if (counterBadge) {
+            counterBadge.textContent = checked;
+        }
+    }
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateCounter);
+    });
+    
+    // Inicializar contador
+    updateCounter();
+    
+    // Filtro de búsqueda (opcional, puedes agregarlo si tienes muchos permisos)
+    const searchInput = document.getElementById('search-permisos');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            checkboxes.forEach(checkbox => {
+                const label = checkbox.nextElementSibling;
+                const text = label.textContent.toLowerCase();
+                const parentDiv = checkbox.closest('.col-md-6');
+                if (text.includes(searchTerm)) {
+                    parentDiv.style.display = 'block';
+                } else {
+                    parentDiv.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

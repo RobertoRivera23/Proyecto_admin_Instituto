@@ -1,0 +1,297 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 0.7rem;
+    }
+    .view-mode-alert {
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Banner de modo administrador -->
+    <div class="alert view-mode-alert alert-info d-flex align-items-center mb-4">
+        <i class="fas fa-user-shield fa-2x me-3"></i>
+        <div>
+            <h4 class="alert-heading mb-1">
+                <i class="fas fa-eye me-2"></i>Vista administrativa
+            </h4>
+            <p class="mb-0">
+                Estás viendo el dashboard del profesor <strong>{{ profesor.nombre_completo }}</strong> 
+                en modo administrador ({{ usuario_actual_rol }}).
+            </p>
+        </div>
+        <div class="ms-auto">
+            <a href="{% url 'listar_profesores' %}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Volver a lista
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del profesor -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-tie me-2"></i>Información del Profesor
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        {% if profesor.foto %}
+                        <img src="{{ profesor.foto.url }}" 
+                             class="rounded-circle mb-3" 
+                             style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width: 120px; height: 120px;">
+                            <i class="fas fa-user-tie fa-3x text-muted"></i>
+                        </div>
+                        {% endif %}
+                        <h4>{{ profesor.nombre_completo }}</h4>
+                        <p class="text-muted mb-1">DNI: {{ profesor.dni }}</p>
+                        {% if profesor.cuit %}
+                        <p class="text-muted mb-1">CUIT: {{ profesor.cuit }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="border-top pt-3">
+                        <h6><i class="fas fa-contact-card me-2"></i>Contacto</h6>
+                        {% if profesor.telefono %}
+                        <p class="mb-1">
+                            <i class="fas fa-phone me-2 text-muted"></i>
+                            <a href="tel:{{ profesor.telefono }}">{{ profesor.telefono }}</a>
+                        </p>
+                        {% endif %}
+                        {% if profesor.mail %}
+                        <p class="mb-1">
+                            <i class="fas fa-envelope me-2 text-muted"></i>
+                            <a href="mailto:{{ profesor.mail }}">{{ profesor.mail }}</a>
+                        </p>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <a href="{% url 'perfil_profesor_detalle' profesor.id %}" 
+                               class="btn btn-outline-info btn-sm me-2">
+                                <i class="fas fa-user me-1"></i>Ver perfil completo
+                            </a>
+                            <a href="{% url 'editar_profesor' profesor.id %}" 
+                               class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-left-primary h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-primary">Total Cursos</h6>
+                                    <h3 class="mb-0">{{ total_cursos }}</h3>
+                                </div>
+                                <div class="text-primary">
+                                    <i class="fas fa-book fa-2x"></i>
+                                </div>
+                            </div>
+                            <p class="text-muted small mt-2 mb-0">Cursos asignados</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card border-left-success h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-success">Total Alumnos</h6>
+                                    <h3 class="mb-0">{{ total_alumnos }}</h3>
+                                </div>
+                                <div class="text-success">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                            <p class="text-muted small mt-2 mb-0">Alumnos en sus cursos</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <div class="card border-left-warning h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="text-warning">Cursos Activos</h6>
+                                    <h3 class="mb-0">{{ cursos_progreso_count }}</h3>
+                                </div>
+                                <div class="text-warning">
+                                    <i class="fas fa-chalkboard-teacher fa-2x"></i>
+                                </div>
+                            </div>
+                            <p class="text-muted small mt-2 mb-0">En progreso actualmente</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones rápidas -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'mis_cursos_profesor_detalle' profesor.id %}" 
+                               class="btn btn-primary w-100">
+                                <i class="fas fa-book me-2"></i>Ver cursos
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'mostrar_profesor' profesor.id %}" 
+                               class="btn btn-info w-100">
+                                <i class="fas fa-file-alt me-2"></i>Ver detalles
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'asignar_cursos_profesor' profesor.id %}" 
+                               class="btn btn-success w-100">
+                                <i class="fas fa-plus-circle me-2"></i>Asignar cursos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cursos en progreso -->
+    {% if cursos_en_progreso %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="fas fa-play-circle me-2"></i>Cursos en Progreso
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for curso in cursos_en_progreso %}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ curso.nombre }}</h6>
+                            <p class="card-text small text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ curso.fecha_inicio|date:"d/m/Y" }} - {{ curso.fecha_fin|date:"d/m/Y" }}
+                            </p>
+                            {% if curso.descripcion %}
+                            <p class="card-text small">{{ curso.descripcion|truncatechars:100 }}</p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-info">
+                                    {{ curso.alumnos.count }} alumnos
+                                </span>
+                                <a href="{% url 'detalle_curso' curso.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Ver detalles
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Cursos próximos -->
+    {% if cursos_proximos %}
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>Próximos Cursos (7 días)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Fecha inicio</th>
+                            <th>Duración</th>
+                            <th>Alumnos</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for curso in cursos_proximos %}
+                        <tr>
+                            <td>{{ curso.nombre }}</td>
+                            <td>{{ curso.fecha_inicio|date:"d/m/Y" }}</td>
+                            <td>{{ curso.duracion }} días</td>
+                            <td>{{ curso.alumnos.count }}</td>
+                            <td>
+                                <a href="{% url 'detalle_curso' curso.id %}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'asignar_alumnos_curso' curso.id %}" 
+                                   class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-user-plus"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mensaje si no hay cursos -->
+    {% if total_cursos == 0 %}
+    <div class="alert alert-warning text-center py-5">
+        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+        <h4>Este profesor no tiene cursos asignados</h4>
+        <p class="mb-3">Asigna cursos para ver estadísticas y datos relevantes.</p>
+        <a href="{% url 'asignar_cursos_profesor' profesor.id %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Asignar primer curso
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip();
+        
+        // Mostrar mensaje de modo administrador
+        console.log("Vista administrativa del profesor: {{ profesor.nombre_completo }}");
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,63 @@
+/* web/static/web/styles/alumnos.css */
+
+/* Estilos para el header de cards */
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%) !important;
+    border-bottom: none;
+}
+
+/* Mejorar espaciado en formularios */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+/* Estilo para campos requeridos */
+.asteriskField {
+    color: #dc3545;
+    margin-left: 2px;
+    font-weight: bold;
+}
+
+/* Estilos para secciones */
+.section-title {
+    color: #495057;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #0d6efd;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Mejorar botones */
+.btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+    border: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+}
+
+/* Estilos para mensajes de alerta */
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Mejorar tabla de alumnos */
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}

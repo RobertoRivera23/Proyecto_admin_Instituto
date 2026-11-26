@@ -1,0 +1,188 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block titulo %}Registrar Nuevo Pago{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/pago_alta.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="container">
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <h2>Datos del Pago</h2>
+        {{ pago_form.as_p }} 
+    </div>
+    {% if error_message %}
+    <div class="alert alert-danger">
+        {{ error_message }}
+    </div>
+    {% endif %}
+    <div class="form-group">
+      <h2>Detalles del Pago</h2>
+      {{ detalle_pago_formset.management_form }}
+      <div id="formset">
+        <table>
+          <thead>
+            <tr>
+              <th>Curso</th>
+              <th></th>
+              <th>Precio Unitario</th>
+              <th>Cantidad</th>
+              <th>Observaciones</th>
+              <th></th>
+              <th>Precio Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in detalle_pago_formset %}
+            <tr>
+              <td>{{ form.curso }}</td>
+              <td>$</td>
+              <td>{{ form.precio }}</td>
+              <td>{{ form.cantidad }}</td>
+              <td>{{ form.observaciones }}</td>
+              <td>$</td>
+              <td>{{ form.precio_total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="form-group">
+        <label>Importe Total del Pago: $</label>
+        <span id="importe-total">0</span>
+      </div>      
+    </div>
+
+    <button type="submit" class="btn btn-primary m-2">Finalizar Pago</button>
+    <a class="btn btn-secondary m-2" href="{% url 'pago_alta' %}">Limpiar Formulario</a>
+    <a class="btn btn-danger m-2" href="{% url 'index' %}">Cancelar</a>
+  </form>
+</div>
+
+{% endblock %}
+{% block extra_js_fin_html %}
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function fechaActual() {
+  const ahora = datetime.now()
+  const fecha_formateada_python = ahora.strftime("%d/%m/%Y")
+}
+
+
+</script>
+
+<script>
+$(document).ready(function() {
+    // Función para actualizar precio y totales
+    function actualizarPrecioCurso(selectElement) {
+        const fila = $(selectElement).closest('tr');
+        const cursoId = selectElement.value;
+        
+        if (!cursoId) {
+            fila.find('input[name$="precio"]').val('0.00');
+            fila.find('input[name$="precio_total"]').val('0.00');
+            actualizarTotalGeneral();
+            return;
+        }
+        
+        $.ajax({
+            type: 'GET',
+            url: '{% url "get_precio_curso" %}',
+            data: { curso_id: cursoId },
+            success: function(data) {
+                // Verificar si la respuesta tiene el formato correcto
+                if (data && typeof data.precio !== 'undefined') {
+                    const precio = parseFloat(data.precio);
+                    fila.find('input[name$="precio"]').val(precio.toFixed(2));
+                    actualizarTotalFila(fila);
+                } else {
+                    console.error('Respuesta inesperada:', data);
+                    fila.find('input[name$="precio"]').val('0.00');
+                    actualizarTotalFila(fila);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error en AJAX:', status, error);
+                fila.find('input[name$="precio"]').val('0.00');
+                actualizarTotalFila(fila);
+            }
+        });
+    }
+
+    // 2. ACTUALIZAR TOTAL DE FILA
+    function actualizarTotalFila(fila) {
+        const precioInput = fila.find('input[name$="precio"]');
+        const cantidadInput = fila.find('input[name$="cantidad"]');
+        const totalInput = fila.find('input[name$="precio_total"]');
+        
+        // Obtener valores numéricos
+        const precio = parseFloat(precioInput.val()) || 0;
+        const cantidad = parseInt(cantidadInput.val()) || 1;
+        
+        // Calcular total
+        const total = precio * cantidad;
+        totalInput.val(total.toFixed(2));
+    }
+
+    // 3. ACTUALIZAR TOTAL GENERAL
+    function actualizarTotalGeneral() {
+        let totalGeneral = 0;
+        
+        $('input[name$="precio_total"]').each(function() {
+            const valor = parseFloat($(this).val()) || 0;
+            totalGeneral += valor;
+        });
+        
+        $('#importe-total').text(totalGeneral.toFixed(2));
+    }
+
+    // 4. INICIALIZACIÓN
+    function inicializar() {
+        // Establecer valores predeterminados
+        $('input[name$="cantidad"]').each(function() {
+            if (!this.value || this.value === "00,0") {
+                this.value = "1";
+            }
+        });
+        
+        $('input[name$="precio"]').each(function() {
+            if (this.value === "00,0") {
+                this.value = "0.00";
+            }
+        });
+        
+        // Actualizar cursos existentes
+        $('select[name$="curso"]').each(function() {
+            if (this.value) actualizarPrecioCurso(this);
+        });
+        
+        // Calcular total inicial
+        actualizarTotalGeneral();
+    }
+
+    // 5. EVENTOS
+    $(document).on('change', 'select[name$="curso"]', function() {
+        actualizarPrecioCurso(this);
+    });
+
+    $(document).on('input', 'input[name$="cantidad"]', function() {
+        const fila = $(this).closest('tr');
+        actualizarTotalFila(fila);
+        actualizarTotalGeneral();
+    });
+
+    // Iniciar
+    inicializar();
+});
+</script>
+
+{% endblock %}
+
+

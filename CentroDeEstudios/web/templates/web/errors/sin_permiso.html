@@ -1,0 +1,186 @@
+<!-- templates/web/errors/sin_permiso.html -->
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block main %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Tarjeta de error -->
+            <div class="card shadow-lg border-0">
+                <!-- Encabezado con icono -->
+                <div class="card-header bg-danger text-white text-center py-4">
+                    <div class="display-1 mb-3">
+                        {% if tipo_error == 'sin_personal' %}
+                        <i class="fas fa-user-slash"></i>
+                        {% else %}
+                        <i class="fas fa-lock"></i>
+                        {% endif %}
+                    </div>
+                    <h2 class="card-title">{{ titulo }}</h2>
+                </div>
+                
+                <!-- Cuerpo del mensaje -->
+                <div class="card-body p-4">
+                    <!-- Información del usuario -->
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-user me-2"></i>Información de tu cuenta
+                        </h5>
+                        <p class="mb-1"><strong>Usuario:</strong> {{ user.username }}</p>
+                        <p class="mb-1"><strong>Nombre:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+                        {% if tipo_error == 'sin_permiso' and tu_rol %}
+                        <p class="mb-0"><strong>Tu rol actual:</strong> 
+                            <span class="badge bg-primary">{{ tu_rol }}</span>
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Mensaje específico del error -->
+                    {% if mensaje_especifico %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {{ mensaje_especifico }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Explicación según el tipo de error -->
+                    <div class="mb-4">
+                        {% if tipo_error == 'sin_personal' %}
+                        <h5><i class="fas fa-question-circle me-2"></i>¿Por qué ocurre esto?</h5>
+                        <p class="text-muted">
+                            Tu cuenta de usuario está creada, pero <strong>no está vinculada a ningún registro en la tabla "Personal"</strong>. 
+                            Esto significa que el sistema no sabe qué permisos asignarte.
+                        </p>
+                        <p class="text-muted">
+                            Normalmente, cada usuario del sistema debe tener un registro correspondiente en Personal que defina su rol y permisos.
+                        </p>
+                        {% else %}
+                        <h5><i class="fas fa-question-circle me-2"></i>¿Por qué no puedo acceder?</h5>
+                        <p class="text-muted">
+                            Estás intentando acceder a un área que requiere <strong>permisos específicos o un rol diferente</strong> al que tienes asignado.
+                        </p>
+                        <p class="text-muted">
+                            Los permisos son asignados por el administrador del sistema según las responsabilidades de cada puesto.
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Soluciones sugeridas -->
+                    <div class="border-top pt-4">
+                        <h5><i class="fas fa-lightbulb me-2"></i>¿Qué puedes hacer?</h5>
+                        
+                        <div class="row mt-3">
+                            {% if tipo_error == 'sin_personal' %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 border-success">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-user-plus me-2"></i>Solicitar vinculación
+                                        </h6>
+                                        <p class="card-text small">
+                                            Contacta al administrador para que vincule tu usuario con un registro de Personal.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 border-success">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-user-tie me-2"></i>Solicitar cambio de rol
+                                        </h6>
+                                        <p class="card-text small">
+                                            Si necesitas este acceso, solicita al administrador que te asigne el rol adecuado.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary">
+                                            <i class="fas fa-home me-2"></i>Volver al inicio
+                                        </h6>
+                                        <p class="card-text small">
+                                            Regresa a la página principal donde tendrás acceso a las funciones permitidas.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="card-footer bg-light text-center py-3">
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        {% if tipo_error == 'sin_personal' %}
+                        <a href="mailto:admin@instituto.com?subject=Solicitud%20de%20vinculación%20de%20usuario&body=Hola,%20mi%20usuario%20es%20{{ user.username }}%20y%20necesito%20que%20se%20vincule%20con%20un%20perfil%20de%20Personal." 
+                           class="btn btn-success">
+                            <i class="fas fa-envelope me-2"></i>Contactar Administrador
+                        </a>
+                        {% else %}
+                        <a href="mailto:admin@instituto.com?subject=Solicitud%20de%20permisos&body=Hola,%20soy%20{{ user.username }}%20({{ tu_rol }})%20y%20necesito%20acceso%20a%20[describe%20el%20módulo]." 
+                           class="btn btn-success">
+                            <i class="fas fa-key me-2"></i>Solicitar Permisos
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'index' %}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>Ir al Inicio
+                        </a>
+                        
+                        <a href="{% url 'logout' %}" class="btn btn-warning">
+                            <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                        </a>
+                    </div>
+                    
+                    <!-- Opción para superusuarios -->
+                    {% if user.is_superuser %}
+                    <hr class="my-3">
+                    <div class="text-start">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            <strong>Nota para superadministrador:</strong> Puedes crear el perfil de Personal desde el 
+                            <a href="{% url 'admin:web_personal_add' %}">Panel de Administración</a>
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="mt-4 text-center text-muted">
+                <small>
+                    <i class="fas fa-info-circle me-1"></i>
+                    Si crees que esto es un error, reporta al equipo de sistemas.
+                    <br>
+                    Código de error: PERMISO_DENEGADO_{{ tipo_error|upper }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos adicionales -->
+<style>
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+    .display-1 {
+        font-size: 4rem;
+    }
+    .btn {
+        border-radius: 8px;
+        padding: 10px 20px;
+    }
+</style>
+{% endblock %}

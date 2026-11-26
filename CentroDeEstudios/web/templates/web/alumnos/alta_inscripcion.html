@@ -1,0 +1,36 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} Centro de Artes y Oficios {% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'web/styles/alta_inscripcion.css' %}"> {% endblock %}
+
+{% block main %}
+
+<div>
+    <main class="container" class="">
+        <h1> Inscripcion a Cursos</div>
+        <div class="row g-8"> 
+            <div class="col-md-3"></div>
+                <div class="col-form-label-sm col-md-6">
+                    <div class="w-60" m-auto text-center>
+                        <form class="align-itewms-center" class="letter" method="POST" action="{% url 'listar_alumno' %}">
+                            {% csrf_token %}
+                            {{ alta_inscripcion_form | crispy }}
+                            <button type="submit" class="btn bg-primary"> Guardar </button>
+                            <button type="submit" class="btn bg-primary"> Modificar </button>
+                            <button type="submit" class="btn bg-primary"> Eliminar </button>
+                          
+                        </form>
+                        
+                            
+                    </div>    
+                </div>
+            </div>
+        </div>
+    </main>
+
+</div>    
+
+    
+{% endblock %}

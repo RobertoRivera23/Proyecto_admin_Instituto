@@ -1,0 +1,294 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Mi Perfil - Sistema Académico {% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>
+                    <i class="fas fa-user-circle text-primary me-2"></i>
+                    Mi Perfil
+                </h1>
+                <div>
+                    <a href="{% url 'cambiar_contrasena' %}" class="btn btn-warning me-2">
+                        <i class="fas fa-key"></i> Cambiar Contraseña
+                    </a>
+                    <a href="{% url 'index' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver al Inicio
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Columna Izquierda - Información Personal -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-id-card me-2"></i>Información Personal
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if personal %}
+                            <!-- Información del Personal -->
+                            <div class="text-center mb-4">
+                            <img src="{{ personal.foto.url }}" 
+                                alt="Foto de {{ personal.nombre }} {{ personal.apellido }}"
+                                class="img-fluid rounded-circle mb-3 profile-photo"
+                                style="width: 160px; height: 160px; object-fit: cover; border: 4px solid #e9ecef;">
+                 
+                                <h4 class="mt-3 mb-1">{{ personal.nombre_completo }}</h4>
+                                <p class="text-muted mb-0">{{ personal.get_tipo_display }}</p>
+                                <span class="badge bg-success">{{ personal.legajo }}</span>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <table class="table table-borderless table-sm">
+                                        <tr>
+                                            <td width="40%"><strong>DNI:</strong></td>
+                                            <td>{{ personal.dni }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Fecha Nacimiento:</strong></td>
+                                            <td>{{ personal.fecha_nacimiento|date:"d/m/Y"|default:"No especificada" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Teléfono:</strong></td>
+                                            <td>{{ personal.telefono|default:"No especificado" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Email:</strong></td>
+                                            <td>{{ personal.mail|default:"No especificado" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Dirección:</strong></td>
+                                            <td>{{ personal.direccion|default:"No especificada" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Fecha Ingreso:</strong></td>
+                                            <td>{{ personal.fecha_ingreso|date:"d/m/Y" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Antigüedad:</strong></td>
+                                            <td>{{ personal.antiguedad }} año{{ personal.antiguedad|pluralize }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            {% else %}
+                            <!-- Solo información de usuario (sin personal asociado) -->
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-user-slash fa-3x mb-3"></i>
+                                <h5>No hay información de personal asociada</h5>
+                                <p class="mb-0">Tu usuario no está vinculado a un registro de personal.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Información Laboral -->
+                    {% if personal %}
+                    <div class="card mt-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-briefcase me-2"></i>Información Laboral
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <h4 class="text-primary mb-1">{{ personal.antiguedad }}</h4>
+                                        <small class="text-muted">Años de Antigüedad</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div>
+                                        <h4 class="text-success mb-1">
+                                            {% if personal.activo %}
+                                            <i class="fas fa-check-circle"></i>
+                                            {% else %}
+                                            <i class="fas fa-times-circle"></i>
+                                            {% endif %}
+                                        </h4>
+                                        <small class="text-muted">
+                                            {{ personal.activo|yesno:"Activo,Inactivo" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if personal.observaciones %}
+                            <div class="mt-3">
+                                <strong>Observaciones:</strong>
+                                <p class="mb-0 text-muted small">{{ personal.observaciones }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Columna Derecha - Información del Sistema -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-laptop me-2"></i>Información del Sistema
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Información del Usuario -->
+                            <div class="text-center mb-4">
+                            <img src="{{ personal.foto.url }}" 
+                                alt="Foto de {{ personal.nombre }} {{ personal.apellido }}"
+                                class="img-fluid rounded-circle mb-3 profile-photo"
+                                style="width: 160px; height: 160px; object-fit: cover; border: 4px solid #e9ecef;">
+                                <h4 class="mt-3 mb-1">{{ user.username }}</h4>
+                                <p class="text-muted mb-0">Usuario del Sistema</p>
+                                <span class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ user.is_active|yesno:"Activo,Inactivo" }}
+                                </span>
+                            </div>
+
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <td width="40%"><strong>Nombre completo:</strong></td>
+                                    <td>{{ user.get_full_name|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ user.email|default:"No especificado" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha registro:</strong></td>
+                                    <td>{{ user.date_joined|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Último login:</strong></td>
+                                    <td>
+                                        {% if user.last_login %}
+                                            {{ user.last_login|date:"d/m/Y H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">Nunca</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Staff:</strong></td>
+                                    <td>
+                                        <span class="badge {% if user.is_staff %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {{ user.is_staff|yesno:"Sí,No" }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Superusuario:</strong></td>
+                                    <td>
+                                        <span class="badge {% if user.is_superuser %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {{ user.is_superuser|yesno:"Sí,No" }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Grupos y Permisos -->
+                            <div class="mt-4">
+                                <h6 class="border-bottom pb-2">
+                                    <i class="fas fa-users me-2"></i>Grupos y Permisos
+                                </h6>
+                                {% if user.groups.all %}
+                                    <div class="mb-2">
+                                        {% for group in user.groups.all %}
+                                            <span class="badge bg-dark me-1">{{ group.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted small mb-2">No perteneces a ningún grupo</p>
+                                {% endif %}
+                                
+                                {% if user.user_permissions.all %}
+                                    <small class="text-muted">
+                                        <strong>Permisos especiales:</strong> 
+                                        {{ user.user_permissions.count }} permiso{{ user.user_permissions.count|pluralize }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones Rápidas -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-warning">
+                            <h5 class="card-title mb-0 text-white">
+                                <i class="fas fa-bolt me-2"></i>Acciones Rápidas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="{% url 'cambiar_contrasena' %}" class="btn btn-outline-warning btn-sm w-100">
+                                        <i class="fas fa-key me-1"></i>Cambiar Contraseña
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                    {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                        <i class="fa fa-sign-out me-2"></i>Cerrar Sesión
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {% if user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+                                <div class="col-12 mt-2">
+                                    <a href="/admin/" class="btn btn-outline-primary btn-sm w-100" target="_blank">
+                                        <i class="fas fa-cog me-1"></i>Panel Administrativo
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas de Actividad -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>Mi Actividad
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h5 class="text-primary mb-1">-</h5>
+                                    <small class="text-muted">Cursos</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5 class="text-success mb-1">-</h5>
+                                    <small class="text-muted">Alumnos</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5 class="text-info mb-1">-</h5>
+                                    <small class="text-muted">Actividades</small>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Estadísticas disponibles próximamente
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

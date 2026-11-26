@@ -1,0 +1,56 @@
+{% extends "web/base.html" %}
+
+{% block main %}
+<div class="container py-4">
+    <h1>Debug Tareas Rápidas</h1>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Usuario: {{ user.username }}</h5>
+            <p>Es coordinador: {{ es_coordinador|yesno:"Sí,No" }}</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <h5>URLs de las tareas:</h5>
+            <ul>
+                <li>Generar Notificaciones de Mora: <code>{{ urls.generar_mora }}</code></li>
+                <li>Recordatorios de Pago: <code>{{ urls.recordatorios_pago }}</code></li>
+                <li>Exportar Excel: <code>{{ urls.exportar_excel }}</code></li>
+            </ul>
+            
+            <h5>Probar directamente:</h5>
+            <div class="mt-3">
+                <a href="{{ urls.generar_mora }}" class="btn btn-primary" target="_blank">
+                    Probar Generar Notificaciones Mora (GET)
+                </a>
+                <button onclick="probarPOST('{{ urls.generar_mora }}')" class="btn btn-success">
+                    Probar Generar Notificaciones Mora (POST)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function probarPOST(url) {
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log('Respuesta:', data);
+        alert('Respuesta en consola');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

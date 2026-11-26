@@ -1,0 +1,159 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Anular Pago - #{{ pago.id }}{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-ban me-2"></i>Anular Pago
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Alerta de advertencia -->
+                    <div class="alert alert-warning">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="alert-heading">¡Atención!</h5>
+                                <p class="mb-0">
+                                    Está a punto de anular el pago <strong>#{{ pago.id }}</strong> por un monto de 
+                                    <strong>${{ pago.monto|floatformat:2 }}</strong>. Esta acción afectará los reportes financieros.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información del pago -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Información del Pago:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>ID:</strong> #{{ pago.id }}</li>
+                                <li><strong>Fecha:</strong> {{ pago.fecha_pago|date:"d/m/Y" }}</li>
+                                <li><strong>Monto:</strong> ${{ pago.monto|floatformat:2 }}</li>
+                                <li><strong>Método:</strong> {{ pago.get_metodo_pago_display }}</li>
+                                <li><strong>Referencia:</strong> {{ pago.referencia|default:"N/A" }}</li>
+                                <li><strong>Estado:</strong> 
+                                    {% if pago.anulado %}
+                                        <span class="badge bg-danger">Anulado</span>
+                                    {% elif pago.confirmado %}
+                                        <span class="badge bg-success">Confirmado</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Información del Alumno:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Alumno:</strong> {{ pago.alumno.nombre_completo }}</li>
+                                <li><strong>DNI:</strong> {{ pago.alumno.dni|default:"N/A" }}</li>
+                                <li><strong>Curso Actual:</strong> {{ pago.alumno.curso_actual.nombre|default:"N/A" }}</li>
+                                <li><strong>Descripción:</strong> {{ pago.descripcion|default:"N/A" }}</li>
+                                <li><strong>Registrado por:</strong> {{ pago.usuario_registro.get_full_name|default:pago.usuario_registro.username }}</li>
+                                <li><strong>Fecha registro:</strong> {{ pago.fecha_registro|date:"d/m/Y H:i" }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Advertencias específicas -->
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-circle me-2"></i>Impacto de la anulación:</h6>
+                        <ul class="mb-0">
+                            {% if pago.cuota %}
+                                <li>La cuota asociada ({{ pago.cuota.mes_correspondiente|default:"N/A" }}) se marcará como NO PAGADA</li>
+                            {% endif %}
+                            <li>El pago será marcado como anulado en todos los reportes</li>
+                            <li>Se restará el monto de los totales recaudados</li>
+                            <li>Se generará un registro en el historial de anulaciones</li>
+                            <li>Esta acción será registrada con su usuario para auditoría</li>
+                        </ul>
+                    </div>
+
+                    <!-- Formulario de confirmación -->
+                    <form method="POST" action="{% url 'facturacion:anular_pago' pago.id %}">
+                        {% csrf_token %}
+                        
+                        <!-- Campo de motivo -->
+                        <div class="mb-3">
+                            <label for="motivo_anulacion" class="form-label">
+                                <strong>Motivo de anulación *:</strong>
+                            </label>
+                            <textarea class="form-control" id="motivo_anulacion" 
+                                      name="motivo_anulacion" rows="3" required
+                                      placeholder="Ej: Pago duplicado, error en el monto, cancelación del alumno, etc."></textarea>
+                            <div class="form-text">Este motivo quedará registrado en el historial de auditoría.</div>
+                        </div>
+
+                        <!-- Checkbox de confirmación -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="confirmar_anulacion" name="confirmar_anulacion" required>
+                            <label class="form-check-label" for="confirmar_anulacion">
+                                <strong>Comprendo que esta acción:</strong>
+                                <ul class="mb-0 mt-1">
+                                    <li>Marcará este pago como anulado permanentemente</li>
+                                    {% if pago.cuota %}
+                                        <li>Marcará la cuota asociada como NO PAGADA</li>
+                                    {% endif %}
+                                    <li>Afectará los totales recaudados y reportes financieros</li>
+                                    <li>No se puede deshacer automáticamente</li>
+                                    <li>Será registrada para fines de auditoría</li>
+                                </ul>
+                            </label>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'facturacion:detalle_pago' pago.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar y Volver
+                            </a>
+                            
+                            <button type="submit" class="btn btn-danger" id="btn-anular" disabled>
+                                <i class="fas fa-ban me-2"></i>Confirmar Anulación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirmar_anulacion');
+    const btnAnular = document.getElementById('btn-anular');
+    
+    checkbox.addEventListener('change', function() {
+        btnAnular.disabled = !this.checked;
+    });
+    
+    // Confirmación adicional antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const motivo = document.getElementById('motivo_anulacion').value.trim();
+        
+        let mensaje = '¿Está completamente seguro de que desea anular este pago?\n\n';
+        mensaje += `ID: #{{ pago.id }}\n`;
+        mensaje += `Monto: ${{ pago.monto|floatformat:2 }}\n`;
+        mensaje += `Alumno: {{ pago.alumno.nombre_completo }}\n`;
+        mensaje += `Motivo: ${motivo || 'No especificado'}\n\n`;
+        mensaje += '⚠️  Esta acción afectará los reportes financieros y no se puede deshacer fácilmente.';
+        
+        if (!confirm(mensaje)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

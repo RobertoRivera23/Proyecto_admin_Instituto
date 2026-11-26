@@ -1,0 +1,102 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if modo_vista == 'profesor' %}
+        Mi Panel de Profesor
+    {% elif modo_vista == 'admin_viendo_profesor' %}
+        Panel de {{ profesor.nombre_completo }} - Vista Administrador
+    {% endif %}
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid mt-4">
+    <div class="container-fluid mt-4">
+    <!-- Header personal - CON MODOS -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <!-- Foto y nombre -->
+                        <div class="col-md-2 text-center">
+                            {% if profesor.foto %}
+                                <img src="{{ profesor.foto.url }}" alt="Foto" class="img-fluid rounded-circle" style="max-height: 120px;">
+                            {% else %}
+                                <img src="{% static 'img/default-avatar.png' %}" alt="Foto" class="img-fluid rounded-circle" style="max-height: 120px;">
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <!-- Título según modo -->
+                            {% if modo_vista == 'profesor' %}
+                                <h3 class="text-primary">{{ profesor.nombre_completo }}</h3>
+                                <p class="mb-1">
+                                    <i class="fas fa-user-tie text-muted"></i> Mi Perfil de Profesor
+                                </p>
+                            {% elif modo_vista == 'admin_viendo_profesor' %}
+                                <h3 class="text-primary">
+                                    <i class="fas fa-eye text-info"></i> {{ profesor.nombre_completo }}
+                                </h3>
+                                <p class="mb-1">
+                                    <i class="fas fa-user-shield text-muted"></i> Vista Administrador - Perfil de Profesor
+                                </p>
+                            {% endif %}
+                            
+                            <!-- Información común -->
+                            <p class="mb-1">
+                                <i class="fas fa-id-card text-muted"></i> CUIT: {{ profesor.cuit|default:"No registrado" }}
+                            </p>
+                            <p class="mb-1">
+                                <i class="fas fa-envelope text-muted"></i> Email: {{ profesor.mail|default:"No registrado" }}
+                            </p>
+                            <p class="mb-0">
+                                <i class="fas fa-phone text-muted"></i> Teléfono: {{ profesor.telefono|default:"No registrado" }}
+                            </p>
+                        </div>
+                        
+                        <!-- Botones según modo -->
+                        <div class="col-md-2 text-right">
+                            {% if modo_vista == 'profesor' %}
+                                <a href="{% url 'perfil_profesor' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-user-edit"></i> Editar Mi Perfil
+                                </a>
+                            {% elif modo_vista == 'admin_viendo_profesor' %}
+                                <div class="btn-group-vertical">
+                                    <a href="{% url 'mostrar_profesor' profesor.id %}" 
+                                       class="btn btn-outline-info mb-2">
+                                        <i class="fas fa-external-link-alt"></i> Ver en Gestión
+                                    </a>
+                                    <a href="{% url 'dashboard_profesor' %}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left"></i> Volver a Mi Dashboard
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row">
+        <!-- Tarjetas de estadísticas (comunes a ambos modos) -->
+        {% include 'web/profesores/partials/estadisticas.html' %}
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="row">
+        <!-- Columna izquierda: Cursos -->
+        <div class="col-lg-8 mb-4">
+            {% include 'web/profesores/partials/cursos_asignados.html' %}
+        </div>
+        
+        <!-- Columna derecha: Acciones y próximas clases -->
+        <div class="col-lg-4 mb-4">
+            {% include 'web/profesores/partials/acciones_rapidas.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

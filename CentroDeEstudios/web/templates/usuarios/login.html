@@ -1,0 +1,127 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Iniciar Sesión - Sistema Académico {% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- Card de Login -->
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-lock me-2"></i>Iniciar Sesión
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Mensajes -->
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% elif message.tags == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' or message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Mostrar errores del formulario (si existen) -->
+                    {% if form.errors and not messages %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ❌ Por favor, introduce un nombre de usuario y contraseña correctos.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario de Login -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Campo Username -->
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="fas fa-user me-2"></i>Usuario
+                            </label>
+                            <input type="text" 
+                                   name="username" 
+                                   id="id_username" 
+                                   class="form-control form-control-lg {% if form.errors %}is-invalid{% endif %}" 
+                                   placeholder="Ingresa tu usuario"
+                                   required
+                                   autofocus
+                                   autocomplete="username"
+                                   value="{{ form.username.value|default:'' }}">
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.username.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo Password -->
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">
+                                <i class="fas fa-key me-2"></i>Contraseña
+                            </label>
+                            <input type="password" 
+                                   name="password" 
+                                   id="id_password" 
+                                   class="form-control form-control-lg {% if form.errors %}is-invalid{% endif %}" 
+                                   placeholder="Ingresa tu contraseña"
+                                   required
+                                   autocomplete="current-password">
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.password.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text text-warning">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                🔒 3 intentos fallidos bloquearán la cuenta temporalmente
+                            </div>
+                        </div>
+
+                        <!-- Recordarme -->
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember_me" name="remember_me">
+                            <label class="form-check-label" for="remember_me">Recordar sesión</label>
+                        </div>
+
+                        <!-- Botón Login -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Ingresar al Sistema
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Enlaces adicionales -->
+                    <div class="mt-4 text-center">
+                        <div class="d-flex justify-content-around">
+                            <a href="{% url 'resetear_contrasena' %}" class="text-decoration-none">
+                                <i class="fas fa-question-circle me-1"></i>¿Olvidaste tu contraseña?
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Información del sistema -->
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="mb-2">
+                            <i class="fas fa-shield-alt me-2 text-primary"></i>Política de Seguridad
+                        </h6>
+                        <ul class="small mb-0 text-muted">
+                            <li>3 intentos fallidos bloquearán la cuenta por 1 hora</li>
+                            <li>Solo administradores y coordinadores pueden recuperar contraseña automáticamente</li>
+                            <li>Contacta al administrador si tienes problemas de acceso</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

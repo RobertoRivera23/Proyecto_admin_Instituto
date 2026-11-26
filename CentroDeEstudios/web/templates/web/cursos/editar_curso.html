@@ -1,0 +1,206 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} Editar Curso - {{ curso.nombre }} {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/styles.css' %}">
+<link rel="stylesheet" href="{% static 'web/styles/alumnos.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header con botones -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">✏️ Editar Curso: {{ curso.nombre }}</h1>
+        <div>
+            <a href="{% url 'listar_cursos' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver a Lista
+            </a>
+        </div>
+    </div>
+    
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Información del curso -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-info-circle me-2"></i>Información del Curso
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>ID:</strong> {{ curso.id }}</p>
+                    <p><strong>Fecha creación:</strong> {{ curso.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Estado:</strong> 
+                        {% if curso.activo %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Total alumnos:</strong> 
+                        <span class="badge bg-primary">{{ curso.total_alumnos }}</span>
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Última modificación:</strong> {{ curso.fecha_actualizacion|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de edición -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-edit me-2"></i>Modificar Datos del Curso
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{% url 'editar_curso' curso.id %}">
+                {% csrf_token %}
+                
+                <!-- Errores generales -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Organizar campos en filas -->
+                <div class="row">
+                    <!-- Columna 1: Datos básicos -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-info-circle me-2"></i>Información Básica
+                        </h6>
+                        
+                        <!-- Nombre -->
+                        <div class="mb-3">
+                            {{ form.nombre|as_crispy_field }}
+                        </div>
+
+                        <!-- Días y Horario -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.dias|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.horario|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Precio y Duración -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.precio|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.duracion|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Fechas y asignaciones -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-calendar me-2"></i>Fechas y Asignaciones
+                        </h6>
+                        
+                        <!-- Fecha Inicio y Fin -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.fecha_inicio|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.fecha_fin|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profesor y Auxiliar -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.profesor|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.auxiliar|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado activo -->
+                        <div class="mb-3">
+                            {{ form.activo|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="{% url 'listar_alumnos_curso' curso.id %}" class="btn btn-info">
+                                    <i class="fa fa-users me-2"></i>Ver Alumnos
+                                </a>
+                                <a href="{% url 'tomar_asistencia_profesor' curso.id %}" class="btn btn-primary">
+                                    <i class="fa fa-clipboard-check me-2"></i>Tomar Asistencia
+                                </a>
+                            </div>
+                            <div class="d-flex gap-3">
+                                <a href="{% url 'listar_cursos' %}" class="btn btn-secondary">
+                                    <i class="fa fa-times me-2"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fa fa-save me-2"></i>Guardar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="alert alert-info mt-4">
+        <i class="fa fa-info-circle me-2"></i>
+        <strong>Nota:</strong> Los campos marcados con <span class="text-danger">*</span> son obligatorios.
+    </div>
+</div>
+{% endblock %}

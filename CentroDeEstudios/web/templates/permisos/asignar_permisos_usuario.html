@@ -1,0 +1,180 @@
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Asignar Permisos a Usuario{% endblock %}
+{% block page_title %}Asignar Permisos a: {{ usuario.username }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'asignar_permisos_usuario' %}" class="btn btn-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Asignar Permisos y Grupos</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-key"></i> Permisos Directos
+                                    </h6>
+                                </div>
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    {% for permiso in permisos %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="permisos" value="{{ permiso.id }}" 
+                                               id="permiso{{ permiso.id }}"
+                                               {% if permiso in permisos_usuario %}checked{% endif %}>
+                                        <label class="form-check-label" for="permiso{{ permiso.id }}">
+                                            <strong>{{ permiso.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ permiso.content_type.app_label }}.{{ permiso.content_type.model }}
+                                                <code>{{ permiso.codename }}</code>
+                                            </small>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-people"></i> Grupos
+                                    </h6>
+                                </div>
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    {% for grupo in grupos %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="grupos" value="{{ grupo.id }}" 
+                                               id="grupo{{ grupo.id }}"
+                                               {% if grupo in grupos_usuario %}checked{% endif %}>
+                                        <label class="form-check-label" for="grupo{{ grupo.id }}">
+                                            <strong>{{ grupo.name }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ grupo.permissions.count }} permisos
+                                            </small>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'asignar_permisos_usuario' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <div>
+                            <button type="reset" class="btn btn-warning me-2">
+                                <i class="bi bi-arrow-clockwise"></i> Restablecer
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-person-circle"></i> Información del Usuario
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Usuario:</span>
+                        <strong>{{ usuario.username }}</strong>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Nombre:</span>
+                        <span>{{ usuario.first_name }} {{ usuario.last_name }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Email:</span>
+                        <span>{{ usuario.email|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Estado:</span>
+                        {% if usuario.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Superusuario:</span>
+                        {% if usuario.is_superuser %}
+                        <span class="badge bg-warning">Sí</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item">
+                        <small class="text-muted">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>Nota:</strong> Los permisos de superusuario anulan todas las restricciones.
+                        </small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-shield-check"></i> Permisos Actuales
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>Permisos directos ({{ permisos_usuario.count }})</h6>
+                {% if permisos_usuario %}
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                    {% for perm in permisos_usuario|slice:":5" %}
+                    <span class="badge bg-primary">{{ perm.codename }}</span>
+                    {% endfor %}
+                    {% if permisos_usuario.count > 5 %}
+                    <span class="badge bg-light text-dark">+{{ permisos_usuario.count|add:"-5" }}</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-muted">No tiene permisos directos.</p>
+                {% endif %}
+                
+                <h6>Grupos ({{ grupos_usuario.count }})</h6>
+                {% if grupos_usuario %}
+                <div class="d-flex flex-wrap gap-1">
+                    {% for grupo in grupos_usuario %}
+                    <span class="badge bg-secondary">{{ grupo.name }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No pertenece a ningún grupo.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

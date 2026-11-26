@@ -1,0 +1,137 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Gestión de Backups {% endblock %}
+
+{% block main %}
+<div class="container">
+    <h1>💾 Gestión de Backups</h1>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filtrar por modelo:</label>
+                    <select name="modelo" class="form-select">
+                        <option value="">Todos los modelos</option>
+                        {% for modelo in modelos %}
+                            <option value="{{ modelo }}" {% if filtro_actual.modelo == modelo %}selected{% endif %}>
+                                {{ modelo }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Filtrar por estado:</label>
+                    <select name="estado" class="form-select">
+                        <option value="">Todos los estados</option>
+                        {% for estado in estados %}
+                            <option value="{{ estado }}" {% if filtro_actual.estado == estado %}selected{% endif %}>
+                                {{ estado }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                    <a href="{% url 'listar_backups' %}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h4>{{ estadisticas.total }}</h4>
+                    <p>Total Backups</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h4>{{ estadisticas.activos }}</h4>
+                    <p>Backups Activos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h4>{{ estadisticas.restaurados }}</h4>
+                    <p>Backups Restaurados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de backups -->
+    <div class="card">
+        <div class="card-body">
+            {% if backups %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Modelo</th>
+                            <th>Objeto Original</th>
+                            <th>Motivo</th>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for backup in backups %}
+                        <tr>
+                            <td>{{ backup.id }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ backup.modelo }}</span>
+                            </td>
+                            <td>{{ backup.get_info_objeto }}</td>
+                            <td>{{ backup.motivo }}</td>
+                            <td>{{ backup.fecha_backup|date:"d/m/Y H:i" }}</td>
+                            <td>{{ backup.usuario_backup.username|default:"Sistema" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if backup.estado == 'ACTIVO' %}bg-success
+                                    {% elif backup.estado == 'RESTAURADO' %}bg-info
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ backup.estado }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if backup.estado == 'ACTIVO' %}
+                                <a href="{% url 'restaurar_backup' backup.id %}" 
+                                   class="btn btn-warning btn-sm"
+                                   onclick="return confirm('¿Restaurar este backup?')">
+                                    🔄 Restaurar
+                                </a>
+                                {% endif %}
+                                
+                                <a href="{% url 'eliminar_backup' backup.id %}" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('¿Eliminar permanentemente este backup?')">
+                                    🗑️ Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">No hay backups que coincidan con los filtros</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

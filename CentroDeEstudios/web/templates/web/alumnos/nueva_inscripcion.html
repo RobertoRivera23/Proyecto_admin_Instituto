@@ -1,0 +1,240 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Nueva Inscripción - {{ alumno.nombre_completo }}{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fa fa-plus-circle"></i>
+                        Nueva Inscripción para {{ alumno.nombre_completo }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Mostrar mensajes -->
+                    {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Información del alumno -->
+                    <div class="alert alert-info">
+                        <h6>Información del Alumno:</h6>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-1"><strong>Nombre:</strong> {{ alumno.nombre_completo }}</p>
+                                <p class="mb-1"><strong>DNI:</strong> {{ alumno.dni }}</p>
+                                <p class="mb-1"><strong>Edad:</strong> {{ alumno.edad }} años</p>
+                                <p class="mb-0"><strong>Email:</strong> {{ alumno.mail|default:"No especificado" }}</p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                {% if alumno.foto %}
+                                    <img src="{{ alumno.foto.url }}" width="80" height="80" class="rounded-circle" alt="Foto del alumno">
+                                {% else %}
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="fa fa-user fa-2x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.curso.id_for_label }}" class="form-label">
+                                        <strong>Curso *</strong>
+                                    </label>
+                                    {{ form.curso }}
+                                    {% if form.curso.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.curso.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Seleccione el curso al que desea inscribir al alumno</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.estado.id_for_label }}" class="form-label">
+                                        <strong>Estado *</strong>
+                                    </label>
+                                    {{ form.estado }}
+                                    <div class="form-text">Estado inicial de la inscripción</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.fecha_inicio.id_for_label }}" class="form-label">
+                                        Fecha de Inicio
+                                    </label>
+                                    {{ form.fecha_inicio }}
+                                    <div class="form-text">Fecha en que comienza el curso</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.fecha_fin.id_for_label }}" class="form-label">
+                                        Fecha de Fin
+                                    </label>
+                                    {{ form.fecha_fin }}
+                                    <div class="form-text">Fecha en que finaliza el curso</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.costo_inscripcion.id_for_label }}" class="form-label">
+                                        Costo de Inscripción
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.costo_inscripcion }}
+                                    </div>
+                                    <div class="form-text">Costo de la inscripción (opcional)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.nota_final.id_for_label }}" class="form-label">
+                                        Nota Final
+                                    </label>
+                                    {{ form.nota_final }}
+                                    <div class="form-text">Solo para cursos aprobados (0-10)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.abono_inscripcion }}
+                                <label class="form-check-label" for="{{ form.abono_inscripcion.id_for_label }}">
+                                    Inscripción abonada
+                                </label>
+                            </div>
+                            <div class="form-text">Marque si la inscripción ya fue abonada</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                Observaciones
+                            </label>
+                            {{ form.observaciones }}
+                            <div class="form-text">Información adicional sobre la inscripción</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'inscripciones_alumno' alumno.id %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-save"></i> Guardar Inscripción
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="alert alert-light mt-3">
+                <h6><i class="fa fa-info-circle"></i> Información Importante</h6>
+                <ul class="mb-0">
+                    <li>Los campos marcados con <strong>*</strong> son obligatorios</li>
+                    <li>La <strong>nota final</strong> solo debe completarse para cursos aprobados</li>
+                    <li>El sistema verificará que el alumno no esté ya inscrito en el mismo curso</li>
+                    <li>Una vez guardada, la inscripción aparecerá en el historial del alumno</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aplicar clases Bootstrap a los campos del formulario
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.classList.add('form-select');
+        });
+        
+        const inputs = document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"]');
+        inputs.forEach(input => {
+            input.classList.add('form-control');
+        });
+        
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.classList.add('form-control');
+        });
+        
+        const checks = document.querySelectorAll('input[type="checkbox"]');
+        checks.forEach(check => {
+            check.classList.add('form-check-input');
+        });
+
+        // Validación de fechas
+        const fechaInicio = document.getElementById('{{ form.fecha_inicio.id_for_label }}');
+        const fechaFin = document.getElementById('{{ form.fecha_fin.id_for_label }}');
+        
+        if (fechaInicio && fechaFin) {
+            fechaInicio.addEventListener('change', function() {
+                if (this.value && fechaFin.value && this.value > fechaFin.value) {
+                    alert('⚠️ La fecha de inicio no puede ser posterior a la fecha de fin');
+                    this.value = '';
+                }
+            });
+            
+            fechaFin.addEventListener('change', function() {
+                if (this.value && fechaInicio.value && this.value < fechaInicio.value) {
+                    alert('⚠️ La fecha de fin no puede ser anterior a la fecha de inicio');
+                    this.value = '';
+                }
+            });
+        }
+
+        // Validación de nota
+        const notaFinal = document.getElementById('{{ form.nota_final.id_for_label }}');
+        if (notaFinal) {
+            notaFinal.addEventListener('change', function() {
+                const valor = parseFloat(this.value);
+                if (valor < 0 || valor > 10) {
+                    alert('⚠️ La nota debe estar entre 0 y 10');
+                    this.value = '';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

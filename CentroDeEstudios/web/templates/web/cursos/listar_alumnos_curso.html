@@ -1,0 +1,172 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Alumnos del Curso - {{ curso.nombre }} {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/styles.css' %}">
+<style>
+    .payment-warning { border-left: 4px solid #ffc107; }
+    .payment-danger { border-left: 4px solid #dc3545; }
+    .header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 15px 0;
+    }
+    .header-title {
+        flex: 1;
+        min-width: 300px;
+    }
+    .btn-group-header {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    @media (max-width: 768px) {
+        .header-container {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .btn-group-header {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Encabezado con botones -->
+    <div class="header-container">
+        <div class="header-title">
+            <h1 class="h3 mb-0">👥 Alumnos del Curso: <span class="text-primary">{{ curso.nombre }}</span></h1>
+        </div>
+        <div class="btn-group-header">
+            <a href="{% url 'listar_cursos' %}" class="btn btn-outline-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver a Cursos
+            </a>
+            <a href="{% url 'tomar_asistencia_profesor' curso.id %}" class="btn btn-primary">
+                <i class="fa fa-clipboard-check me-2"></i> Tomar Asistencia
+            </a>
+            <!-- Botón para inscribir alumno - SOLO SI LA URL EXISTE -->
+            {% url 'nueva_inscripcion' as nueva_inscripcion_url %}
+            {% if nueva_inscripcion_url %}
+            <a href="{% url 'nueva_inscripcion' %}" class="btn btn-success">
+                <i class="fa fa-user-plus me-2"></i> Inscribir Alumno
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información del curso -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Horario:</strong> {{ curso.horario }}</p>
+                    <p><strong>Días:</strong> {{ curso.dias }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Profesor:</strong> {{ curso.profesor.nombre_completo }}</p>
+                    <p><strong>Estado:</strong> 
+                        {% if curso.activo %}
+                            <span class="badge bg-success">Activo</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Total Alumnos:</strong> {{ alumnos|length }}</p>
+                    <p><strong>Fecha Inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de alumnos -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-users me-2"></i>Lista de Alumnos Inscritos
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if alumnos %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>DNI</th>
+                            <th>Contacto</th>
+                            <th>Estado Pago</th>
+                            <th>Última Asistencia</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alumno_data in alumnos %}
+                        <tr class="{% if alumno_data.estado_pago == 'NARANJA' %}payment-warning{% elif alumno_data.estado_pago == 'ROJO' %}payment-danger{% endif %}">
+                            <td>
+                                <strong>{{ alumno_data.alumno.nombre_completo }}</strong>
+                                {% if alumno_data.estado_pago == 'ROJO' %}
+                                <br><small class="text-danger"><i class="fa fa-exclamation-triangle"></i> No tomar examen</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ alumno_data.alumno.dni }}</td>
+                            <td>
+                                <small>
+                                    {{ alumno_data.alumno.telefono|default:"Sin teléfono" }}<br>
+                                    {{ alumno_data.alumno.mail|default:"Sin email" }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if alumno_data.estado_pago == 'NARANJA' %}
+                                    <span class="badge bg-warning">Pago pendiente</span>
+                                {% elif alumno_data.estado_pago == 'ROJO' %}
+                                    <span class="badge bg-danger">Pago vencido</span>
+                                {% else %}
+                                    <span class="badge bg-success">Al día</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if alumno_data.ultima_asistencia %}
+                                    {{ alumno_data.ultima_asistencia.fecha|date:"d/m/Y" }}
+                                    ({% if alumno_data.ultima_asistencia.presente %}<span class="text-success">Presente</span>{% else %}<span class="text-danger">Ausente</span>{% endif %})
+                                {% else %}
+                                    <span class="text-muted">Sin registros</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'mostrar_alumno' alumno_data.alumno.id %}" class="btn btn-outline-primary" title="Ver detalle">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'edit_alumno' alumno_data.alumno.id %}" class="btn btn-outline-secondary" title="Editar">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="text-muted">
+                    <i class="fa fa-users fa-3x mb-3"></i>
+                    <h4>No hay alumnos inscritos</h4>
+                    <p>No se han encontrado alumnos inscritos en este curso.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

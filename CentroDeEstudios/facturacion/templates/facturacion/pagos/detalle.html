@@ -1,0 +1,167 @@
+<!-- facturacion/templates/facturacion/pagos/detalle.html -->
+{% extends 'web/base.html' %}
+{% block title %}Detalle del Pago #{{ pago.id }}{% endblock %}
+{% block extra_css %}
+<style>
+  .info-card {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1rem;
+    height: 100%;
+    transition: all 0.2s;
+    box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05);
+  }
+  .info-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.08);
+  }
+  .info-card h6 i {
+    color: #4e73df;
+    margin-right: 0.5rem;
+  }
+  .info-card p {
+    margin-bottom: 0.5rem;
+  }
+  .badge {
+    font-size: 0.9rem;
+    padding: 0.35rem 0.65rem;
+  }
+  .table th {
+    border-top: none;
+    background-color: #f8f9fc;
+  }
+  .btn-sm {
+    border-radius: 0.5rem;
+  }
+</style>
+{% endblock %}
+{% block main %}
+<div class="container mt-4">
+  <div class="card shadow-sm border-0 rounded-4">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3">
+      <h3 class="mb-0">
+        <i class="fas fa-receipt text-primary me-2"></i>
+        Detalle del Pago #{{ pago.id }}
+      </h3>
+      <div class="btn-group">
+        {% if not pago.confirmado %}
+          <a href="{% url 'facturacion:confirmar_pago' pago.id %}" class="btn btn-success btn-sm">
+            <i class="fas fa-check-circle me-1"></i> Confirmar
+          </a>
+        {% endif %}
+        {% if not pago.anulado %}
+          <a href="{% url 'facturacion:anular_pago' pago.id %}" class="btn btn-danger btn-sm">
+            <i class="fas fa-ban me-1"></i> Anular
+          </a>
+        {% endif %}
+        {% if pago.confirmado and not pago.comprobante %}
+          <a href="{% url 'facturacion:generar_recibo' pago.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-file-invoice me-1"></i> Generar Recibo
+          </a>
+          <a href="{% url 'facturacion:emitir_factura_arca' pago.id %}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-invoice-dollar me-1"></i> Emitir Factura ARCA
+          </a>
+        {% endif %}
+        {% if pago.comprobante %}
+          <a href="{% url 'facturacion:imprimir_comprobante' pago.comprobante.uuid %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-print me-1"></i> Imprimir Recibo
+          </a>
+        {% endif %}
+        {% if pago.estado != 'ANULADO' and pago.estado != 'CONFIRMADO' %}
+          <a href="{% url 'facturacion:editar_pago' pago.id %}" class="btn btn-warning btn-sm">
+            <i class="fas fa-edit me-1"></i> Editar
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body pt-0">
+      <!-- Tres columnas (mismo orden) -->
+      <div class="row g-3 mb-4">
+        <!-- Pagador -->
+        <div class="col-md-4">
+          <div class="info-card">
+            <h6 class="mb-3"><i class="fas fa-user-circle"></i> Pagador</h6>
+            <p><strong>Alumno:</strong> {{ pago.alumno.nombre_completo|default:"Tercero" }}</p>
+            <p><strong>DNI:</strong> {{ pago.alumno.dni|default:pago.tercero_dni }}</p>
+            {% if not pago.alumno and pago.tercero_nombre %}
+              <p><strong>Nombre:</strong> {{ pago.tercero_nombre }} {{ pago.tercero_apellido }}</p>
+              <p><strong>CUIL:</strong> {{ pago.tercero_cuil|default:"-" }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Estado -->
+        <div class="col-md-4">
+          <div class="info-card">
+            <h6 class="mb-3"><i class="fas fa-chart-line"></i> Estado</h6>
+            <p>
+              <strong>Estado:</strong>
+              <span class="badge bg-{{ pago.color_estado }} ms-1">{{ pago.get_estado_display }}</span>
+            </p>
+            <p><strong>Monto total:</strong> <span class="h5 text-primary">${{ pago.monto }}</span></p>
+            {% if pago.es_parcial %}
+              <p><strong>Pago parcial</strong><br>Saldo pendiente: ${{ pago.saldo_pendiente }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Detalle del pago -->
+        <div class="col-md-4">
+          <div class="info-card">
+            <h6 class="mb-3"><i class="fas fa-info-circle"></i> Detalle del pago</h6>
+            <p><strong>Fecha:</strong> {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
+            <p><strong>Método:</strong> {{ pago.get_metodo_pago_display }}</p>
+            <p><strong>Registrado por:</strong> {{ pago.usuario_registro.get_full_name }}</p>
+            {% if pago.referencia %}
+              <p><strong>Referencia:</strong> {{ pago.referencia }}</p>
+            {% endif %}
+            {% if pago.observaciones %}
+              <p><strong>Observaciones:</strong><br>{{ pago.observaciones|linebreaksbr }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de conceptos -->
+      <h5 class="mt-2 mb-3"><i class="fas fa-list-ul text-primary me-2"></i> Conceptos pagados</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th>Cantidad</th>
+              <th>Precio Unit.</th>
+              <th>Subtotal</th>
+              <th>Mes</th>
+              <th>Año</th>
+              <th>Curso</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for detalle in detalles %}
+            <tr>
+              <td><span class="badge bg-secondary">{{ detalle.get_tipo_display }}</span></td>
+              <td>{{ detalle.descripcion }}</td>
+              <td>{{ detalle.cantidad }}</td>
+              <td>${{ detalle.precio_unitario }}</td>
+              <td class="fw-bold">${{ detalle.subtotal }}</td>
+              <td>{{ detalle.get_mes_display|default:"-" }}</td>
+              <td>{{ detalle.año|default:"-" }}</td>
+              <td>
+                {% if detalle.curso %}
+                  {{ detalle.curso.nombre }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">No hay conceptos registrados.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

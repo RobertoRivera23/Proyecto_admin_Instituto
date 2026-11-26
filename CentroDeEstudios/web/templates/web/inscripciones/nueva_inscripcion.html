@@ -1,0 +1,584 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if alumno %}
+        Nueva Inscripción - {{ alumno.nombre_completo }}
+    {% else %}
+        Nueva Inscripción - Buscar Alumno
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.auto-filled {
+    background-color: #f0f8ff;
+    border-left: 3px solid #2196f3;
+}
+.busqueda-alumnos {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.alumno-item {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.alumno-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+.selected-alumno {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3;
+}
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>
+                {% if alumno %}
+                    📝 Nueva Inscripción
+                {% else %}
+                    🔍 Buscar Alumno para Inscripción
+                {% endif %}
+            </h1>
+            <p class="text-muted">
+                {% if alumno %}
+                    Alumno seleccionado: <strong>{{ alumno.nombre_completo }}</strong> | DNI: {{ alumno.dni }}
+                {% else %}
+                    Busque y seleccione un alumno para crear una nueva inscripción
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            {% if alumno %}
+                <a href="{% url 'nueva_inscripcion' %}" class="btn btn-warning me-2">
+                    <i class="fa fa-refresh"></i> Cambiar Alumno
+                </a>
+                <a href="{% url 'inscripciones_alumno' alumno.id %}" class="btn btn-secondary">
+                    <i class="fa fa-arrow-left"></i> Volver
+                </a>
+            {% else %}
+                <a href="{% url 'listar_inscripciones' %}" class="btn btn-secondary">
+                    <i class="fa fa-arrow-left"></i> Volver a Inscripciones
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Mostrar mensajes -->
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not alumno %}
+    <!-- MODO BÚSQUEDA DE ALUMNO -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-search"></i> Buscar Alumno</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Formulario de búsqueda -->
+                    <div class="mb-4">
+                        <form id="form-busqueda" method="GET" class="row g-3">
+                            <div class="col-md-10">
+                                <input type="text" 
+                                       name="busqueda" 
+                                       id="input-busqueda"
+                                       class="form-control form-control-lg" 
+                                       placeholder="Ingrese DNI, nombre o apellido del alumno..."
+                                       value="{{ form_busqueda.busqueda.value|default:'' }}"
+                                       autocomplete="off">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" name="buscar" class="btn btn-primary btn-lg w-100">
+                                    <i class="fa fa-search"></i> Buscar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Resultados de búsqueda -->
+                    <div id="resultados-busqueda">
+                        {% if resultados %}
+                            <h6 class="mb-3">Resultados de la búsqueda ({{ resultados.count }}):</h6>
+                            <div class="list-group">
+                                {% for alumno_result in resultados %}
+                                <div class="list-group-item list-group-item-action alumno-item"
+                                     onclick="seleccionarAlumno({{ alumno_result.id }})">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ alumno_result.nombre_completo }}</h6>
+                                        <small>DNI: {{ alumno_result.dni }}</small>
+                                    </div>
+                                    <p class="mb-1">
+                                        <small class="text-muted">
+                                            Email: {{ alumno_result.mail|default:"No especificado" }} | 
+                                            Teléfono: {{ alumno_result.telefono|default:"No especificado" }}
+                                        </small>
+                                    </p>
+                                    <div class="mt-2">
+                                        <button class="btn btn-success btn-sm" 
+                                                onclick="event.stopPropagation(); seleccionarAlumno({{ alumno_result.id }});">
+                                            <i class="fa fa-check"></i> Seleccionar
+                                        </button>
+                                        <button class="btn btn-info btn-sm"
+                                            onclick="event.stopPropagation(); abrirModalAlumno({{ alumno_result.id }});">
+                                            <i class="fa fa-eye"></i> Ver Ficha
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% elif request.GET.busqueda %}
+                            <div class="text-center py-4">
+                                <i class="fa fa-search fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No se encontraron alumnos</h5>
+                                <p class="text-muted">Intente con otros términos de búsqueda</p>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fa fa-users fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Ingrese términos de búsqueda</h5>
+                                <p class="text-muted">Busque alumnos por DNI, nombre o apellido</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario oculto para seleccionar alumno -->
+    <form id="form-seleccionar-alumno" method="POST" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" name="alumno_id" id="input-alumno-id">
+        <input type="hidden" name="seleccionar_alumno">
+    </form>
+
+    {% else %}
+    <!-- MODO FORMULARIO DE INSCRIPCIÓN (cuando ya se seleccionó alumno) -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-edit"></i> Datos de la Inscripción</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="inscripcion-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="guardar_inscripcion" value="1">
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.curso.id_for_label }}" class="form-label">
+                                        <strong>Curso *</strong>
+                                    </label>
+                                    {{ form.curso }}
+                                    {% if form.curso.errors %}
+                                        <div class="text-danger small">{{ form.curso.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.estado.id_for_label }}" class="form-label">
+                                        <strong>Estado *</strong>
+                                    </label>
+                                    {{ form.estado }}
+                                    {% if form.estado.errors %}
+                                        <div class="text-danger small">{{ form.estado.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.fecha_inicio.id_for_label }}" class="form-label">
+                                        Fecha de Inicio
+                                    </label>
+                                    {{ form.fecha_inicio }}
+                                    {% if form.fecha_inicio.errors %}
+                                        <div class="text-danger small">{{ form.fecha_inicio.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.fecha_fin.id_for_label }}" class="form-label">
+                                        Fecha de Fin
+                                    </label>
+                                    {{ form.fecha_fin }}
+                                    {% if form.fecha_fin.errors %}
+                                        <div class="text-danger small">{{ form.fecha_fin.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.costo_inscripcion.id_for_label }}" class="form-label">
+                                        Costo de Inscripción
+                                    </label>
+                                    {{ form.costo_inscripcion }}
+                                    {% if form.costo_inscripcion.errors %}
+                                        <div class="text-danger small">{{ form.costo_inscripcion.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.nota_final.id_for_label }}" class="form-label">
+                                        Nota Final
+                                    </label>
+                                    {{ form.nota_final }}
+                                    {% if form.nota_final.errors %}
+                                        <div class="text-danger small">{{ form.nota_final.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.abono_inscripcion }}
+                                <label for="{{ form.abono_inscripcion.id_for_label }}" class="form-check-label">
+                                    <strong>Abonó Inscripción</strong>
+                                </label>
+                                {% if form.abono_inscripcion.errors %}
+                                    <div class="text-danger small">{{ form.abono_inscripcion.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                Observaciones
+                            </label>
+                            {{ form.observaciones }}
+                            {% if form.observaciones.errors %}
+                                <div class="text-danger small">{{ form.observaciones.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'nueva_inscripcion' %}" class="btn btn-warning me-md-2">
+                                <i class="fa fa-refresh"></i> Cambiar Alumno
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-check"></i> Guardar Inscripción
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fa fa-info-circle"></i> Información del Alumno</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        {% if alumno.foto %}
+                            <img src="{{ alumno.foto.url }}" alt="{{ alumno.nombre_completo }}" 
+                                 class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                 style="width: 100px; height: 100px;">
+                                <i class="fa fa-user fa-2x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="text-center">{{ alumno.nombre_completo }}</h5>
+                    <p class="text-muted text-center">DNI: {{ alumno.dni }}</p>
+                    
+                    <hr>
+                    
+                    <div class="small">
+                        <p><strong>Email:</strong><br>{{ alumno.mail|default:"No especificado" }}</p>
+                        <p><strong>Teléfono:</strong><br>{{ alumno.telefono|default:"No especificado" }}</p>
+                        <p><strong>Dirección:</strong><br>{{ alumno.direccion|default:"No especificada" }}</p>
+                        <p><strong>Fecha Nacimiento:</strong><br>{{ alumno.fecha_nacimiento|date:"d/m/Y"|default:"No especificada" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para obtener el token CSRF
+function getCSRFToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función mejorada para cargar fechas del curso
+function cargarFechasCurso(cursoId) {
+    console.log('🔄 Iniciando carga de fechas para curso ID:', cursoId);
+    
+    const fechaInicioInput = document.getElementById('id_fecha_inicio');
+    const fechaFinInput = document.getElementById('id_fecha_fin');
+    
+    // Verificar que existen los elementos
+    if (!fechaInicioInput) {
+        console.error('❌ No se encontró el campo fecha_inicio con id "id_fecha_inicio"');
+        return;
+    }
+    if (!fechaFinInput) {
+        console.error('❌ No se encontró el campo fecha_fin con id "id_fecha_fin"');
+        return;
+    }
+
+    if (!cursoId || cursoId === '') {
+        console.log('➖ No hay curso seleccionado, limpiando campos');
+        fechaInicioInput.value = '';
+        fechaFinInput.value = '';
+        return;
+    }
+
+    // Mostrar estado de carga
+    fechaInicioInput.placeholder = 'Cargando...';
+    fechaFinInput.placeholder = 'Cargando...';
+    fechaInicioInput.style.opacity = '0.7';
+    fechaFinInput.style.opacity = '0.7';
+
+    // Hacer la petición AJAX
+    fetch(`/web/obtener_fechas_curso/${cursoId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCSRFToken(),
+        }
+    })
+    .then(response => {
+        console.log('📡 Estado de respuesta:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Datos recibidos:', data);
+        
+        // Actualizar campos de fecha
+        if (data.fecha_inicio) {
+            fechaInicioInput.value = data.fecha_inicio;
+            fechaInicioInput.classList.add('auto-filled');
+            console.log('📅 Fecha inicio establecida:', data.fecha_inicio);
+        } else {
+            fechaInicioInput.value = '';
+            console.log('⚠️ No hay fecha inicio disponible');
+        }
+        
+        if (data.fecha_fin) {
+            fechaFinInput.value = data.fecha_fin;
+            fechaFinInput.classList.add('auto-filled');
+            console.log('📅 Fecha fin establecida:', data.fecha_fin);
+        } else {
+            fechaFinInput.value = '';
+            console.log('⚠️ No hay fecha fin disponible');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error al cargar fechas:', error);
+        // Limpiar campos en caso de error
+        fechaInicioInput.value = '';
+        fechaFinInput.value = '';
+    })
+    .finally(() => {
+        // Restaurar estado normal
+        fechaInicioInput.placeholder = '';
+        fechaFinInput.placeholder = '';
+        fechaInicioInput.style.opacity = '';
+        fechaFinInput.style.opacity = '';
+    });
+}
+
+// Inicialización mejorada
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Inicializando formulario de inscripción...');
+    
+    // Configurar evento para cambio de curso
+    const selectCurso = document.getElementById('id_curso');
+    
+    if (selectCurso) {
+        console.log('✅ Select de curso encontrado:', selectCurso.id);
+        console.log('📋 Número de opciones:', selectCurso.options.length);
+        
+        // Evento para cambio de selección
+        selectCurso.addEventListener('change', function() {
+            const cursoId = this.value;
+            const textoSeleccionado = this.options[this.selectedIndex]?.text;
+            console.log('🔄 Curso seleccionado:', { id: cursoId, nombre: textoSeleccionado });
+            cargarFechasCurso(cursoId);
+        });
+        
+        // Cargar fechas automáticamente si ya hay selección
+        if (selectCurso.value) {
+            console.log('🎯 Curso pre-seleccionado:', selectCurso.value);
+            // Pequeño delay para asegurar que el DOM esté listo
+            setTimeout(() => {
+                cargarFechasCurso(selectCurso.value);
+            }, 100);
+        }
+    } else {
+        console.error('❌ No se encontró el select de curso');
+        // Debug: mostrar todos los elementos con "curso" en el ID
+        console.log('🔍 Elementos relacionados con curso:');
+        document.querySelectorAll('[id*="curso"], [name*="curso"]').forEach(el => {
+            console.log(' - ', el.id, el.name, el.tagName);
+        });
+    }
+    
+    // Eventos para edición manual
+    const fechaInicioInput = document.getElementById('id_fecha_inicio');
+    const fechaFinInput = document.getElementById('id_fecha_fin');
+    
+    if (fechaInicioInput) {
+        fechaInicioInput.addEventListener('input', function() {
+            this.classList.remove('auto-filled');
+            console.log('✏️ Usuario editó fecha inicio manualmente');
+        });
+    }
+    
+    if (fechaFinInput) {
+        fechaFinInput.addEventListener('input', function() {
+            this.classList.remove('auto-filled');
+            console.log('✏️ Usuario editó fecha fin manualmente');
+        });
+    }
+    
+    // Debug: mostrar información del formulario
+    console.log('🔍 Información del formulario:');
+    const form = document.querySelector('form');
+    if (form) {
+        console.log('📝 Formulario encontrado con', form.elements.length, 'elementos');
+    }
+});
+
+// Función para seleccionar alumno
+function seleccionarAlumno(alumnoId) {
+    document.getElementById('input-alumno-id').value = alumnoId;
+    document.getElementById('form-seleccionar-alumno').submit();
+}
+
+// Función para abrir el modal del alumno
+function abrirModalAlumno(alumnoId) {
+    fetch(`/web/alumnos/modal/${alumnoId}/`)
+        .then(response => response.text())
+        .then(html => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            const modalExistente = document.getElementById('modalAlumnoDetalle');
+            if (modalExistente) {
+                modalExistente.remove();
+            }
+            
+            document.body.appendChild(tempDiv.firstElementChild);
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalAlumnoDetalle'));
+            modal.show();
+            
+            document.getElementById('modalAlumnoDetalle').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+        })
+        .catch(error => {
+            console.error('Error al cargar el modal:', error);
+            alert('Error al cargar la información del alumno');
+        });
+}
+
+// SOLUCIÓN ALTERNATIVA - Descomenta si la principal no funciona
+function inicializarCargaManualFechas() {
+    const selectCurso = document.getElementById('id_curso');
+    if (!selectCurso) return;
+    
+    // Datos de cursos predefinidos (usando la información que obtuvimos)
+    const cursosData = {
+        '3': { inicio: '2025-12-06', fin: '2026-02-28' },
+        '5': { inicio: '2025-11-24', fin: '2026-02-02' },
+        '6': { inicio: '2025-09-15', fin: '2025-11-29' },
+        '2': { inicio: '2025-11-15', fin: '2025-12-06' }
+    };
+    
+    selectCurso.addEventListener('change', function() {
+        const cursoId = this.value;
+        const datos = cursosData[cursoId];
+        
+        const fechaInicio = document.getElementById('id_fecha_inicio');
+        const fechaFin = document.getElementById('id_fecha_fin');
+        
+        if (datos && fechaInicio && fechaFin) {
+            fechaInicio.value = datos.inicio;
+            fechaFin.value = datos.fin;
+            fechaInicio.classList.add('auto-filled');
+            fechaFin.classList.add('auto-filled');
+            console.log('✅ Fechas cargadas manualmente para curso:', cursoId);
+        }
+    });
+    
+    // Cargar automáticamente si hay selección
+    if (selectCurso.value && cursosData[selectCurso.value]) {
+        const datos = cursosData[selectCurso.value];
+        const fechaInicio = document.getElementById('id_fecha_inicio');
+        const fechaFin = document.getElementById('id_fecha_fin');
+        
+        if (fechaInicio && fechaFin) {
+            fechaInicio.value = datos.inicio;
+            fechaFin.value = datos.fin;
+            console.log('✅ Fechas pre-cargadas manualmente');
+        }
+    }
+}
+
+// Descomenta la siguiente línea si la solución principal no funciona:
+document.addEventListener('DOMContentLoaded', inicializarCargaManualFechas);
+</script>
+{% endblock %}

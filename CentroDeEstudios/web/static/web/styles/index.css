@@ -1,0 +1,9 @@
+.algo{
+    background-color: var(.bg-primary);
+}
+
+.logo-central{
+    background-image: url(../image/LogoS.png);
+    background-repeat: none;
+    background-size: cover;
+}

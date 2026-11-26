@@ -1,0 +1,382 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+/* Estilos específicos para reporte PDF */
+.reporte-container {
+    background-color: white;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header-reporte {
+    border-bottom: 3px solid #dc3545;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.logo-reporte {
+    max-height: 80px;
+}
+
+.table-reporte {
+    font-size: 12px;
+}
+
+.table-reporte th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    padding: 8px;
+}
+
+.table-reporte td {
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.badge-reporte {
+    font-size: 0.7em;
+    padding: 2px 6px;
+}
+
+.estadistica-reporte {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.firma-reporte {
+    margin-top: 50px;
+    border-top: 1px solid #dee2e6;
+    padding-top: 20px;
+}
+
+/* Estilos para impresión */
+@media print {
+    body {
+        background-color: white !important;
+    }
+    
+    .sidebar, .navbar2, .custom-menu, .btn {
+        display: none !important;
+    }
+    
+    #content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .reporte-container {
+        padding: 0;
+        box-shadow: none;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+    
+    .page-break {
+        page-break-after: always;
+    }
+    
+    table {
+        page-break-inside: avoid;
+    }
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="reporte-container">
+        <!-- Cabecera del reporte -->
+        <div class="header-reporte">
+            <div class="row align-items-center">
+                <div class="col-2">
+                    <img src="{% static 'web/image/Logo_sf.jpg' %}" class="logo-reporte" alt="Logo">
+                </div>
+                <div class="col-8 text-center">
+                    <h1 class="h3 mb-0 text-danger">REPORTE DE MORAS</h1>
+                    <p class="mb-0 text-muted">Instituto de Aprendizaje y Capacitación Laboral</p>
+                    <p class="mb-0">
+                        <strong>Período:</strong> {{ fecha_inicio|date:"d/m/Y" }} - {{ fecha_fin|date:"d/m/Y" }}
+                    </p>
+                </div>
+                <div class="col-2 text-end">
+                    <p class="mb-0">
+                        <strong>Generado:</strong><br>
+                        {{ fecha_generacion|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estadísticas del reporte -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="estadistica-reporte text-center">
+                    <div class="h4 text-danger">${{ total_deuda|floatformat:2|default:"0.00" }}</div>
+                    <small class="text-muted">Total de Deuda</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="estadistica-reporte text-center">
+                    <div class="h4 text-warning">{{ total_alumnos|default:0 }}</div>
+                    <small class="text-muted">Alumnos en Mora</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="estadistica-reporte text-center">
+                    <div class="h4 text-info">{{ total_cuotas|default:0 }}</div>
+                    <small class="text-muted">Cuotas Vencidas</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="estadistica-reporte text-center">
+                    <div class="h4 text-success">{{ promedio_dias|floatformat:0|default:0 }}</div>
+                    <small class="text-muted">Días Promedio</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resumen ejecutivo -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Resumen Ejecutivo
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Análisis de la Situación:</h6>
+                        <ul>
+                            <li>La deuda total acumulada asciende a ${{ total_deuda|floatformat:2|default:"0.00" }}</li>
+                            <li>{{ total_alumnos|default:0 }} alumnos se encuentran en mora</li>
+                            <li>El promedio de días de mora es de {{ promedio_dias|floatformat:0|default:0 }} días</li>
+                            <li>La cuota promedio vencida es de ${{ cuota_promedio|floatformat:2|default:"0.00" }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Recomendaciones:</h6>
+                        <ol>
+                            <li>Contactar urgentemente a los 10 mayores deudores</li>
+                            <li>Implementar planes de pago personalizados</li>
+                            <li>Reforzar el sistema de recordatorios automáticos</li>
+                            <li>Revisar datos de contacto de alumnos en mora prolongada</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabla de alumnos en mora -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Detalle de Alumnos en Mora
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-reporte table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Alumno</th>
+                                <th>Matrícula</th>
+                                <th>Curso</th>
+                                <th class="text-end">Deuda Total</th>
+                                <th class="text-center">Cuotas</th>
+                                <th class="text-center">Días Mora</th>
+                                <th>Último Contacto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumno in alumnos_mora %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ alumno.nombre_completo }}</td>
+                                <td>{{ alumno.matricula|default:"-" }}</td>
+                                <td>{{ alumno.curso_actual|default:"Sin curso" }}</td>
+                                <td class="text-end fw-bold">${{ alumno.total_deuda|floatformat:2|default:"0.00" }}</td>
+                                <td class="text-center">{{ alumno.cuotas_vencidas|default:0 }}</td>
+                                <td class="text-center">{{ alumno.dias_mora|default:0 }}</td>
+                                <td>{{ alumno.ultimo_contacto|date:"d/m/Y"|default:"Sin contacto" }}</td>
+                                <td>
+                                    {% if alumno.activo %}
+                                    <span class="badge bg-success badge-reporte">Activo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary badge-reporte">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4 text-muted">
+                                    No hay alumnos en mora en este período
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="9" class="text-end">
+                                    <strong>Total general: ${{ total_deuda|floatformat:2|default:"0.00" }}</strong>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Análisis por curso -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Análisis por Curso
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-reporte">
+                        <thead>
+                            <tr>
+                                <th>Curso</th>
+                                <th class="text-center">Alumnos</th>
+                                <th class="text-center">En Mora</th>
+                                <th class="text-end">Deuda Total</th>
+                                <th class="text-end">Deuda Promedio</th>
+                                <th class="text-center">% Mora</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for curso in cursos_analisis %}
+                            <tr>
+                                <td>{{ curso.nombre }}</td>
+                                <td class="text-center">{{ curso.total_alumnos }}</td>
+                                <td class="text-center">{{ curso.alumnos_mora }}</td>
+                                <td class="text-end">${{ curso.deuda_total|floatformat:2 }}</td>
+                                <td class="text-end">${{ curso.deuda_promedio|floatformat:2 }}</td>
+                                <td class="text-center">{{ curso.porcentaje_mora|floatformat:1 }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Plan de acción -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-clipboard-check me-2"></i>Plan de Acción Propuesto
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Acciones Inmediatas (1-7 días):</h6>
+                        <ul>
+                            <li>Contactar a los 5 mayores deudores por teléfono</li>
+                            <li>Enviar notificaciones formales vía email</li>
+                            <li>Actualizar datos de contacto inexactos</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Acciones a Mediano Plazo (8-30 días):</h6>
+                        <ul>
+                            <li>Implementar planes de pago personalizados</li>
+                            <li>Programar reuniones con deudores recurrentes</li>
+                            <li>Revisar políticas de cobranza</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Firmas y aprobaciones -->
+        <div class="firma-reporte">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <div class="border-top pt-3" style="min-height: 100px;">
+                        <strong>Generado por:</strong><br>
+                        {{ usuario_actual.get_full_name|default:usuario_actual.username }}<br>
+                        {{ usuario_actual.personal.get_tipo_display|default:"Coordinador" }}
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="border-top pt-3" style="min-height: 100px;">
+                        <strong>Revisado por:</strong><br>
+                        <br>
+                        ___________________________
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="border-top pt-3" style="min-height: 100px;">
+                        <strong>Aprobado por:</strong><br>
+                        <br>
+                        ___________________________
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pie de página -->
+        <div class="text-center mt-4 text-muted">
+            <small>
+                Reporte generado automáticamente por el Sistema de Gestión IACL<br>
+                Fecha de generación: {{ fecha_generacion|date:"d/m/Y H:i" }} | 
+                Página 1 de 1
+            </small>
+        </div>
+    </div>
+    
+    <!-- Botones de acción (no se imprimen) -->
+    <div class="text-center mt-4 no-print">
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Imprimir Reporte
+        </button>
+        <a href="{% url 'seguimiento_moras' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver al Seguimiento
+        </a>
+        <button type="button" class="btn btn-success" onclick="descargarPDF()">
+            <i class="fas fa-download me-2"></i>Descargar PDF
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js_fin_html %}
+<script>
+function descargarPDF() {
+    // En una implementación real, aquí generarías el PDF
+    alert('Generando PDF del reporte...');
+    
+    // Simular descarga
+    setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = '{% url "reporte_moras_pdf" %}?download=true';
+        link.click();
+    }, 1000);
+}
+
+// Configurar para impresión
+$(document).ready(function() {
+    // Agregar información de impresión
+    const originalTitle = document.title;
+    document.title = 'Reporte de Moras - {{ fecha_generacion|date:"d/m/Y" }}';
+    
+    // Restaurar título al salir
+    $(window).on('beforeunload', function() {
+        document.title = originalTitle;
+    });
+});
+</script>
+{% endblock %}

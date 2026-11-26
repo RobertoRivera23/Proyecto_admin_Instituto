@@ -1,0 +1,56 @@
+<!-- templates/web/cursos/confirmar_restaurar.html -->
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Restaurar Curso {% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-undo me-2"></i>Restaurar Curso
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fa fa-question-circle fa-4x text-warning mb-3"></i>
+                        <h4>¿Restaurar curso eliminado?</h4>
+                    </div>
+                    
+                    <div class="alert alert-info text-start">
+                        <strong>Curso:</strong> {{ curso.nombre }}<br>
+                        <strong>Profesor:</strong> {% if curso.profesor %}{{ curso.profesor.nombre_completo }}{% else %}No asignado{% endif %}<br>
+                        <strong>Horario:</strong> {{ curso.dias }} - {{ curso.horario }}<br>
+                        <strong>Eliminado:</strong> 
+                        {% if curso.fecha_eliminacion %}
+                            {{ curso.fecha_eliminacion|date:"d/m/Y H:i" }}
+                        {% else %}
+                            Fecha no disponible
+                        {% endif %}
+                    </div>
+                    
+                    <p class="text-muted">
+                        Al restaurar este curso, volverá a estar disponible en la lista de cursos activos 
+                        y podrá ser asignado a nuevos alumnos.
+                    </p>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <a href="{% url 'cursos_eliminados' %}" class="btn btn-secondary">
+                                <i class="fa fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-undo me-2"></i>Restaurar Curso
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

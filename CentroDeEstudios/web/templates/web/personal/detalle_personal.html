@@ -1,0 +1,480 @@
+<!-- templates/web/personal/detalle_personal.html -->
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}Detalle de {{ personal.nombre }} {{ personal.apellido }} - Sistema de Gestión Academica del IACL{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-id-card text-primary"></i>
+                {{ personal.nombre }} {{ personal.apellido }}
+            </h1>
+            <p class="text-muted mb-0">
+                {{ personal.get_tipo_display }} | Legajo: {{ personal.legajo }}
+            </p>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'editar_personal' personal.id %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            
+            {% if personal.activo %}
+            <a href="{% url 'toggle_activo_personal' personal.id %}" class="btn btn-secondary">
+                <i class="fas fa-toggle-on"></i> Desactivar
+            </a>
+            {% else %}
+            <a href="{% url 'toggle_activo_personal' personal.id %}" class="btn btn-success">
+                <i class="fas fa-toggle-off"></i> Activar
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'eliminar_personal' personal.id %}" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Eliminar
+            </a>
+            <a href="{% url 'listar_personal' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Sección Superior: Foto y Resumen -->
+    <div class="row mb-4">
+        <!-- Foto -->
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-camera"></i> Foto de Perfil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if personal.foto %}
+                        <img src="{{ personal.foto.url }}" 
+                             alt="Foto de {{ personal.nombre }} {{ personal.apellido }}"
+                             class="img-fluid rounded-circle mb-3 profile-photo"
+                             style="width: 160px; height: 160px; object-fit: cover; border: 4px solid #e9ecef;">
+                    {% else %}
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3 profile-placeholder"
+                             style="width: 160px; height: 160px; border: 4px solid #e9ecef;">
+                            <i class="fas fa-user fa-4x text-muted"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h5 class="mb-1">{{ personal.nombre }} {{ personal.apellido }}</h5>
+                    <p class="text-muted mb-2">{{ personal.get_tipo_display }}</p>
+                    
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <span class="badge {% if personal.activo %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ personal.activo|yesno:"Activo,Inactivo" }}
+                        </span>
+                        {% if personal.user %}
+                            <span class="badge bg-info">Usuario Activo</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen Estadístico -->
+        <div class="col-md-9">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line"></i> Resumen General
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light h-100">
+                                <h3 class="text-primary mb-1">
+                                    {% if personal.fecha_ingreso %}
+                                        {{ personal.antiguedad_anios|default:0 }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </h3>
+                                <small class="text-muted">Años de Antigüedad</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light h-100">
+                                <h3 class="mb-1 {% if personal.user %}text-success{% else %}text-secondary{% endif %}">
+                                    {% if personal.user %}
+                                        <i class="fas fa-check-circle"></i>
+                                    {% else %}
+                                        <i class="fas fa-times-circle"></i>
+                                    {% endif %}
+                                </h3>
+                                <small class="text-muted">Usuario Sistema</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="border rounded p-3 bg-light h-100">
+                                <h3 class="mb-1 text-info">
+                                    {{ personal.legajo }}
+                                </h3>
+                                <small class="text-muted">N° de Legajo</small>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Información adicional del resumen -->
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                <strong>Ingreso:</strong> 
+                                {% if personal.fecha_ingreso %}
+                                    {{ personal.fecha_ingreso|date:"d/m/Y" }}
+                                {% else %}
+                                    No especificada
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-money-bill me-1"></i>
+                                <strong>Salario:</strong> 
+                                {% if personal.salario %}
+                                    ${{ personal.salario }}
+                                {% else %}
+                                    No especificado
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección Inferior: Información Detallada -->
+    <div class="row">
+        <!-- Columna Izquierda -->
+        <div class="col-md-6">
+            <!-- Información Personal -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user"></i> Información Personal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="w-40"><strong>Nombre:</strong></td>
+                            <td class="w-60">{{ personal.nombre }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Apellido:</strong></td>
+                            <td>{{ personal.apellido }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>DNI:</strong></td>
+                            <td>{{ personal.dni }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fecha Nacimiento:</strong></td>
+                            <td>
+                                {% if personal.fecha_nacimiento %}
+                                    {{ personal.fecha_nacimiento|date:"d/m/Y" }}
+                                {% else %}
+                                    <span class="text-muted">No especificada</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sexo:</strong></td>
+                            <td>{{ personal.get_sexo_display|default:"No especificado" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Información de Contacto -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-address-book"></i> Contacto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="w-40"><strong>Teléfono:</strong></td>
+                            <td class="w-60">{{ personal.telefono|default:"No especificado" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>
+                                {% if personal.mail %}
+                                    <a href="mailto:{{ personal.mail }}">{{ personal.mail }}</a>
+                                {% else %}
+                                    <span class="text-muted">No especificado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tel. Contacto:</strong></td>
+                            <td>{{ personal.telefono_contacto|default:"No especificado" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dirección:</strong></td>
+                            <td>{{ personal.direccion|default:"No especificada"|linebreaksbr }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt"></i> Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'editar_personal' personal.id %}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Editar Información
+                        </a>
+                        
+                        {% if personal.activo %}
+                        <a href="{% url 'toggle_activo_personal' personal.id %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-toggle-on"></i> Desactivar
+                        </a>
+                        {% else %}
+                        <a href="{% url 'toggle_activo_personal' personal.id %}" class="btn btn-success btn-sm">
+                            <i class="fas fa-toggle-off"></i> Activar
+                        </a>
+                        {% endif %}
+                        
+                        {% if not personal.user %}
+                        <a href="{% url 'editar_personal' personal.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-user-plus"></i> Crear Usuario
+                        </a>
+                        {% else %}
+                        <button class="btn btn-info btn-sm" disabled>
+                            <i class="fas fa-user-check"></i> Usuario Creado
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'eliminar_personal' personal.id %}" class="btn btn-danger btn-sm">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="col-md-6">
+            <!-- Información Laboral -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-briefcase"></i> Información Laboral
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="w-40"><strong>Tipo:</strong></td>
+                            <td class="w-60">
+                                <span class="badge 
+                                    {% if personal.tipo == 'ADMINISTRATIVO' %}bg-primary
+                                    {% elif personal.tipo == 'COORDINADOR' %}bg-info
+                                    {% elif personal.tipo == 'SECRETARIA' %}bg-success
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ personal.get_tipo_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Legajo:</strong></td>
+                            <td>{{ personal.legajo }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fecha Ingreso:</strong></td>
+                            <td>
+                                {% if personal.fecha_ingreso %}
+                                    {{ personal.fecha_ingreso|date:"d/m/Y" }}
+                                {% else %}
+                                    <span class="text-muted">No especificada</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Salario:</strong></td>
+                            <td>
+                                {% if personal.salario %}
+                                    ${{ personal.salario }}
+                                {% else %}
+                                    <span class="text-muted">No especificado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Estado:</strong></td>
+                            <td>
+                                <span class="badge {% if personal.activo %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ personal.activo|yesno:"Activo,Inactivo" }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Información del Sistema -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-laptop"></i> Acceso al Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="w-40"><strong>Usuario:</strong></td>
+                            <td class="w-60">
+                                {% if personal.user %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> {{ personal.user.username }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-times"></i> Sin usuario
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grupo:</strong></td>
+                            <td>
+                                {% if personal.user and personal.user.groups.all %}
+                                    {% for group in personal.user.groups.all %}
+                                        <span class="badge bg-info">{{ group.name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">Sin grupo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Último Login:</strong></td>
+                            <td>
+                                {% if personal.user and personal.user.last_login %}
+                                    {{ personal.user.last_login|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">Nunca</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    {% if not personal.user %}
+                    <div class="mt-2">
+                        <a href="{% url 'editar_personal' personal.id %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-user-plus"></i> Crear Usuario
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información de Auditoría -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Auditoría
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="small text-muted">
+                        <p class="mb-2">
+                            <strong>Creado:</strong><br>
+                            {% if personal.fecha_creacion %}
+                                {{ personal.fecha_creacion|date:"d/m/Y H:i" }}
+                            {% else %}
+                                No disponible
+                            {% endif %}
+                        </p>
+                        <p class="mb-2">
+                            <strong>Actualizado:</strong><br>
+                            {% if personal.fecha_actualizacion %}
+                                {{ personal.fecha_actualizacion|date:"d/m/Y H:i" }}
+                            {% else %}
+                                No disponible
+                            {% endif %}
+                        </p>
+                        {% if personal.fecha_eliminacion %}
+                        <p class="mb-0">
+                            <strong>Eliminado:</strong><br>
+                            {{ personal.fecha_eliminacion|date:"d/m/Y H:i" }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observaciones - Ancho Completo -->
+    {% if personal.observaciones %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sticky-note"></i> Observaciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {{ personal.observaciones|linebreaks }}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table-borderless td {
+    border: none !important;
+    padding: 0.3rem 0.5rem;
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+.profile-photo {
+    transition: transform 0.3s ease;
+}
+.profile-photo:hover {
+    transform: scale(1.03);
+}
+.profile-placeholder {
+    transition: all 0.3s ease;
+}
+.profile-placeholder:hover {
+    background-color: #f8f9fa !important;
+    border-color: #007bff !important;
+}
+.badge {
+    font-size: 0.75em;
+}
+.w-40 {
+    width: 40% !important;
+}
+.w-60 {
+    width: 60% !important;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "web/base.html" %}
+
+{% block title %}Test Herencia{% endblock %}
+
+{% block content %}
+<div style="background: yellow; border: 5px solid red; padding: 20px; margin: 20px;">
+    <h1>¡SI VES ESTO, LA HERENCIA FUNCIONA!</h1>
+    <p>Fecha: {{ hoy|date:"d/m/Y" }}</p>
+    <p>Comprobantes: {{ total_comprobantes_mes }}</p>
+    <a href="/facturacion/">Volver al dashboard</a>
+</div>
+{% endblock %}

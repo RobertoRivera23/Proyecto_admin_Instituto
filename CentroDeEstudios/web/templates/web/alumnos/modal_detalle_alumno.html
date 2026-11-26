@@ -1,0 +1,147 @@
+<div class="modal fade" id="modalAlumnoDetalle" tabindex="-1" aria-labelledby="modalAlumnoDetalleLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalAlumnoDetalleLabel">
+                    <i class="fas fa-user-graduate me-2"></i>Detalle del Alumno
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- Columna izquierda: Información personal -->
+                    <div class="col-md-6">
+                        <div class="text-center mb-4">
+                            {% if alumno.foto %}
+                                <img src="{{ alumno.foto.url }}" alt="{{ alumno.nombre_completo }}" 
+                                     class="rounded-circle shadow" style="width: 120px; height: 120px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center shadow" 
+                                     style="width: 120px; height: 120px;">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <h4 class="mt-3 mb-1">{{ alumno.nombre_completo }}</h4>
+                            <p class="text-muted">DNI: {{ alumno.dni }}</p>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-id-card me-2"></i>Información Personal</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td><strong><i class="fas fa-envelope me-2"></i>Email:</strong></td>
+                                        <td>{{ alumno.email|default:"No especificado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="fas fa-phone me-2"></i>Teléfono:</strong></td>
+                                        <td>{{ alumno.telefono|default:"No especificado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="fas fa-map-marker-alt me-2"></i>Dirección:</strong></td>
+                                        <td>{{ alumno.direccion|default:"No especificada" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="fas fa-birthday-cake me-2"></i>Fecha Nac.:</strong></td>
+                                        <td>{{ alumno.fecha_nacimiento|date:"d/m/Y"|default:"No especificada" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="fas fa-venus-mars me-2"></i>Género:</strong></td>
+                                        <td>{{ alumno.get_genero_display|default:"No especificado" }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna derecha: Estadísticas y acciones -->
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Estadísticas</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="border rounded p-2 bg-primary text-white">
+                                            <h4 class="mb-0">{{ total_inscripciones }}</h4>
+                                            <small>Total Cursos</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="border rounded p-2 bg-success text-white">
+                                            <h4 class="mb-0">{{ cursos_aprobados }}</h4>
+                                            <small>Aprobados</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="border rounded p-2 bg-warning text-white">
+                                            <h4 class="mb-0">{{ cursos_cursando }}</h4>
+                                            <small>Cursando</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-flag me-2"></i>Estado</h6>
+                            </div>
+                            <div class="card-body">
+                                <span class="badge bg-{% if alumno.estado == 'ACTIVO' %}success{% else %}secondary{% endif %} fs-6">
+                                    {{ alumno.get_estado_display }}
+                                </span>
+                                <p class="mt-2 mb-1"><strong>Fecha de Alta:</strong> {{ alumno.fecha_creacion|date:"d/m/Y" }}</p>
+                                {% if alumno.fecha_baja %}
+                                <p class="mb-0"><strong>Fecha de Baja:</strong> {{ alumno.fecha_baja|date:"d/m/Y" }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Acciones rápidas -->
+                        <div class="mt-3">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'mostrar_alumno' alumno.id %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-external-link-alt me-1"></i> Ver Ficha Completa
+                                </a>
+                                <a href="{% url 'nueva_inscripcion_con_alumno' alumno.id %}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-book me-1"></i> Inscribir en Curso
+                                </a>
+                                <a href="{% url 'editar_alumno' alumno.id %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-edit me-1"></i> Editar Alumno
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observaciones -->
+                {% if alumno.observaciones %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Observaciones</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">{{ alumno.observaciones }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cerrar
+                </button>
+                <a href="{% url 'mostrar_alumno' alumno.id %}" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt me-1"></i> Abrir Ficha Completa
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

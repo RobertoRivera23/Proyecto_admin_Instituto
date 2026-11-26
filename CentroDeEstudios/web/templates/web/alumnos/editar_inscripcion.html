@@ -1,0 +1,149 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Editar Inscripción - {{ inscripcion }}{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fa fa-edit"></i>
+                        Editar Inscripción
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Información de la inscripción -->
+                    <div class="alert alert-info">
+                        <h6>Información de la Inscripción:</h6>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p class="mb-1"><strong>Alumno:</strong> {{ inscripcion.alumno.nombre_completo }}</p>
+                                <p class="mb-1"><strong>Curso:</strong> {{ inscripcion.curso.nombre }}</p>
+                                <p class="mb-1"><strong>Fecha de inscripción:</strong> {{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</p>
+                                <p class="mb-0"><strong>Estado actual:</strong> 
+                                    <span class="badge bg-{% if inscripcion.estado == 'APROBADO' %}success{% elif inscripcion.estado == 'CURSANDO' %}warning{% else %}info{% endif %}">
+                                        {{ inscripcion.get_estado_display }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                {% if inscripcion.alumno.foto %}
+                                    <img src="{{ inscripcion.alumno.foto.url }}" width="80" height="80" class="rounded-circle" alt="Foto del alumno">
+                                {% else %}
+                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="fa fa-user fa-2x text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario -->
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Curso</strong></label>
+                                    <input type="text" class="form-control" value="{{ inscripcion.curso.nombre }}" readonly>
+                                    <div class="form-text">El curso no se puede modificar</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.estado.id_for_label }}" class="form-label">
+                                        <strong>Estado *</strong>
+                                    </label>
+                                    {{ form.estado }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.fecha_inicio.id_for_label }}" class="form-label">
+                                        Fecha de Inicio
+                                    </label>
+                                    {{ form.fecha_inicio }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.fecha_fin.id_for_label }}" class="form-label">
+                                        Fecha de Fin
+                                    </label>
+                                    {{ form.fecha_fin }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.costo_inscripcion.id_for_label }}" class="form-label">
+                                        Costo de Inscripción
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.costo_inscripcion }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.nota_final.id_for_label }}" class="form-label">
+                                        Nota Final
+                                    </label>
+                                    {{ form.nota_final }}
+                                    <div class="form-text">Solo para cursos aprobados (0-10)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.abono_inscripcion }}
+                                <label class="form-check-label" for="{{ form.abono_inscripcion.id_for_label }}">
+                                    Inscripción abonada
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                Observaciones
+                            </label>
+                            {{ form.observaciones }}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'inscripciones_alumno' inscripcion.alumno.id %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left"></i> Volver
+                            </a>
+                            <div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa fa-save"></i> Actualizar Inscripción
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

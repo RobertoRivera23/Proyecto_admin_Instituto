@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug</title>
+</head>
+<body>
+    <h1>🔍 DEBUG TEMPLATE</h1>
+    <p>total_alumnos: <strong>{{ total_alumnos }}</strong></p>
+    <p>test_var: <strong>{{ test_var }}</strong></p>
+    
+    {% if total_alumnos %}
+        <p style="color: green;">✅ Las variables SÍ están llegando al template</p>
+    {% else %}
+        <p style="color: red;">❌ Las variables NO están llegando al template</p>
+    {% endif %}
+</body>
+</html>

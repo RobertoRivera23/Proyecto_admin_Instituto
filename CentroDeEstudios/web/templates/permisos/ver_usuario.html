@@ -1,0 +1,238 @@
+<!-- web/templates/permisos/ver_usuario.html -->
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Permisos de {{ usuario.username }}{% endblock %}
+{% block page_title %}
+    Permisos del Usuario: {{ usuario.username }}
+    {% if personal %}
+    <span class="badge bg-info">{{ rol }}</span>
+    {% endif %}
+{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group">
+    <a href="{% url 'permisos:listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    <a href="{% url 'permisos:asignar_permisos_usuario' %}?username={{ usuario.username }}" class="btn btn-primary">
+        <i class="bi bi-person-plus"></i> Asignar Permisos
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Información del usuario -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-badge"></i> Información del Usuario
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="mb-3">
+                        <i class="bi bi-person-circle display-1 text-primary"></i>
+                    </div>
+                    <h4>{{ usuario.username }}</h4>
+                    {% if usuario.get_full_name %}
+                    <p class="lead">{{ usuario.get_full_name }}</p>
+                    {% endif %}
+                </div>
+                
+                <table class="table table-sm">
+                    <tr>
+                        <th><i class="bi bi-envelope"></i> Email:</th>
+                        <td>{{ usuario.email|default:"No especificado" }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-calendar"></i> Registro:</th>
+                        <td>{{ usuario.date_joined|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-clock-history"></i> Último login:</th>
+                        <td>{{ usuario.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-toggle-on"></i> Estado:</th>
+                        <td>
+                            <span class="badge bg-{% if usuario.is_active %}success{% else %}danger{% endif %}">
+                                {% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-person-gear"></i> Staff:</th>
+                        <td>
+                            <span class="badge bg-{% if usuario.is_staff %}info{% else %}secondary{% endif %}">
+                                {% if usuario.is_staff %}Sí{% else %}No{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><i class="bi bi-shield-check"></i> Superusuario:</th>
+                        <td>
+                            <span class="badge bg-{% if usuario.is_superuser %}warning{% else %}secondary{% endif %}">
+                                {% if usuario.is_superuser %}Sí{% else %}No{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% if personal %}
+                    <tr>
+                        <th><i class="bi bi-person-rolodex"></i> Rol en sistema:</th>
+                        <td><strong>{{ rol }}</strong></td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Grupos del usuario -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people-fill"></i> Grupos del Usuario
+                    <span class="badge bg-secondary">{{ grupos.count }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if grupos %}
+                <div class="row">
+                    {% for grupo in grupos %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 border-{% if grupo.name == 'Coordinador' %}warning{% elif grupo.name == 'Administrativo' %}primary{% else %}secondary{% endif %}">
+                            <div class="card-header bg-{% if grupo.name == 'Coordinador' %}warning{% elif grupo.name == 'Administrativo' %}primary{% else %}secondary{% endif %} text-white py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>{{ grupo.name }}</strong>
+                                    <span class="badge bg-light text-dark">{{ grupo.permissions.count }} permisos</span>
+                                </div>
+                            </div>
+                            <div class="card-body py-3">
+                                <small class="text-muted d-block mb-2">Permisos en este grupo:</small>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for perm in grupo.permissions.all|slice:":5" %}
+                                    <span class="badge bg-dark permiso-badge" title="{{ perm.name }}">
+                                        {{ perm.codename|truncatechars:15 }}
+                                    </span>
+                                    {% endfor %}
+                                    {% if grupo.permissions.count > 5 %}
+                                    <span class="badge bg-light text-dark">
+                                        +{{ grupo.permissions.count|add:"-5" }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-footer py-2 text-center">
+                                <a href="{% url 'permisos:editar_permisos_grupo' grupo.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Ver/Editar Grupo
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-people display-4 text-muted mb-3"></i>
+                    <p class="lead">El usuario no pertenece a ningún grupo</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permisos directos -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-shield-check"></i> Permisos Totales del Usuario
+                    <span class="badge bg-success">{{ total_permisos_can }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Permisos directos -->
+                <div class="mb-4">
+                    <h6>
+                        <i class="bi bi-person-gear"></i> Permisos Directos
+                        <span class="badge bg-info">{{ permisos_directos.count }}</span>
+                    </h6>
+                    {% if permisos_directos %}
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for perm in permisos_directos %}
+                        <span class="badge bg-info permiso-badge" title="{{ perm.name }}">
+                            {{ perm.codename }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No tiene permisos directos asignados</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Permisos por grupo -->
+                <div class="mb-4">
+                    <h6>
+                        <i class="bi bi-people"></i> Permisos por Grupos
+                    </h6>
+                    {% if permisos_grupos %}
+                    {% for item in permisos_grupos %}
+                    <div class="mb-3">
+                        <strong class="d-block mb-1">{{ item.grupo.name }}:</strong>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for perm in item.permisos %}
+                            <span class="badge bg-secondary permiso-badge" title="{{ perm.name }}">
+                                {{ perm.codename }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted">No tiene permisos por grupos</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Resumen completo -->
+                <div class="border-top pt-4">
+                    <h6>
+                        <i class="bi bi-card-checklist"></i> Resumen Completo de Permisos
+                    </h6>
+                    <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                        {% if todos_permisos %}
+                        <div class="row">
+                            {% for perm in todos_permisos %}
+                            <div class="col-md-4 mb-2">
+                                <div class="card border-success border-start border-3">
+                                    <div class="card-body py-2">
+                                        <code class="text-success">{{ perm }}</code>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-center text-muted">No tiene permisos personalizados</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Acciones -->
+                <div class="mt-4 text-center">
+                    <a href="{% url 'apermisos:ignar_permisos_usuario' %}?username={{ usuario.username }}" class="btn btn-primary me-2">
+                        <i class="bi bi-person-plus"></i> Asignar Permisos Directos
+                    </a>
+                    <a href="{% url 'permisos:listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-list-ul"></i> Ver Todos los Grupos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

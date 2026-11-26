@@ -1,0 +1,58 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Vista Previa - {{ comprobante.get_tipo_display }} {{ comprobante.numero_completo }}</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Vista previa del comprobante -->
+                    <div class="comprobante-preview">
+                        <!-- Contenido similar al PDF -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Acciones</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <button type="submit" name="action" value="confirmar" 
+                                    class="btn btn-success btn-lg w-100 mb-2">
+                                <i class="fas fa-check-circle"></i> Confirmar y Generar
+                            </button>
+                            
+                            <button type="submit" name="action" value="editar" 
+                                    class="btn btn-warning btn-lg w-100 mb-2">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            
+                            <a href="{% url 'facturacion:crear_comprobante' %}" 
+                               class="btn btn-secondary btn-lg w-100">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                        
+                        {% if comprobante.enviar_arca %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Este comprobante se enviará a ARCA automáticamente.
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Registro de Usuario - Sistema Académico{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- Card de Registro -->
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Registro de Usuario
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Mensajes -->
+                    {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario de Registro -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Campo Username -->
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="fas fa-user me-2"></i>Nombre de Usuario
+                            </label>
+                            <input type="text" 
+                                   name="username" 
+                                   id="id_username" 
+                                   class="form-control form-control-lg {% if form.username.errors %}is-invalid{% endif %}" 
+                                   placeholder="Ingresa el nombre de usuario"
+                                   required
+                                   autofocus
+                                   value="{{ form.username.value|default:'' }}">
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.username.help_text %}
+                                <div class="form-text">{{ form.username.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo Password1 -->
+                        <div class="mb-3">
+                            <label for="id_password1" class="form-label">
+                                <i class="fas fa-key me-2"></i>Contraseña
+                            </label>
+                            <input type="password" 
+                                   name="password1" 
+                                   id="id_password1" 
+                                   class="form-control form-control-lg {% if form.password1.errors %}is-invalid{% endif %}" 
+                                   placeholder="Ingresa la contraseña"
+                                   required
+                                   value="{{ form.password1.value|default:'' }}">
+                            {% if form.password1.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password1.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.password1.help_text %}
+                                <div class="form-text">{{ form.password1.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo Password2 -->
+                        <div class="mb-3">
+                            <label for="id_password2" class="form-label">
+                                <i class="fas fa-key me-2"></i>Confirmar Contraseña
+                            </label>
+                            <input type="password" 
+                                   name="password2" 
+                                   id="id_password2" 
+                                   class="form-control form-control-lg {% if form.password2.errors %}is-invalid{% endif %}" 
+                                   placeholder="Confirma la contraseña"
+                                   required
+                                   value="{{ form.password2.value|default:'' }}">
+                            {% if form.password2.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password2.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if form.password2.help_text %}
+                                <div class="form-text">{{ form.password2.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Información de requisitos de contraseña -->
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>Requisitos de contraseña:
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li>Tu contraseña no puede ser demasiado similar a tu otra información personal.</li>
+                                <li>Tu contraseña debe contener al menos 8 caracteres.</li>
+                                <li>Tu contraseña no puede ser una contraseña comúnmente utilizada.</li>
+                                <li>Tu contraseña no puede ser entirely numérica.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Botón Registro -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Registrar Usuario
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Enlaces adicionales -->
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'gestion_usuarios' %}" class="text-decoration-none">
+                            <i class="fas fa-arrow-left me-1"></i>Volver a Gestión de Usuarios
+                        </a>
+                    </div>
+
+                    <!-- Información del sistema -->
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="mb-2">
+                            <i class="fas fa-shield-alt me-2 text-primary"></i>Control de Accesos
+                        </h6>
+                        <p class="small mb-0 text-muted">
+                            Solo personal autorizado (Administradores y Coordinadores) puede registrar nuevos usuarios del sistema.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjetas informativas -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center py-3">
+                            <i class="fas fa-users fa-2x mb-2"></i>
+                            <h6 class="mb-0">Gestión Centralizada</h6>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center py-3">
+                            <i class="fas fa-user-shield fa-2x mb-2"></i>
+                            <h6 class="mb-0">Acceso Controlado</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

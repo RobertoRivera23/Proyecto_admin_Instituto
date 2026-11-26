@@ -1,0 +1,470 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Reportes de Pagos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    .report-card {
+        transition: transform 0.3s;
+    }
+    .report-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-chart-bar text-primary me-2"></i>
+                Reportes de Pagos
+            </h1>
+            <p class="text-muted mb-0">Análisis y estadísticas de pagos</p>
+        </div>
+    </div>
+
+    <!-- Filtros de reporte -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-filter me-2"></i>Filtros del Reporte
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3" id="formReporte">
+                <div class="col-md-3">
+                    <label for="periodo" class="form-label">Período</label>
+                    <select class="form-select" id="periodo" name="periodo">
+                        <option value="hoy" {% if periodo == 'hoy' %}selected{% endif %}>Hoy</option>
+                        <option value="semana" {% if periodo == 'semana' %}selected{% endif %}>Esta semana</option>
+                        <option value="mes" {% if periodo == 'mes' %}selected{% endif %}>Este mes</option>
+                        <option value="trimestre" {% if periodo == 'trimestre' %}selected{% endif %}>Este trimestre</option>
+                        <option value="anio" {% if periodo == 'anio' %}selected{% endif %}>Este año</option>
+                        <option value="personalizado" {% if periodo == 'personalizado' %}selected{% endif %}>Personalizado</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3" id="grupoFechaDesde" {% if periodo != 'personalizado' %}style="display:none;"{% endif %}>
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                           value="{{ fecha_desde|date:'Y-m-d' }}">
+                </div>
+                
+                <div class="col-md-3" id="grupoFechaHasta" {% if periodo != 'personalizado' %}style="display:none;"{% endif %}>
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                           value="{{ fecha_hasta|date:'Y-m-d' }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="tipo_reporte" class="form-label">Tipo de Reporte</label>
+                    <select class="form-select" id="tipo_reporte" name="tipo_reporte">
+                        <option value="general" {% if tipo_reporte == 'general' %}selected{% endif %}>General</option>
+                        <option value="metodos_pago" {% if tipo_reporte == 'metodos_pago' %}selected{% endif %}>Por método de pago</option>
+                        <option value="cursos" {% if tipo_reporte == 'cursos' %}selected{% endif %}>Por curso</option>
+                        <option value="alumnos" {% if tipo_reporte == 'alumnos' %}selected{% endif %}>Por alumno</option>
+                        <option value="diario" {% if tipo_reporte == 'diario' %}selected{% endif %}>Diario</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6" id="grupoCurso" {% if tipo_reporte != 'cursos' %}style="display:none;"{% endif %}>
+                    <label for="curso_id" class="form-label">Curso</label>
+                    <select class="form-select" id="curso_id" name="curso_id">
+                        <option value="">Todos los cursos</option>
+                        {% for curso in cursos %}
+                        <option value="{{ curso.id }}" {% if curso_id == curso.id|stringformat:"i" %}selected{% endif %}>
+                            {{ curso.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6" id="grupoAlumno" {% if tipo_reporte != 'alumnos' %}style="display:none;"{% endif %}>
+                    <label for="alumno_id" class="form-label">Alumno</label>
+                    <select class="form-select" id="alumno_id" name="alumno_id">
+                        <option value="">Todos los alumnos</option>
+                        {% for alumno in alumnos %}
+                        <option value="{{ alumno.id }}" {% if alumno_id == alumno.id|stringformat:"i" %}selected{% endif %}>
+                            {{ alumno.nombre_completo }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro por tipo de detalle (productos, cuotas, etc.) -->
+                <div class="col-md-6">
+                    <label for="tipo_detalle" class="form-label">Tipo de Detalle</label>
+                    <select name="tipo_detalle" class="form-select" id="tipo_detalle">
+                        <option value="">-- Todos --</option>
+                        {% for value, label in tipos_detalle %}
+                        <option value="{{ value }}" {% if tipo_detalle == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-chart-bar me-2"></i>Generar Reporte
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="exportarReporte()">
+                            <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                        </button>
+                        <a href="{% url 'facturacion:reporte_pagos' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Limpiar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Botón para ocultar/mostrar tarjetas -->
+    <button id="toggle-cards" class="btn btn-secondary mb-3">Ocultar tarjetas</button>
+
+    <div id="stats-cards" class="row">
+        <div class="col-md-3">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Ingresos del día</div>
+                <div class="card-body">
+                    <h5 class="card-title">$ {{ ingresos_dia|floatformat:2 }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Ingresos del mes</div>
+                <div class="card-body">
+                    <h5 class="card-title">$ {{ ingresos_mes|floatformat:2 }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-header">Egresos (período)</div>
+                <div class="card-body">
+                    <h5 class="card-title">$ {{ egresos_periodo|floatformat:2 }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Total neto</div>
+                <div class="card-body">
+                    <h5 class="card-title">$ {{ total_neto|floatformat:2 }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning mb-3">
+                <div class="card-header">Alumnos que pagaron</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ alumnos_pagaron }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Evolución de Pagos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartEvolucion"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Distribución por Método de Pago
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="chartMetodos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de detalle (líneas de pago) -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table me-2"></i>
+                Detalle de Pagos (por línea de concepto)
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if detalles %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID Pago</th>
+                            <th>Fecha</th>
+                            <th>Alumno</th>
+                            <th>Curso</th>
+                            <th>Concepto</th>
+                            <th>Monto</th>
+                            <th>Método</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in detalles %}
+                        <tr>
+                            <td>#{{ detalle.pago.id }}</td>
+                            <td>{{ detalle.pago.fecha_pago|date:"d/m/Y" }}</td>
+                            <td>{{ detalle.pago.alumno.nombre_completo|default:"Tercero" }}</td>
+                            <td>{{ detalle.curso.nombre|default:"N/A" }}</td>
+                            <td>{{ detalle.descripcion|truncatechars:30 }}</td>
+                            <td class="text-success">${{ detalle.subtotal|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ detalle.pago.get_metodo_pago_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if detalle.pago.anulado %}
+                                <span class="badge bg-danger">Anulado</span>
+                                {% elif detalle.pago.confirmado %}
+                                <span class="badge bg-success">Confirmado</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pendiente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <td colspan="5" class="text-end"><strong>TOTAL PERÍODO:</strong></td>
+                            <td><strong>${{ total_recaudado|floatformat:2 }}</strong></td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                {% if detalles|length >= 200 %}
+                <p class="text-muted mt-2">Mostrando hasta 200 registros. Ajuste los filtros para ver más detalles.</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay datos para el reporte</h5>
+                <p class="text-muted">Intente cambiar los filtros de búsqueda</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sección de Top 10 Alumnos -->
+    {% if top_alumnos %}
+    <div class="card shadow mt-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-trophy me-2"></i>
+                Top 10 Alumnos por Monto Pagado
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>DNI</th>
+                            <th>Cursos</th>
+                            <th>Total Pagado</th>
+                            <th>Cantidad de Pagos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alumno in top_alumnos %}
+                        <tr>
+                            <td>{{ alumno.nombre_completo }}</td>
+                            <td>{{ alumno.pago__alumno__dni }}</td>
+                            <td>{{ alumno.cursos|default:"Sin curso" }}</td>
+                            <td class="text-success">${{ alumno.total_pagado|floatformat:2 }}</td>
+                            <td>{{ alumno.total_pagos }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== TOGGLE DE TARJETAS ==========
+    const toggleButton = document.getElementById('toggle-cards');
+    const cardsContainer = document.getElementById('stats-cards');
+    
+    if (toggleButton && cardsContainer) {
+        toggleButton.addEventListener('click', function() {
+            if (cardsContainer.style.display === 'none') {
+                cardsContainer.style.display = 'flex';
+                this.textContent = 'Ocultar tarjetas';
+            } else {
+                cardsContainer.style.display = 'none';
+                this.textContent = 'Mostrar tarjetas';
+            }
+        });
+    }
+
+    // ========== MOSTRAR/OCULTAR FECHAS SEGÚN PERÍODO ==========
+    const periodoSelect = document.getElementById('periodo');
+    const grupoFechaDesde = document.getElementById('grupoFechaDesde');
+    const grupoFechaHasta = document.getElementById('grupoFechaHasta');
+    
+    if (periodoSelect && grupoFechaDesde && grupoFechaHasta) {
+        const toggleFechas = function() {
+            if (periodoSelect.value === 'personalizado') {
+                grupoFechaDesde.style.display = 'block';
+                grupoFechaHasta.style.display = 'block';
+            } else {
+                grupoFechaDesde.style.display = 'none';
+                grupoFechaHasta.style.display = 'none';
+            }
+        };
+        periodoSelect.addEventListener('change', toggleFechas);
+        toggleFechas(); // Ejecutar al inicio para estado inicial correcto
+    }
+
+    // ========== MOSTRAR/OCULTAR CAMPOS SEGÚN TIPO DE REPORTE ==========
+    const tipoReporte = document.getElementById('tipo_reporte');
+    const grupoCurso = document.getElementById('grupoCurso');
+    const grupoAlumno = document.getElementById('grupoAlumno');
+    
+    if (tipoReporte && grupoCurso && grupoAlumno) {
+        const toggleTipoReporte = function() {
+            const valor = tipoReporte.value;
+            if (valor === 'cursos') {
+                grupoCurso.style.display = 'block';
+                grupoAlumno.style.display = 'none';
+            } else if (valor === 'alumnos') {
+                grupoCurso.style.display = 'none';
+                grupoAlumno.style.display = 'block';
+            } else {
+                grupoCurso.style.display = 'none';
+                grupoAlumno.style.display = 'none';
+            }
+        };
+        tipoReporte.addEventListener('change', toggleTipoReporte);
+        toggleTipoReporte(); // Estado inicial
+    }
+
+    // ========== GRÁFICOS ==========
+    const canvasEvolucion = document.getElementById('chartEvolucion');
+    const canvasMetodos = document.getElementById('chartMetodos');
+    
+    if (canvasEvolucion && typeof Chart !== 'undefined') {
+        const ctxEvolucion = canvasEvolucion.getContext('2d');
+        new Chart(ctxEvolucion, {
+            type: 'line',
+            data: {
+                labels: {{ fechas|safe }},
+                datasets: [{
+                    label: 'Monto Recaudado ($)',
+                    data: {{ montos|safe }},
+                    borderColor: 'rgba(78, 115, 223, 1)',
+                    backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                    pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                    pointBorderColor: 'rgba(78, 115, 223, 1)',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    borderWidth: 2,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    if (canvasMetodos && typeof Chart !== 'undefined') {
+        const ctxMetodos = canvasMetodos.getContext('2d');
+        new Chart(ctxMetodos, {
+            type: 'doughnut',
+            data: {
+                labels: {{ metodos_labels|safe }},
+                datasets: [{
+                    data: {{ metodos_data|safe }},
+                    backgroundColor: [
+                        'rgba(78, 115, 223, 0.8)',
+                        'rgba(28, 200, 138, 0.8)',
+                        'rgba(246, 194, 62, 0.8)',
+                        'rgba(231, 74, 59, 0.8)',
+                        'rgba(108, 117, 125, 0.8)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
+
+// ========== FUNCIÓN DE EXPORTACIÓN ==========
+function exportarReporte() {
+    const form = document.getElementById('formReporte');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+    params.append('exportar', 'excel');
+    
+    window.location.href = `{% url 'facturacion:exportar_pagos' %}?${params.toString()}`;
+}
+</script>
+{% endblock %}

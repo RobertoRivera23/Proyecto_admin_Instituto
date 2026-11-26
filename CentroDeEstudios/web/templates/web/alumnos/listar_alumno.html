@@ -1,0 +1,240 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Lista de Alumnos {% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-actions {
+        white-space: nowrap;
+    }
+    .btn-compact {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .alumno-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .alumno-card:hover {
+        transform: translateY(-2px);
+    }
+    .contact-info {
+        font-size: 0.8rem;
+    }
+    .dni-badge {
+        font-size: 0.75rem;
+        font-family: 'Courier New', monospace;
+    }
+    .edad-badge {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header con botones - MEJORADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4 py-3 border-bottom">
+        <div>
+            <h1 class="h3 mb-1">👥 Lista de Alumnos Activos</h1>
+            <p class="text-muted mb-0">Gestiona todos los alumnos del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if total_eliminados > 0 %}
+            <a href="{% url 'alumnos_eliminados' %}" class="btn btn-outline-warning btn-sm">
+                <i class="fa fa-trash me-1"></i> Eliminados ({{ total_eliminados }})
+            </a>
+            {% endif %}
+            <a href="{% url 'alta_alumno' %}" class="btn btn-primary btn-sm">
+                <i class="fa fa-plus me-1"></i> Nuevo Alumno
+            </a>
+        </div>
+    </div>
+
+    <!-- Buscador - MEJORADO -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-search me-2"></i>Buscar Alumnos
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{% url 'listar_alumno' %}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-10">
+                        <label for="buscar" class="form-label small fw-bold">Término de búsqueda</label>
+                        <input type="text" 
+                               class="form-control form-control-sm" 
+                               id="buscar"
+                               name="buscar" 
+                               placeholder="Buscar por nombre, apellido, DNI, teléfono o email..."
+                               value="{{ busqueda_actual }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary btn-sm w-100" type="submit">
+                            <i class="fa fa-search me-1"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                {% if busqueda_actual %}
+                <div class="mt-3">
+                    <a href="{% url 'listar_alumno' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa fa-times me-1"></i> Limpiar Búsqueda
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados de búsqueda - MEJORADO -->
+    {% if busqueda_actual %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="fa fa-info-circle me-2"></i>
+        <div class="flex-grow-1">
+            Mostrando resultados para: <strong>"{{ busqueda_actual }}"</strong>
+        </div>
+        <span class="badge bg-primary">{{ alumnos.count }} resultado{{ alumnos.count|pluralize }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de alumnos - COMPLETAMENTE REDISEÑADA -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-users me-2"></i>Alumnos Registrados
+                <span class="badge bg-primary ms-2">{{ alumnos.count }}</span>
+            </h6>
+            <small class="text-muted">Mostrando {{ alumnos.count }} alumno{{ alumnos.count|pluralize }}</small>
+        </div>
+        <div class="card-body p-0">
+            {% if alumnos %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Alumno</th>
+                            <th>DNI</th>
+                            <th>Edad</th>
+                            <th>Contacto</th>
+                            <th class="text-center pe-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alumno in alumnos %}
+                        <tr class="alumno-card">
+                            <!-- Columna Alumno - MEJORADA -->
+                            <td class="ps-3">
+                                <div class="d-flex flex-column">
+                                    <strong class="text-primary">{{ alumno.nombre }} {{ alumno.apellido }}</strong>
+                                    <small class="text-muted">
+                                        ID: {{ alumno.id }}
+                                    </small>
+                                </div>
+                            </td>
+
+                            <!-- Columna DNI - MEJORADA -->
+                            <td>
+                                <span class="badge text-bg-secondary dni-badge">
+                                    {{ alumno.dni }}
+                                </span>
+                            </td>
+
+                            <!-- Columna Edad - MEJORADA -->
+                            <td>
+                                <span class="badge text-bg-info edad-badge">
+                                    {{ alumno.edad }} años
+                                </span>
+                            </td>
+
+                            <!-- Columna Contacto - MEJORADA -->
+                            <td>
+                                <div class="contact-info">
+                                    {% if alumno.telefono %}
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fa fa-phone text-muted me-2" style="width: 16px;"></i>
+                                        <span>{{ alumno.telefono }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if alumno.mail %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-envelope text-muted me-2" style="width: 16px;"></i>
+                                        <span class="text-truncate">{{ alumno.mail }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if not alumno.telefono and not alumno.mail %}
+                                    <span class="text-muted small">Sin contacto</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Columna Acciones - MEJORADA -->
+                            <td class="text-center pe-3 table-actions">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'mostrar_alumno' alumno.id %}" 
+                                       class="btn btn-outline-primary btn-compact" 
+                                       title="Ver detalles">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'edit_alumno' alumno.id %}" 
+                                       class="btn btn-outline-warning btn-compact" 
+                                       title="Editar alumno">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'eliminar_alumno' alumno.id %}" 
+                                       class="btn btn-outline-danger btn-compact" 
+                                       title="Eliminar alumno">
+                                        <i class="fa fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Estado vacío - MEJORADO -->
+            <div class="text-center py-5">
+                {% if busqueda_actual %}
+                <div class="text-warning">
+                    <i class="fa fa-search fa-3x mb-3 opacity-50"></i>
+                    <h4 class="text-warning">No se encontraron resultados</h4>
+                    <p class="mb-3">No hay alumnos que coincidan con "{{ busqueda_actual }}"</p>
+                    <a href="{% url 'listar_alumno' %}" class="btn btn-primary">
+                        <i class="fa fa-arrow-left me-2"></i> Ver todos los alumnos
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-muted">
+                    <i class="fa fa-users fa-3x mb-3 opacity-50"></i>
+                    <h4 class="text-muted">No hay alumnos registrados</h4>
+                    <p class="mb-3">Comienza agregando el primer alumno al sistema</p>
+                    <a href="{% url 'alta_alumno' %}" class="btn btn-primary">
+                        <i class="fa fa-plus me-2"></i> Agregar Primer Alumno
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    {% if alumnos %}
+    <div class="mt-3">
+        <div class="alert alert-light border d-flex align-items-center">
+            <i class="fa fa-info-circle text-primary me-2"></i>
+            <small class="text-muted">
+                <strong>Consejo:</strong> Utiliza los botones de acción para gestionar cada alumno. 
+                <span class="ms-2">
+                    <i class="fa fa-eye text-primary mx-1"></i>Ver | 
+                    <i class="fa fa-edit text-warning mx-1"></i>Editar | 
+                    <i class="fa fa-trash text-danger mx-1"></i>Eliminar
+                </span>
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

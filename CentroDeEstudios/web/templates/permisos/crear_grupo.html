@@ -1,0 +1,178 @@
+<!-- web/templates/permisos/crear_grupo.html -->
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Crear Nuevo Grupo{% endblock %}
+{% block page_title %}Crear Nuevo Grupo de Permisos{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-plus"></i> Crear Nuevo Grupo
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Nombre del grupo -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-card-heading"></i> Información del Grupo
+                        </label>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <label class="form-label">Nombre del Grupo *</label>
+                                <input type="text" class="form-control" name="nombre_grupo" 
+                                       placeholder="Ej: Contabilidad, Recursos Humanos, Soporte Técnico" 
+                                       required>
+                                <small class="text-muted">Use un nombre descriptivo y único.</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo de Grupo</label>
+                                <select class="form-select" disabled>
+                                    <option>Personalizado</option>
+                                </select>
+                                <small class="text-muted">Grupo creado manualmente</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Descripción (Opcional)</label>
+                            <textarea class="form-control" name="descripcion" rows="2" 
+                                      placeholder="Describa el propósito de este grupo..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Selección de permisos -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-shield-check"></i> Permisos del Grupo
+                            <span class="badge bg-secondary">{{ permisos.count }} disponibles</span>
+                        </label>
+                        
+                        <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                            {% regroup permisos by content_type.app_label as permisos_por_app %}
+                            
+                            {% for app in permisos_por_app %}
+                            <div class="mb-4">
+                                <h6 class="border-bottom pb-2">
+                                    {% if app.grouper == "web" %}
+                                        <i class="bi bi-shield text-primary"></i> Web (Gestión de Personal)
+                                    {% else %}
+                                        <i class="bi bi-person-badge text-success"></i> Auth (Gestión de Usuarios)
+                                    {% endif %}
+                                    <span class="badge bg-{% if app.grouper == 'web' %}primary{% else %}success{% endif %}">
+                                        {{ app.list|length }}
+                                    </span>
+                                </h6>
+                                
+                                <div class="row">
+                                    {% for perm in app.list %}
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="permisos_grupo" value="{{ perm.id }}" 
+                                                   id="perm_new_{{ perm.id }}">
+                                            <label class="form-check-label" for="perm_new_{{ perm.id }}">
+                                                <strong>{{ perm.codename }}</strong>
+                                                <small class="d-block text-muted">
+                                                    {{ perm.name|truncatechars:50 }}
+                                                </small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Consejos -->
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Consejos para crear grupos:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Crea grupos para <strong>roles específicos</strong> (Contabilidad, Recursos Humanos, etc.)</li>
+                            <li>Asigna solo los permisos <strong>necesarios</strong> para ese rol</li>
+                            <li>Los grupos facilitan la gestión cuando hay muchos usuarios</li>
+                            <li>Puedes modificar los permisos del grupo en cualquier momento</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Crear Grupo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel lateral con ejemplos -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-card-checklist"></i> Ejemplos de Grupos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6>Contabilidad</h6>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-primary">can_view_reports</span>
+                        <span class="badge bg-primary">can_export_data</span>
+                        <span class="badge bg-primary">can_view_finances</span>
+                    </div>
+                    <small class="text-muted">Acceso a reportes y datos financieros</small>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Recursos Humanos</h6>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-primary">can_manage_staff</span>
+                        <span class="badge bg-primary">can_view_staff</span>
+                        <span class="badge bg-primary">can_add_staff</span>
+                    </div>
+                    <small class="text-muted">Gestión completa del personal</small>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Soporte Técnico</h6>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-success">can_reset_passwords</span>
+                        <span class="badge bg-success">can_disable_users</span>
+                        <span class="badge bg-primary">can_view_audit_logs</span>
+                    </div>
+                    <small class="text-muted">Soporte a usuarios y resolución de problemas</small>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Auditoría</h6>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-primary">can_view_audit_logs</span>
+                        <span class="badge bg-primary">can_export_audit_logs</span>
+                        <span class="badge bg-primary">can_view_reports</span>
+                    </div>
+                    <small class="text-muted">Revisión de registros y auditoría</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

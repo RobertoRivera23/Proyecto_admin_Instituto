@@ -1,0 +1,31 @@
+{% extends "web/base.html" %}
+
+{% block title %}Dashboard Facturación{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info mt-4">
+                <h4><i class="fas fa-tools me-2"></i>Dashboard en Construcción</h4>
+                <p>El módulo de facturación se está configurando. Pronto tendrás acceso a todas las funcionalidades.</p>
+                
+                {% if error %}
+                <div class="alert alert-danger mt-3">
+                    <strong>Error técnico:</strong> {{ error }}
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <a href="{% url 'facturacion:listar_comprobantes' %}" class="btn btn-primary me-2">
+                        <i class="fas fa-file-invoice me-2"></i>Comprobantes
+                    </a>
+                    <a href="{% url 'facturacion:crear_comprobante' %}" class="btn btn-success me-2">
+                        <i class="fas fa-plus me-2"></i>Nuevo Comprobante
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

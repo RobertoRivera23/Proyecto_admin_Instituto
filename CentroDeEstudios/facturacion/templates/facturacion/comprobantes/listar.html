@@ -1,0 +1,336 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Comprobantes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-file-invoice text-primary me-2"></i>
+                Comprobantes
+            </h1>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select name="tipo" id="tipo" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="FACTURA_A">Factura A</option>
+                                <option value="FACTURA_B">Factura B</option>
+                                <option value="FACTURA_C">Factura C</option>
+                                <option value="RECIBO">Recibo</option>
+                                <option value="PRESUPUESTO">Presupuesto</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="estado" class="form-label">Estado</label>
+                            <select name="estado" id="estado" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="BORRADOR">Borrador</option>
+                                <option value="IMPRESO">Impreso</option>
+                                <option value="ACEPTADO_ARCA">Aceptado ARCA</option>
+                                <option value="RECHAZADO_ARCA">Rechazado ARCA</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_desde" class="form-label">Desde</label>
+                            <input type="date" class="form-control" id="fecha_desde" name="fecha_desde">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="fecha_hasta" class="form-label">Hasta</label>
+                            <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta">
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-2"></i>Filtrar
+                                </button>
+                                <a href="{% url 'facturacion:listar_comprobantes' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-refresh me-2"></i>Limpiar
+                                </a>
+                                <a href="{% url 'facturacion:crear_comprobante' %}" class="btn btn-success ms-auto">
+                                    <i class="fas fa-plus me-2"></i>Nuevo Comprobante
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de comprobantes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            Lista de Comprobantes
+                            <span class="badge bg-primary ms-2">{{ comprobantes.paginator.count }}</span>
+                        </h5>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                                <i class="fas fa-print me-2"></i>Imprimir
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-download me-2"></i>Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if comprobantes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="120">Número</th>
+                                    <th width="100">Tipo</th>
+                                    <th>Cliente</th>
+                                    <th width="100">Fecha</th>
+                                    <th width="120">Total</th>
+                                    <th width="120">Estado</th>
+                                    <th width="100">ARCA</th>
+                                    <th width="80" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comprobante in comprobantes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ comprobante.numero_completo|default:comprobante.numero }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ comprobante.contribuyente.razon_social|truncatechars:15 }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if comprobante.tipo == 'FACTURA_A' %}bg-danger
+                                            {% elif comprobante.tipo == 'FACTURA_B' %}bg-warning
+                                            {% elif comprobante.tipo == 'FACTURA_C' %}bg-info
+                                            {% elif comprobante.tipo == 'RECIBO' %}bg-success
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ comprobante.get_tipo_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ comprobante.cliente_razon_social|truncatechars:30 }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ comprobante.cliente_numero_documento }}
+                                        </small>
+                                    </td>
+                                    <td>{{ comprobante.fecha_emision|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="fw-bold text-success">${{ comprobante.total|floatformat:2 }}</span>
+                                        {% if comprobante.descuento > 0 %}
+                                        <br>
+                                        <small class="text-danger">
+                                            <i class="fas fa-tag me-1"></i>Desc: ${{ comprobante.descuento|floatformat:2 }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if comprobante.estado == 'ACEPTADO_ARCA' %}bg-success
+                                            {% elif comprobante.estado == 'IMPRESO' %}bg-info
+                                            {% elif comprobante.estado == 'BORRADOR' %}bg-secondary
+                                            {% elif comprobante.estado == 'RECHAZADO_ARCA' %}bg-danger
+                                            {% else %}bg-warning{% endif %}">
+                                            {{ comprobante.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if comprobante.enviar_arca %}
+                                            {% if comprobante.arca_cae %}
+                                            <span class="badge bg-success" title="CAE: {{ comprobante.arca_cae }}">
+                                                <i class="fas fa-check-circle"></i> Aceptado
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock"></i> Pendiente
+                                            </span>
+                                            {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times-circle"></i> No enviado
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'facturacion:detalle_comprobante' comprobante.uuid %}" 
+                                               class="btn btn-outline-primary" title="Ver detalle">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if comprobante.pdf %}
+                                            <a href="{{ comprobante.pdf.url }}" 
+                                               target="_blank" 
+                                               class="btn btn-outline-success" title="Ver PDF">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                            {% endif %}
+                                            <button class="btn btn-outline-secondary dropdown-toggle" 
+                                                    type="button" 
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="fas fa-edit me-2"></i>Editar
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="fas fa-copy me-2"></i>Duplicar
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="fas fa-trash me-2"></i>Eliminar
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    {% if comprobantes.has_other_pages %}
+                    <div class="card-footer">
+                        <nav aria-label="Paginación">
+                            <ul class="pagination justify-content-center mb-0">
+                                {% if comprobantes.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ comprobantes.previous_page_number }}">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in comprobantes.paginator.page_range %}
+                                    {% if comprobantes.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > comprobantes.number|add:'-3' and num < comprobantes.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if comprobantes.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ comprobantes.next_page_number }}">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ comprobantes.paginator.num_pages }}">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No hay comprobantes registrados</p>
+                        <a href="{% url 'facturacion:crear_comprobante' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Crear Primer Comprobante
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos adicionales -->
+<style>
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    color: #6c757d;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    border: none;
+    color: #6c757d;
+    margin: 0 2px;
+    border-radius: 0.25rem;
+}
+
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Establecer fechas por defecto en los filtros
+    const fechaDesde = document.getElementById('fecha_desde');
+    const fechaHasta = document.getElementById('fecha_hasta');
+    
+    if (fechaDesde && !fechaDesde.value) {
+        const primerDiaMes = new Date();
+        primerDiaMes.setDate(1);
+        fechaDesde.value = primerDiaMes.toISOString().split('T')[0];
+    }
+    
+    if (fechaHasta && !fechaHasta.value) {
+        fechaHasta.value = new Date().toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

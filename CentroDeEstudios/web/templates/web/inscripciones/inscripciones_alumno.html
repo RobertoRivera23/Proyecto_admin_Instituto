@@ -1,0 +1,308 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Inscripciones de {{ alumno.nombre_completo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.btn-group-inscripciones .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+/* Estilos para los modales */
+.modal-xl {
+    max-width: 1200px;
+}
+.collapse .card {
+    font-size: 0.875rem;
+}
+pre code {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>📚 Inscripciones de {{ alumno.nombre_completo }}</h1>
+            <p class="text-muted">DNI: {{ alumno.dni }} | Edad: {{ alumno.edad }} años</p>
+        </div>
+        <div>
+            <a href="{% url 'nueva_inscripcion' alumno.id %}" class="btn btn-success me-2">
+                <i class="fa fa-plus"></i> Nueva Inscripción
+            </a>
+            <a href="{% url 'mostrar_alumno' alumno.id %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left"></i> Volver al Alumno
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h4>{{ total_inscripciones }}</h4>
+                    <p>Total Inscripciones</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h4>{{ aprobados }}</h4>
+                    <p>Aprobados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h4>{{ cursando }}</h4>
+                    <p>Cursando</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h4>{{ total_inscripciones|add:aprobados|add:cursando }}</h4>
+                    <p>Total Cursos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fa fa-filter"></i> Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    {{ form_filtro.estado.label_tag }}
+                    {{ form_filtro.estado }}
+                </div>
+                <div class="col-md-3">
+                    {{ form_filtro.curso.label_tag }}
+                    {{ form_filtro.curso }}
+                </div>
+                <div class="col-md-3">
+                    {{ form_filtro.fecha_desde.label_tag }}
+                    {{ form_filtro.fecha_desde }}
+                </div>
+                <div class="col-md-3">
+                    {{ form_filtro.fecha_hasta.label_tag }}
+                    {{ form_filtro.fecha_hasta }}
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+                    <a href="{% url 'inscripciones_alumno' alumno.id %}" class="btn btn-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de inscripciones -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fa fa-list"></i> Historial de Inscripciones
+                <span class="badge bg-primary">{{ inscripciones.count }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if inscripciones %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Fecha Inscripción</th>
+                            <th>Estado</th>
+                            <th>Nota</th>
+                            <th>Duración</th>
+                            <th>Certificado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscripcion in inscripciones %}
+                        <tr>
+                            <td>
+                                <strong>{{ inscripcion.curso.nombre }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ inscripcion.curso.dias }} | {{ inscripcion.curso.horario_estructurado }}
+                                </small>
+                            </td>
+                            <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if inscripcion.estado == 'APROBADO' %}bg-success
+                                    {% elif inscripcion.estado == 'CURSANDO' %}bg-warning
+                                    {% elif inscripcion.estado == 'INSCRIPTO' %}bg-info
+                                    {% elif inscripcion.estado == 'REPROBADO' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ inscripcion.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if inscripcion.nota_final %}
+                                    <strong>{{ inscripcion.nota_final }}</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inscripcion.duracion_curso %}
+                                    {{ inscripcion.duracion_curso }} días
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inscripcion.puede_emitir_certificado %}
+                                    <a href="{% url 'generar_certificado_pdf' inscripcion.id %}" 
+                                       class="btn btn-success btn-sm"
+                                       title="Generar Certificado PDF">
+                                        <i class="fa fa-file-pdf"></i> Generar
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">No disponible</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm btn-group-inscripciones">
+                                    <!-- Botón para ver detalle completo (modal) -->
+                                    <button class="btn btn-info" 
+                                            onclick="abrirModalInscripcion({{ inscripcion.id }})"
+                                            title="Ver detalle completo">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    {% if inscripcion.estado != 'APROBADO' %}
+                                    <a href="{% url 'cambiar_estado_inscripcion' inscripcion.id %}" 
+                                       class="btn btn-warning" title="Cambiar Estado">
+                                        <i class="fa fa-exchange-alt"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'editar_inscripcion' inscripcion.id %}" 
+                                       class="btn btn-primary" title="Editar">
+                                        <i class="fa fa-pencil"></i>
+                                    </a>
+                                    
+                                    <form method="POST" action="{% url 'eliminar_inscripcion' inscripcion.id %}" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('¿Está seguro de eliminar esta inscripción?')">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger" title="Eliminar">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="text-muted">
+                    <i class="fa fa-book fa-3x mb-3"></i>
+                    <h4>No hay inscripciones registradas</h4>
+                    <p>Este alumno no tiene inscripciones en el sistema</p>
+                    <a href="{% url 'nueva_inscripcion' alumno.id %}" class="btn btn-primary">
+                        <i class="fa fa-plus"></i> Agregar Primera Inscripción
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para abrir el modal de inscripción
+function abrirModalInscripcion(inscripcionId) {
+    console.log('🔍 Abriendo modal para inscripción ID:', inscripcionId);
+    
+    fetch(`/web/inscripciones/modal/${inscripcionId}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Remover modal existente si hay
+            const modalExistente = document.getElementById('modalInscripcionDetalle');
+            if (modalExistente) {
+                modalExistente.remove();
+            }
+            
+            // Agregar el nuevo modal al DOM
+            document.body.appendChild(tempDiv.firstElementChild);
+            
+            // Inicializar el modal de Bootstrap
+            const modal = new bootstrap.Modal(document.getElementById('modalInscripcionDetalle'));
+            modal.show();
+            
+            // Limpiar el modal cuando se cierre
+            document.getElementById('modalInscripcionDetalle').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+                console.log('✅ Modal cerrado y removido');
+            });
+            
+            console.log('✅ Modal cargado exitosamente');
+            
+            // Activar los tooltips dentro del modal
+            const tooltipTriggerList = [].slice.call(
+                document.querySelectorAll('#modalInscripcionDetalle [data-bs-toggle="tooltip"]')
+            );
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+        })
+        .catch(error => {
+            console.error('❌ Error al cargar el modal:', error);
+            // Mostrar alerta de error
+            alert('Error al cargar la información de la inscripción: ' + error.message);
+        });
+}
+
+// También puedes agregar SweetAlert si lo prefieres
+function showError(message) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            timer: 3000
+        });
+    } else {
+        alert(message);
+    }
+}
+
+// Inicializar tooltips en la página principal
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

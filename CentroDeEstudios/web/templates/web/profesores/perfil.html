@@ -1,0 +1,47 @@
+{% extends "web/base.html" %}
+
+{% block title %}Perfil{% endblock %}
+
+{% block main %}
+<h2>Perfil</h2>
+
+{% if profesor %}
+    <!-- Mostrar información del profesor -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Información del Profesor</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Nombre:</strong> {{ profesor.nombre_completo }}</p>
+            <p><strong>Email:</strong> {{ profesor.mail }}</p>
+            <p><strong>Teléfono:</strong> {{ profesor.telefono }}</p>
+            <!-- Más campos del profesor -->
+        </div>
+    </div>
+{% elif es_administrador %}
+    <!-- Mensaje para administradores sin perfil de profesor -->
+    <div class="alert alert-info">
+        <h4>Eres administrador/coordinador</h4>
+        <p>Tu usuario no tiene un perfil de profesor asociado.</p>
+        <p>Puedes acceder a esta sección para gestionar información de otros profesores.</p>
+    </div>
+    
+    <!-- Opcional: Mostrar información del usuario admin -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Tu información de usuario</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>Usuario:</strong> {{ user.username }}</p>
+            <p><strong>Nombre:</strong> {{ user.first_name }} {{ user.last_name }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-warning">
+        No tienes acceso a esta información.
+    </div>
+{% endif %}
+
+<a href="/web/dashboard/profesor/" class="btn btn-secondary">Volver al Dashboard</a>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Certificado {{ certificado.codigo_certificado }}{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fa fa-certificate"></i>
+                        Certificado de Aprobación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Información del certificado -->
+                    <div class="alert alert-success">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5>Detalles del Certificado</h5>
+                                <p class="mb-1"><strong>Código:</strong> {{ certificado.codigo_certificado }}</p>
+                                <p class="mb-1"><strong>Alumno:</strong> {{ certificado.inscripcion.alumno.nombre_completo }}</p>
+                                <p class="mb-1"><strong>Curso:</strong> {{ certificado.inscripcion.curso.nombre }}</p>
+                                <p class="mb-1"><strong>Fecha de emisión:</strong> {{ certificado.fecha_emision|date:"d/m/Y H:i" }}</p>
+                                <p class="mb-0"><strong>Emitido por:</strong> {{ certificado.emitido_por.username }}</p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fa fa-qrcode fa-3x text-muted mb-2"></i>
+                                    <p class="small mb-0">Código de verificación</p>
+                                    <strong class="text-monospace">{{ certificado.codigo_certificado }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de la inscripción -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Información del Curso</h6>
+                                    <p class="mb-1"><strong>Duración:</strong> {{ certificado.inscripcion.curso.duracion }}</p>
+                                    <p class="mb-1"><strong>Días:</strong> {{ certificado.inscripcion.curso.dias }}</p>
+                                    <p class="mb-1"><strong>Horario:</strong> {{ certificado.inscripcion.curso.horario }}</p>
+                                    <p class="mb-0"><strong>Precio:</strong> ${{ certificado.inscripcion.curso.precio|floatformat:2|intcomma }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>Detalles de Aprobación</h6>
+                                    <p class="mb-1"><strong>Fecha inicio:</strong> {{ certificado.inscripcion.fecha_inicio|date:"d/m/Y" }}</p>
+                                    <p class="mb-1"><strong>Fecha fin:</strong> {{ certificado.inscripcion.fecha_fin|date:"d/m/Y" }}</p>
+                                    <p class="mb-1"><strong>Nota final:</strong> 
+                                        {% if certificado.inscripcion.nota_final %}
+                                            <span class="badge bg-success">{{ certificado.inscripcion.nota_final }}</span>
+                                        {% else %}
+                                            <span class="text-muted">No especificada</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="mb-0"><strong>Estado:</strong> 
+                                        <span class="badge bg-success">{{ certificado.inscripcion.get_estado_display }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'inscripciones_alumno' certificado.inscripcion.alumno.id %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left"></i> Volver a Inscripciones
+                            </a>
+                        </div>
+                        <div>
+                            {% if certificado.archivo_pdf %}
+                            <a href="{% url 'descargar_certificado' certificado.codigo_certificado %}" class="btn btn-success">
+                                <i class="fa fa-download"></i> Descargar PDF
+                            </a>
+                            {% else %}
+                            <a href="{% url 'generar_certificado_pdf' certificado.inscripcion.id %}" class="btn btn-primary">
+                                <i class="fa fa-file-pdf"></i> Generar PDF
+                            </a>
+                            {% endif %}
+                            
+                            <a href="{% url 'verificar_certificado' %}?codigo={{ certificado.codigo_certificado }}" 
+                               class="btn btn-info" target="_blank">
+                                <i class="fa fa-search"></i> Verificar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de verificación -->
+            <div class="alert alert-info mt-3">
+                <h6><i class="fa fa-shield-alt"></i> Verificación de Autenticidad</h6>
+                <p class="mb-2">Este certificado puede ser verificado ingresando el código en la página de verificación:</p>
+                <div class="input-group">
+                    <input type="text" class="form-control" value="{{ certificado.codigo_certificado }}" readonly id="codigoVerificacion">
+                    <button class="btn btn-outline-secondary" type="button" onclick="copiarCodigo()">
+                        <i class="fa fa-copy"></i> Copiar
+                    </button>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    Hash de verificación: <code>{{ certificado.hash_verificacion }}</code>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copiarCodigo() {
+        const codigo = document.getElementById('codigoVerificacion');
+        codigo.select();
+        codigo.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        
+        // Mostrar mensaje de éxito
+        const boton = event.target;
+        const textoOriginal = boton.innerHTML;
+        boton.innerHTML = '<i class="fa fa-check"></i> Copiado!';
+        boton.classList.remove('btn-outline-secondary');
+        boton.classList.add('btn-success');
+        
+        setTimeout(() => {
+            boton.innerHTML = textoOriginal;
+            boton.classList.remove('btn-success');
+            boton.classList.add('btn-outline-secondary');
+        }, 2000);
+    }
+</script>
+{% endblock %}

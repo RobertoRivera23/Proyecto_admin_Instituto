@@ -1,0 +1,346 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Lista de Inscripciones{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-actions {
+        white-space: nowrap;
+    }
+    .btn-compact {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .inscripcion-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .inscripcion-card:hover {
+        transform: translateY(-2px);
+    }
+    .contact-info {
+        font-size: 0.8rem;
+    }
+    .estado-badge {
+        font-size: 0.75rem;
+    }
+    .nota-badge {
+        font-size: 0.75rem;
+        font-family: 'Courier New', monospace;
+    }
+    .stats-card {
+        transition: all 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    /* Mejoras de contraste para las tarjetas de estadísticas */
+    .stats-total {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border: 1px solid #dee2e6;
+    }
+    .stats-aprobados {
+        background: linear-gradient(135deg, #d1edff 0%, #a3d5ff 100%);
+        border: 1px solid #0d6efd;
+    }
+    .stats-cursando {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border: 1px solid #ffc107;
+    }
+    .stats-inscriptos {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 1px solid #28a745;
+    }
+    .stats-number {
+        font-weight: 700;
+        font-size: 1.8rem;
+    }
+    .stats-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header - MEJORADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4 py-3 border-bottom">
+        <div>
+            <h1 class="h3 mb-1">📚 Lista de Inscripciones</h1>
+            <p class="text-muted mb-0">Gestión de todas las inscripciones del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'nueva_inscripcion' %}" class="btn btn-success btn-sm">
+                <i class="fa fa-plus me-1"></i> Nueva Inscripción
+            </a>
+            <a href="{% url 'inscripciones_eliminadas' %}" class="btn btn-outline-warning btn-sm">
+                <i class="fa fa-archive me-1"></i> Eliminadas
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas - MEJORADAS -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card stats-total">
+                <div class="card-body text-center py-3">
+                    <h3 class="stats-number text-dark mb-1">{{ total_inscripciones|default:0 }}</h3>
+                    <p class="stats-label text-dark mb-0">Total Inscripciones</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card stats-aprobados">
+                <div class="card-body text-center py-3">
+                    <h3 class="stats-number text-primary mb-1">{{ aprobados|default:0 }}</h3>
+                    <p class="stats-label text-primary mb-0">Aprobados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card stats-cursando">
+                <div class="card-body text-center py-3">
+                    <h3 class="stats-number text-warning mb-1">{{ cursando|default:0 }}</h3>
+                    <p class="stats-label text-warning mb-0">Cursando</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stats-card stats-inscriptos">
+                <div class="card-body text-center py-3">
+                    <h3 class="stats-number text-success mb-1">{{ inscriptos|default:0 }}</h3>
+                    <p class="stats-label text-success mb-0">Inscriptos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros - MEJORADOS -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-filter me-2"></i> Filtros de Búsqueda
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Estado</label>
+                    {{ form_filtro.estado }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Curso</label>
+                    {{ form_filtro.curso }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Fecha Desde</label>
+                    {{ form_filtro.fecha_desde }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Fecha Hasta</label>
+                    {{ form_filtro.fecha_hasta }}
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fa fa-search me-1"></i> Aplicar Filtros
+                    </button>
+                    <a href="{% url 'listar_inscripciones' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa fa-times me-1"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de inscripciones - COMPLETAMENTE REDISEÑADA -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-list me-2"></i> Inscripciones Registradas
+                <span class="badge bg-primary ms-2">{{ inscripciones.count|default:0 }}</span>
+            </h6>
+            <small class="text-muted">
+                Mostrando {{ inscripciones.count|default:0 }} inscripción{{ inscripciones.count|pluralize:"es" }}
+            </small>
+        </div>
+        <div class="card-body p-0">
+            {% if inscripciones %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Alumno</th>
+                            <th>Curso</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Nota</th>
+                            <th class="text-center pe-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscripcion in inscripciones %}
+                        <tr class="inscripcion-card">
+                            <!-- Columna Alumno - MEJORADA -->
+                            <td class="ps-3">
+                                <div class="d-flex flex-column">
+                                    <a href="{% url 'mostrar_alumno' inscripcion.alumno.id %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ inscripcion.alumno.nombre_completo }}</strong>
+                                    </a>
+                                    <div class="d-flex align-items-center mt-1">
+                                        <small class="text-muted me-2">DNI: {{ inscripcion.alumno.dni }}</small>
+                                        {% if inscripcion.alumno.telefono %}
+                                        <small class="text-muted">
+                                            <i class="fa fa-phone me-1"></i>{{ inscripcion.alumno.telefono }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Columna Curso - MEJORADA -->
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <strong>{{ inscripcion.curso.nombre }}</strong>
+                                    <div class="contact-info">
+                                        <small class="text-muted">
+                                            <i class="fa fa-calendar me-1"></i>{{ inscripcion.curso.dias }}
+                                        </small>
+                                        <small class="text-muted ms-2">
+                                            <i class="fa fa-clock me-1"></i>{{ inscripcion.curso.horario }}
+                                        </small>
+                                    </div>
+                                    {% if inscripcion.curso.profesor %}
+                                    <small class="text-muted">
+                                        <i class="fa fa-user me-1"></i>{{ inscripcion.curso.profesor.nombre_completo }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Columna Fecha - MEJORADA -->
+                            <td>
+                                <small class="text-muted">
+                                    {{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}
+                                </small>
+                            </td>
+
+                            <!-- Columna Estado - MEJORADA -->
+                            <td>
+                                <span class="badge estado-badge
+                                    {% if inscripcion.estado == 'APROBADO' %}bg-success
+                                    {% elif inscripcion.estado == 'CURSANDO' %}bg-warning
+                                    {% elif inscripcion.estado == 'INSCRIPTO' %}bg-info
+                                    {% elif inscripcion.estado == 'REPROBADO' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ inscripcion.get_estado_display }}
+                                </span>
+                            </td>
+
+                            <!-- Columna Nota - MEJORADA -->
+                            <td>
+                                {% if inscripcion.nota_final %}
+                                    <span class="badge text-bg-success nota-badge">
+                                        {{ inscripcion.nota_final }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Columna Acciones - MEJORADA -->
+                            <td class="text-center pe-3 table-actions">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'inscripciones_alumno' inscripcion.alumno.id %}" 
+                                       class="btn btn-outline-primary btn-compact" 
+                                       title="Ver inscripciones del alumno">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if inscripcion.estado != 'APROBADO' %}
+                                    <a href="{% url 'cambiar_estado_inscripcion' inscripcion.id %}" 
+                                       class="btn btn-outline-warning btn-compact" 
+                                       title="Cambiar estado">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <a href="{% url 'editar_inscripcion' inscripcion.id %}" 
+                                       class="btn btn-outline-info btn-compact" 
+                                       title="Editar inscripción">
+                                        <i class="fa fa-pencil"></i>
+                                    </a>
+                                    
+                                    <form method="POST" 
+                                          action="{% url 'eliminar_inscripcion' inscripcion.id %}" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('¿Está seguro de eliminar esta inscripción?')">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-outline-danger btn-compact" 
+                                                title="Eliminar inscripción">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Estado vacío - MEJORADO -->
+            <div class="text-center py-5">
+                <div class="text-muted">
+                    <i class="fa fa-book fa-3x mb-3 opacity-50"></i>
+                    <h4 class="text-muted">
+                        {% if request.GET.estado or request.GET.curso or request.GET.fecha_desde or request.GET.fecha_hasta %}
+                            No hay inscripciones que coincidan con los filtros
+                        {% else %}
+                            No hay inscripciones registradas
+                        {% endif %}
+                    </h4>
+                    <p class="mb-3">
+                        {% if request.GET.estado or request.GET.curso or request.GET.fecha_desde or request.GET.fecha_hasta %}
+                            Intenta con otros criterios de búsqueda
+                        {% else %}
+                            Comienza creando la primera inscripción
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'nueva_inscripcion' %}" class="btn btn-success me-2">
+                        <i class="fa fa-plus me-2"></i> Nueva Inscripción
+                    </a>
+                    {% if request.GET.estado or request.GET.curso or request.GET.fecha_desde or request.GET.fecha_hasta %}
+                    <a href="{% url 'listar_inscripciones' %}" class="btn btn-outline-secondary">
+                        <i class="fa fa-refresh me-2"></i> Ver Todas
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    {% if inscripciones %}
+    <div class="mt-3">
+        <div class="alert alert-light border d-flex align-items-center">
+            <i class="fa fa-info-circle text-primary me-2"></i>
+            <small class="text-muted">
+                <strong>Consejo:</strong> Utiliza los botones de acción para gestionar cada inscripción. 
+                <span class="ms-2">
+                    <i class="fa fa-eye text-primary mx-1"></i>Ver | 
+                    <i class="fa fa-edit text-warning mx-1"></i>Estado | 
+                    <i class="fa fa-pencil text-info mx-1"></i>Editar | 
+                    <i class="fa fa-trash text-danger mx-1"></i>Eliminar
+                </span>
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Contribuyentes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-3">
+                <i class="fas fa-building text-primary me-2"></i>
+                Contribuyentes
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Lista de Contribuyentes</h5>
+                        <span class="badge bg-primary">{{ contribuyentes.count }} registrados</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if contribuyentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Razón Social</th>
+                                    <th>CUIT</th>
+                                    <th>Actividad</th>
+                                    <th>Condición</th>
+                                    <th>ARCA</th>
+                                    <th>Estado</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contribuyente in contribuyentes %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if contribuyente.logo %}
+                                            <img src="{{ contribuyente.logo.url }}" 
+                                                 alt="{{ contribuyente.razon_social }}"
+                                                 class="rounded-circle me-3"
+                                                 width="40" height="40">
+                                            {% else %}
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3"
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="fas fa-building text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ contribuyente.razon_social }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ contribuyente.nombre }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <code>{{ contribuyente.cuit }}</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ contribuyente.actividad|truncatechars:20 }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ contribuyente.get_tipo_responsabilidad_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if contribuyente.arca_habilitado %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Habilitado
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times-circle me-1"></i>No habilitado
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if contribuyente.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="Ver detalle">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-info dropdown-toggle" 
+                                                    type="button" 
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="fas fa-copy me-2"></i>Duplicar
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="fas fa-file-invoice me-2"></i>Ver comprobantes
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="fas fa-cogs me-2"></i>Configurar ARCA
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Información adicional -->
+                    <div class="mt-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Información:</strong> Los contribuyentes son los emisores de los comprobantes. 
+                            Cada contribuyente puede tener múltiples puntos de venta y configuraciones ARCA independientes.
+                            Para modificar los datos, acceda al panel de administración de Django.
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay contribuyentes registrados</h5>
+                        <p class="text-muted small mb-4">
+                            Los contribuyentes se crean desde el panel de administración de Django.
+                        </p>
+                        <a href="/admin/facturacion/contribuyente/add/" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Crear Contribuyente en Admin
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos adicionales -->
+<style>
+.table img {
+    object-fit: cover;
+}
+
+.code {
+    font-family: 'Courier New', monospace;
+    background-color: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

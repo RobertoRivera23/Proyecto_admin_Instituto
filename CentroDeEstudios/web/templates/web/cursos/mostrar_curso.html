@@ -1,0 +1,408 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Detalles del Curso - {{ curso.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .archivos-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .archivo-item {
+        border-left: 4px solid #007bff;
+        padding-left: 10px;
+        margin-bottom: 10px;
+    }
+    .archivo-item.programa {
+        border-left-color: #28a745;
+    }
+    .archivo-item.material {
+        border-left-color: #17a2b8;
+    }
+    .archivo-item.evaluacion {
+        border-left-color: #ffc107;
+    }
+    .archivo-item.certificado {
+        border-left-color: #6f42c1;
+    }
+    .archivo-acciones {
+        margin-top: 5px;
+    }
+    .archivo-icono {
+        font-size: 1.2em;
+        margin-right: 5px;
+    }
+    .estado-badge {
+        font-size: 0.7rem;
+    }
+    .table-fixed {
+        table-layout: fixed;
+    }
+    .alumno-col {
+        width: 200px;
+    }
+    .nota-col {
+        width: 80px;
+        text-align: center;
+    }
+    .asistencia-col {
+        width: 100px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            {% if curso.eliminado %}
+                🗑️ Curso Eliminado: {{ curso.nombre }}
+            {% else %}
+                📚 Detalles del Curso: {{ curso.nombre }}
+            {% endif %}
+        </h1>
+        <div>
+            <a href="{% url 'listar_cursos' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver a Cursos
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert si el curso está eliminado -->
+    {% if curso.eliminado %}
+    <div class="alert alert-warning">
+        <i class="fa fa-exclamation-triangle me-2"></i>
+        <strong>Este curso está marcado como eliminado</strong> - 
+        No aparece en los listados activos
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Columna principal -->
+        <div class="col-md-8">
+            <!-- Información del curso -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-info-circle me-2"></i>Información del Curso
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong> {{ curso.nombre }}</p>
+                            <p><strong>Días:</strong> {{ curso.dias }}</p>
+                            <p><strong>Horario:</strong> {{ curso.horario }}</p>
+                            <p><strong>Duración:</strong> {{ curso.duracion }}</p>
+                            <p><strong>Precio:</strong> 
+                                {% if curso.precio %}
+                                    ${{ curso.precio }}
+                                {% else %}
+                                    <span class="text-muted">No especificado</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Fecha inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+                            <p><strong>Fecha fin:</strong> {{ curso.fecha_fin|date:"d/m/Y" }}</p>
+                            <p><strong>Profesor:</strong> 
+                                {% if curso.profesor %}
+                                    {{ curso.profesor.nombre_completo }}
+                                {% else %}
+                                    <span class="text-muted">No asignado</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Auxiliar:</strong> 
+                                {% if curso.auxiliar %}
+                                    {{ curso.auxiliar.nombre_completo }}
+                                {% else %}
+                                    <span class="text-muted">No asignado</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Estado:</strong> 
+                                {% if curso.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas del curso -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body text-center">
+                            <h3>{{ total_alumnos }}</h3>
+                            <p>Total Alumnos</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success">
+                        <div class="card-body text-center">
+                            <h3>
+                                {% if promedio_general %}
+                                    {{ promedio_general }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h3>
+                            <p>Promedio General</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-info">
+                        <div class="card-body text-center">
+                            <h3>
+                                {% if porcentaje_asistencia_general %}
+                                    {{ porcentaje_asistencia_general }}%
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h3>
+                            <p>Asistencia Promedio</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de alumnos -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-users me-2"></i>Alumnos Inscritos ({{ total_alumnos }})
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if alumnos_data %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm table-fixed mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="alumno-col">Alumno</th>
+                                    <th class="alumno-col">DNI</th>
+                                    <th class="nota-col">Nota 1</th>
+                                    <th class="nota-col">Nota 2</th>
+                                    <th class="nota-col">Promedio</th>
+                                    <th class="asistencia-col">Asistencia</th>
+                                    <th class="asistencia-col">Estado Pago</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alumno in alumnos_data %}
+                                <tr>
+                                    <td class="alumno-col">
+                                        <strong>{{ alumno.alumno.apellido }}, {{ alumno.alumno.nombre }}</strong>
+                                    </td>
+                                    <td class="alumno-col">{{ alumno.alumno.dni }}</td>
+                                    <td class="nota-col">
+                                        {% with nota1=alumno.examenes.TEORICO_1 %}
+                                            {% if nota1 %}
+                                                {{ nota1.nota }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="nota-col">
+                                        {% with nota2=alumno.examenes.TEORICO_2 %}
+                                            {% if nota2 %}
+                                                {{ nota2.nota }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td class="nota-col">
+                                        {% if alumno.promedio %}
+                                            <span class="badge 
+                                                {% if alumno.promedio >= 7 %}bg-success
+                                                {% elif alumno.promedio >= 4 %}bg-warning
+                                                {% else %}bg-danger{% endif %}">
+                                                {{ alumno.promedio }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="asistencia-col">
+                                        {% if alumno.total_asistencias > 0 %}
+                                            <span class="badge 
+                                                {% if alumno.porcentaje_asistencia >= 80 %}bg-success
+                                                {% elif alumno.porcentaje_asistencia >= 60 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                title="{{ alumno.asistencias_presente }}/{{ alumno.total_asistencias }} presentes">
+                                                {{ alumno.porcentaje_asistencia }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Sin datos</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="asistencia-col">
+                                        <span class="badge 
+                                            {% if alumno.estado_pago == 'AL_DIA' %}bg-success
+                                            {% else %}bg-warning{% endif %} estado-badge">
+                                            {{ alumno.estado_pago }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fa fa-users fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No hay alumnos inscritos en este curso</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna lateral - Archivos -->
+        <div class="col-md-4">
+            <!-- Sección de Archivos del Curso -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-paperclip me-2"></i>Archivos del Curso
+                        <span class="badge bg-light text-dark ms-2">{{ archivos_curso.count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Formulario para subir archivos -->
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2">Subir Nuevo Archivo</h6>
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="mb-2">
+                                <label class="form-label">Archivo</label>
+                                {{ form_archivo.archivo }}
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="form-label">Tipo</label>
+                                {{ form_archivo.tipo }}
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="form-label">Nombre</label>
+                                {{ form_archivo.nombre }}
+                                <small class="text-muted">Opcional - si no se especifica, se usará el nombre del archivo</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Descripción</label>
+                                {{ form_archivo.descripcion }}
+                            </div>
+                            
+                            <button type="submit" name="subir_archivo" class="btn btn-primary btn-sm w-100">
+                                <i class="fa fa-upload me-1"></i>Subir Archivo
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Lista de archivos existentes -->
+                    <div>
+                        <h6 class="border-bottom pb-2">
+                            Archivos Existentes 
+                        </h6>
+                        
+                        {% if archivos_curso %}
+                        <div class="archivos-container">
+                            {% for archivo in archivos_curso %}
+                            <div class="archivo-item {{ archivo.tipo|lower }}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center">
+                                            {% if archivo.es_imagen %}
+                                            <i class="fa fa-image text-success archivo-icono"></i>
+                                            {% elif archivo.es_pdf %}
+                                            <i class="fa fa-file-pdf text-danger archivo-icono"></i>
+                                            {% else %}
+                                            <i class="fa fa-file text-warning archivo-icono"></i>
+                                            {% endif %}
+                                            <strong>{{ archivo.nombre }}</strong>
+                                        </div>
+                                        <small class="text-muted d-block">
+                                            {{ archivo.get_tipo_display }} • {{ archivo.tamaño_archivo }}
+                                        </small>
+                                        {% if archivo.descripcion %}
+                                        <small class="d-block">{{ archivo.descripcion }}</small>
+                                        {% endif %}
+                                        <small class="text-muted d-block">
+                                            Subido: {{ archivo.fecha_subida|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </div>
+                                    <div class="archivo-acciones">
+                                        <a href="{{ archivo.archivo.url }}" 
+                                           target="_blank" 
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Ver archivo">
+                                            <i class="fa fa-eye"></i>
+                                        </a>
+                                        <form method="POST" 
+                                              action="{% url 'eliminar_archivo_curso' curso.id archivo.id %}" 
+                                              class="d-inline"
+                                              onsubmit="return confirm('¿Está seguro de que desea eliminar este archivo?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar archivo">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted py-3">
+                            <i class="fa fa-folder-open fa-2x mb-2"></i>
+                            <p>No hay archivos subidos</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones del curso -->
+            <div class="card mt-3">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-cogs me-2"></i>Acciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if not curso.eliminado %}
+                        <a href="{% url 'editar_curso' curso.id %}" class="btn btn-warning btn-sm">
+                            <i class="fa fa-edit me-1"></i>Editar Curso
+                        </a>
+                        <a href="{% url 'listar_alumnos_curso' curso.id %}" class="btn btn-info btn-sm">
+                            <i class="fa fa-users me-1"></i>Gestionar Alumnos
+                        </a>
+                        <a href="{% url 'tomar_asistencia_profesor' curso.id %}" class="btn btn-primary btn-sm">
+                            <i class="fa fa-clipboard-check me-1"></i>Tomar Asistencia
+                        </a>
+                        {% else %}
+                        <a href="{% url 'restaurar_curso' curso.id %}" class="btn btn-success btn-sm">
+                            <i class="fa fa-undo me-1"></i>Restaurar Curso
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

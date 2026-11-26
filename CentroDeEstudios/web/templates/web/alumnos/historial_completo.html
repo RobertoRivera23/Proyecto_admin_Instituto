@@ -1,0 +1,370 @@
+<!-- templates/web/alumnos/historial_completo.html -->
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Historial Completo - {{ alumno.nombre_completo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075);
+}
+.breadcrumb {
+    background: transparent;
+    margin-bottom: 0;
+}
+@media print {
+    .btn, .breadcrumb, .card-header .btn-group {
+        display: none !important;
+    }
+}
+/* Estilos para los modales */
+.modal-xl {
+    max-width: 1200px;
+}
+.collapse .card {
+    font-size: 0.875rem;
+}
+pre code {
+    font-size: 0.75rem;
+}
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">📚 Historial Académico Completo</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">Alumnos</li>
+                    <li class="breadcrumb-item"><a href="{% url 'mostrar_alumno' alumno.id %}">{{ alumno.nombre_completo }}</a></li>
+                    <li class="breadcrumb-item active">Historial Completo</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <a href="{% url 'mostrar_alumno' alumno.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Perfil
+            </a>
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Imprimir
+            </button>
+        </div>
+    </div>
+
+    <!-- Información del Alumno -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="card-title">{{ alumno.nombre_completo }}</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-1"><strong>DNI:</strong> {{ alumno.dni }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ alumno.mail|default:"-" }}</p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Teléfono:</strong> {{ alumno.telefono|default:"-" }}</p>
+                            <p class="mb-1"><strong>Fecha Nac.:</strong> {{ alumno.fecha_nacimiento|date:"d/m/Y"|default:"-" }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <div class="border rounded p-2 bg-light">
+                                <h4 class="text-primary mb-0">{{ total_cursos }}</h4>
+                                <small class="text-muted">Total Cursos</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="border rounded p-2 bg-light">
+                                <h4 class="text-success mb-0">{{ cursos_aprobados }}</h4>
+                                <small class="text-muted">Aprobados</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="border rounded p-2 bg-light">
+                                <h4 class="text-info mb-0">{{ cursos_cursando }}</h4>
+                                <small class="text-muted">Cursando</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="border rounded p-2 bg-light">
+                                <h4 class="text-warning mb-0">
+                                    {% if promedio_notas %}{{ promedio_notas|floatformat:2 }}{% else %}-{% endif %}
+                                </h4>
+                                <small class="text-muted">Promedio</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Rápidos -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6 class="card-title">Filtrar por estado:</h6>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary active" data-filter="all">Todos ({{ total_cursos }})</button>
+                <button type="button" class="btn btn-outline-success" data-filter="APROBADO">Aprobados ({{ cursos_aprobados }})</button>
+                <button type="button" class="btn btn-outline-info" data-filter="CURSANDO">Cursando ({{ cursos_cursando }})</button>
+                <button type="button" class="btn btn-outline-warning" data-filter="INSCRIPTO">Inscriptos ({{ cursos_inscriptos }})</button>
+                <button type="button" class="btn btn-outline-danger" data-filter="REPROBADO">Reprobados ({{ cursos_reprobados }})</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Cursos -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-history me-2"></i>Historial de Cursos
+            </h5>
+            <span class="badge bg-secondary">{{ inscripciones.count }} registros</span>
+        </div>
+        <div class="card-body p-0">
+            {% if inscripciones %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0" id="tabla-historial">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Curso</th>
+                            <th>Período</th>
+                            <th>Fecha Inscripción</th>
+                            <th>Estado</th>
+                            <th>Nota Final</th>
+                            <th>Profesor</th>
+                            <th>Estado Curso</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscripcion in inscripciones %}
+                        <tr class="fila-inscripcion {% if inscripcion.curso.eliminado %}table-warning{% endif %}" 
+                            data-estado="{{ inscripcion.estado }}">
+                            <td>
+                                <div>
+                                    <strong>{{ inscripcion.curso.nombre }}</strong>
+                                    {% if inscripcion.curso.eliminado %}
+                                    <span class="badge bg-danger ms-2">Eliminado</span>
+                                    {% endif %}
+                                </div>
+                                {% if inscripcion.curso.descripcion %}
+                                <small class="text-muted">{{ inscripcion.curso.descripcion|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ inscripcion.curso.fecha_inicio|date:"d/m/Y" }} - 
+                                {{ inscripcion.curso.fecha_fin|date:"d/m/Y" }}
+                            </td>
+                            <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
+                            <td>    
+                                <span class="badge 
+                                    {% if inscripcion.estado == 'APROBADO' %}bg-success
+                                    {% elif inscripcion.estado == 'CURSANDO' %}bg-primary
+                                    {% elif inscripcion.estado == 'INSCRIPTO' %}bg-info
+                                    {% elif inscripcion.estado == 'REPROBADO' %}bg-danger
+                                    {% elif inscripcion.estado == 'ABANDONO' %}bg-dark
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ inscripcion.get_estado_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if inscripcion.nota_final %}
+                                    <span class="badge {% if inscripcion.nota_final >= 6 %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ inscripcion.nota_final }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inscripcion.curso.profesor %}
+                                    {{ inscripcion.curso.profesor.nombre_completo }}
+                                {% else %}
+                                    <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if inscripcion.curso.eliminado %}
+                                    <span class="badge bg-danger">Eliminado</span>
+                                {% elif inscripcion.curso.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <!-- Botón para ver detalles de inscripción (MODAL) -->
+                                    <a href="{% url 'detalle_inscripcion' inscripcion.id %}" 
+                                        class="btn btn-info" 
+                                        title="Ver detalle completo"
+                                        target="_blank">
+                                        <i class="fas fa-eye"></i> Detalle
+                                    </a>
+                                    
+                                    <!-- Botón para ver curso -->
+                                    {% if not inscripcion.curso.eliminado %}
+                                    <a href="{% url 'listar_alumnos_curso' inscripcion.curso.id %}" 
+                                       class="btn btn-outline-secondary" 
+                                       title="Ver Curso"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-book"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <!-- Botón para generar certificado -->
+                                    {% if inscripcion.estado == 'APROBADO' and inscripcion.puede_emitir_certificado %}
+                                    <a href="{% url 'generar_certificado_pdf' inscripcion.id %}" 
+                                       class="btn btn-success" 
+                                       title="Descargar Certificado"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <!-- Botón para cambiar estado -->
+                                    <a href="{% url 'cambiar_estado_inscripcion' inscripcion.id %}" 
+                                       class="btn btn-warning" 
+                                       title="Cambiar Estado"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </a>
+                                    
+                                    <!-- Botón para editar -->
+                                    <a href="{% url 'editar_inscripcion' inscripcion.id %}" 
+                                       class="btn btn-primary" 
+                                       title="Editar Inscripción"
+                                       data-bs-toggle="tooltip">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                <p class="text-muted">El alumno no tiene historial de cursos.</p>
+                <a href="{% url 'listar_cursos' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Inscribir en un Curso
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Filtrado por estado
+document.querySelectorAll('[data-filter]').forEach(button => {
+    button.addEventListener('click', function() {
+        const filter = this.getAttribute('data-filter');
+        
+        // Actualizar botones activos
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        // Filtrar filas
+        document.querySelectorAll('.fila-inscripcion').forEach(row => {
+            if (filter === 'all' || row.getAttribute('data-estado') === filter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Función para abrir el modal de inscripción
+function abrirModalInscripcion(inscripcionId) {
+    console.log('🔍 Abriendo modal para inscripción ID:', inscripcionId);
+    
+    fetch(`/web/inscripciones/modal/${inscripcionId}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Remover modal existente si hay
+            const modalExistente = document.getElementById('modalInscripcionDetalle');
+            if (modalExistente) {
+                modalExistente.remove();
+            }
+            
+            // Agregar el nuevo modal al DOM
+            document.body.appendChild(tempDiv.firstElementChild);
+            
+            // Inicializar el modal de Bootstrap
+            const modal = new bootstrap.Modal(document.getElementById('modalInscripcionDetalle'));
+            modal.show();
+            
+            // Limpiar el modal cuando se cierre
+            document.getElementById('modalInscripcionDetalle').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+                console.log('✅ Modal cerrado y removido');
+            });
+            
+            console.log('✅ Modal cargado exitosamente');
+            
+            // Activar los tooltips dentro del modal
+            const tooltipTriggerList = [].slice.call(
+                document.querySelectorAll('#modalInscripcionDetalle [data-bs-toggle="tooltip"]')
+            );
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+        })
+        .catch(error => {
+            console.error('❌ Error al cargar el modal:', error);
+            // Mostrar alerta de error
+            alert('Error al cargar la información de la inscripción: ' + error.message);
+        });
+}
+
+// También puedes agregar SweetAlert si lo prefieres
+function showError(message) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            timer: 3000
+        });
+    } else {
+        alert(message);
+    }
+}
+</script>
+{% endblock %}

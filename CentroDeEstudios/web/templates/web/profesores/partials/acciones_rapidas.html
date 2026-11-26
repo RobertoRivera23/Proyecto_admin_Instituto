@@ -1,0 +1,78 @@
+<!-- web/templates/web/profesores/partials/acciones_rapidas.html -->
+<!-- Próximas clases -->
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-calendar-alt me-2"></i>Próximas Clases
+        </h6>
+    </div>
+    <div class="card-body">
+        {% if proximas_clases %}
+            <div class="list-group list-group-flush">
+                {% for curso in proximas_clases %}
+                <div class="list-group-item border-0 px-0 py-2">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ curso.nombre }}</h6>
+                        <small class="text-muted">{{ curso.fecha_inicio|date:"d/m" }}</small>
+                    </div>
+                    <p class="mb-1 small">
+                        <i class="fas fa-clock me-1"></i>{{ curso.horario|default:"Sin horario" }}
+                    </p>
+                    <a href="{% url 'detalle_curso_profesor' curso.id %}" class="btn btn-sm btn-outline-primary mt-1">
+                        Ver curso
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-3">
+                <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-0">No hay clases programadas</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="card shadow">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-bolt me-2"></i>Acciones Rápidas
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="list-group list-group-flush">
+            {% if es_administrador and es_otro_profesor %}
+                <!-- Acciones para admin viendo otro profesor -->
+                <a href="{% url 'perfil_profesor_detalle' profesor.id %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-user me-2 text-info"></i>Ver perfil completo
+                </a>
+                <a href="{% url 'mis_cursos_profesor_detalle' profesor.id %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-book me-2 text-primary"></i>Ver todos los cursos
+                </a>
+                <a href="{% url 'editar_profesor' profesor.id %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-edit me-2 text-warning"></i>Editar profesor
+                </a>
+                <a href="{% url 'listar_profesores' %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-arrow-left me-2 text-secondary"></i>Volver a lista de profesores
+                </a>
+            {% else %}
+                <!-- Acciones para el propio profesor -->
+                <a href="{% url 'perfil_profesor' %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-user me-2 text-info"></i>Mi perfil
+                </a>
+                <a href="{% url 'mis_cursos_profesor' %}" class="list-group-item list-group-item-action">
+                    <i class="fas fa-book me-2 text-primary"></i>Mis cursos
+                </a>
+                {% if es_administrador %}
+                    <a href="{% url 'dashboard_admin_general' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-tachometer-alt me-2 text-success"></i>Dashboard administrativo
+                    </a>
+                    <a href="{% url 'listar_profesores' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-users me-2 text-secondary"></i>Gestionar profesores
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>

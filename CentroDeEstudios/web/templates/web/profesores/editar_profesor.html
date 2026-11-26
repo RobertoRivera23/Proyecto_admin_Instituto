@@ -1,0 +1,429 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} {{ titulo }} {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/styles.css' %}">
+<link rel="stylesheet" href="{% static 'web/styles/alumnos.css' %}">
+<style>
+.profile-photo {
+    transition: transform 0.3s ease;
+}
+.profile-photo:hover {
+    transform: scale(1.05);
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.usuario-card {
+    border-left: 4px solid #0d6efd;
+}
+.acciones-usuario .btn {
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header con botones -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">👨‍🏫 {{ titulo }}</h1>
+        <div>
+            <a href="{% url 'listar_profesores' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver a Lista
+            </a>
+        </div>
+    </div>
+    
+    <!-- Mensajes -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message|safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Foto actual del profesor -->
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <div class="d-inline-block">
+                {% if profesor.foto %}
+                    <img src="{{ profesor.foto.url }}" 
+                         alt="Foto actual de {{ profesor.nombre }} {{ profesor.apellido }}"
+                         class="img-fluid rounded-circle mb-3 profile-photo"
+                         style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #e9ecef;">
+                    <p class="text-muted small">Foto actual</p>
+                {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3 profile-placeholder"
+                         style="width: 120px; height: 120px; border: 3px solid #e9ecef;">
+                        <i class="fas fa-user fa-3x text-muted"></i>
+                    </div>
+                    <p class="text-muted small">Sin foto</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario en card -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-edit me-2"></i>Editar Datos del Profesor
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{% url 'editar_profesor' profesor.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Errores generales -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Organizar campos en filas -->
+                <div class="row">
+                    <!-- Columna 1: Datos personales -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-id-card me-2"></i>Información Personal
+                        </h6>
+                        
+                        <!-- Nombre y Apellido en misma fila -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.nombre|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.apellido|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DNI y Fecha Nacimiento -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.dni|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.fecha_nacimiento|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sexo -->
+                        <div class="mb-3">
+                            {{ form.sexo|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Datos de contacto y específicos -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-address-book me-2"></i>Información de Contacto
+                        </h6>
+                        
+                        <!-- Dirección completa -->
+                        <div class="mb-3">
+                            {{ form.direccion|as_crispy_field }}
+                        </div>
+
+                        <!-- Teléfonos -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.telefono|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ form.telefono_contacto|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            {{ form.mail|as_crispy_field }}
+                        </div>
+
+                        <!-- Foto -->
+                        <div class="mb-3">
+                            {{ form.foto|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Profesional -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-briefcase me-2"></i>Información Profesional
+                        </h6>
+                    </div>
+                    
+                    <!-- CUIT y Entidad -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.cuit|as_crispy_field }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.entidad|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- CBU -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.cbu|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <!-- Estado activo -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            {{ form.activo|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- SECCIÓN NUEVA: GESTIÓN DE USUARIO DEL SISTEMA -->
+                <!-- ========================================== -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card usuario-card">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-user-circle me-2"></i>Usuario del Sistema
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {% if estado_usuario %}
+                                    <!-- Mostrar información de usuario existente -->
+                                    <div class="alert alert-info mb-4">
+                                        <h6><i class="fas fa-user me-2"></i>Usuario asociado</h6>
+                                        <div class="row mt-2">
+                                            <div class="col-md-4">
+                                                <strong>Username:</strong><br>
+                                                <code>{{ estado_usuario.username }}</code>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <strong>Estado:</strong><br>
+                                                {% if estado_usuario.is_active %}
+                                                    <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Inactivo</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-4">
+                                                <strong>Último acceso:</strong><br>
+                                                {{ estado_usuario.last_login|default:"Nunca" }}
+                                            </div>
+                                        </div>
+                                        {% if estado_usuario.email %}
+                                        <div class="row mt-2">
+                                            <div class="col-md-12">
+                                                <strong>Email:</strong> {{ estado_usuario.email }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Botones de gestión de usuario -->
+                                    <div class="alert alert-warning">
+                                        <h6><i class="fas fa-cogs me-2"></i>Acciones disponibles</h6>
+                                        <div class="acciones-usuario mt-2">
+                                            {% if estado_usuario.is_active %}
+                                                <button type="submit" name="accion_usuario" value="desactivar" 
+                                                        class="btn btn-warning btn-sm">
+                                                    <i class="fas fa-user-slash"></i> Desactivar Usuario
+                                                </button>
+                                            {% else %}
+                                                <button type="submit" name="accion_usuario" value="reactivar" 
+                                                        class="btn btn-success btn-sm">
+                                                    <i class="fas fa-user-check"></i> Reactivar Usuario
+                                                </button>
+                                            {% endif %}
+                                            
+                                            <button type="submit" name="accion_usuario" value="reset_password" 
+                                                    class="btn btn-info btn-sm">
+                                                <i class="fas fa-key"></i> Resetear Contraseña
+                                            </button>
+                                            
+                                            <button type="submit" name="accion_usuario" value="desvincular" 
+                                                    class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('¿Desvincular usuario? El profesor perderá acceso al sistema.')">
+                                                <i class="fas fa-unlink"></i> Desvincular
+                                            </button>
+                                            {% if estado_usuario and es_coordinador %}
+                                                <a href="{% url 'editar_usuario' estado_usuario.id %}" 
+                                                    class="btn btn-primary btn-sm"
+                                                    title="Editar datos del usuario (solo coordinadores)">
+                                                    <i class="fas fa-user-edit"></i> Editar Usuario
+                                                </a>
+                                            {% elif estado_usuario %}
+                                                <!-- Para no coordinadores, mostrar botón deshabilitado -->
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" disabled
+                                                    title="Solo coordinadores pueden editar el usuario">
+                                                    <i class="fas fa-user-edit"></i> Editar Usuario
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted d-block mt-2">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Desvincular mantiene el usuario pero lo separa del profesor.
+                                        </small>
+                                    </div>
+                                    
+                                {% else %}
+                                    <!-- Opción para crear usuario -->
+                                    <div class="form-check form-switch mb-3">
+                                        {{ form.crear_usuario_sistema }}
+                                        <label class="form-check-label" for="{{ form.crear_usuario_sistema.id_for_label }}">
+                                            {{ form.crear_usuario_sistema.label }}
+                                        </label>
+                                        {% if form.crear_usuario_sistema.help_text %}
+                                            <small class="form-text text-muted">{{ form.crear_usuario_sistema.help_text }}</small>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Campos adicionales para creación de usuario -->
+                                    <div id="campos-usuario" style="display: none;" class="mt-3 p-3 border rounded">
+                                        <h6 class="text-primary mb-3">
+                                            <i class="fas fa-user-plus me-2"></i>Configuración del Usuario
+                                        </h6>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                {{ form.username_personalizado|as_crispy_field }}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-check form-switch mb-3">
+                                            {{ form.generar_password_aleatoria }}
+                                            <label class="form-check-label" for="{{ form.generar_password_aleatoria.id_for_label }}">
+                                                {{ form.generar_password_aleatoria.label }}
+                                            </label>
+                                        </div>
+                                        
+                                        <div id="campo-password" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    {{ form.password_personalizada|as_crispy_field }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- FIN SECCIÓN USUARIO -->
+
+                <!-- Botones de acción -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end gap-3">
+                            <a href="{% url 'mostrar_profesor' profesor.id %}" class="btn btn-secondary">
+                                <i class="fa fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fa fa-save me-2"></i>Actualizar Profesor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="alert alert-info mt-4">
+        <i class="fa fa-info-circle me-2"></i>
+        <strong>Nota:</strong> Los campos marcados con <span class="text-danger">*</span> son obligatorios.
+        {% if profesor.foto %}
+        <br><small>Selecciona una nueva imagen solo si deseas cambiar la foto actual.</small>
+        {% endif %}
+        {% if not estado_usuario %}
+        <br><small>Al crear un usuario, se asignará automáticamente al grupo "Profesores" con los permisos correspondientes.</small>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Mostrar/ocultar campos de usuario según checkbox
+    document.addEventListener('DOMContentLoaded', function() {
+        const crearUsuarioCheckbox = document.querySelector('#{{ form.crear_usuario_sistema.id_for_label }}');
+        const camposUsuario = document.getElementById('campos-usuario');
+        const generarPasswordCheckbox = document.querySelector('#{{ form.generar_password_aleatoria.id_for_label }}');
+        const campoPassword = document.getElementById('campo-password');
+        
+        if (crearUsuarioCheckbox && camposUsuario) {
+            // Función para mostrar/ocultar campos de usuario
+            function toggleCamposUsuario() {
+                camposUsuario.style.display = crearUsuarioCheckbox.checked ? 'block' : 'none';
+            }
+            
+            crearUsuarioCheckbox.addEventListener('change', toggleCamposUsuario);
+            
+            // Estado inicial
+            toggleCamposUsuario();
+        }
+        
+        if (generarPasswordCheckbox && campoPassword) {
+            // Función para mostrar/ocultar campo de contraseña personalizada
+            function toggleCampoPassword() {
+                campoPassword.style.display = generarPasswordCheckbox.checked ? 'none' : 'block';
+            }
+            
+            generarPasswordCheckbox.addEventListener('change', toggleCampoPassword);
+            
+            // Estado inicial
+            toggleCampoPassword();
+        }
+        
+        // Confirmación para acciones de usuario
+        const botonesAccion = document.querySelectorAll('button[name="accion_usuario"]');
+        botonesAccion.forEach(boton => {
+            if (boton.value === 'desactivar') {
+                boton.addEventListener('click', function(e) {
+                    if (!confirm('¿Desactivar usuario? El profesor no podrá acceder al sistema.')) {
+                        e.preventDefault();
+                    }
+                });
+            } else if (boton.value === 'reset_password') {
+                boton.addEventListener('click', function(e) {
+                    if (!confirm('¿Resetear contraseña? Se generará una nueva contraseña aleatoria.')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

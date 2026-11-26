@@ -1,0 +1,26 @@
+<!-- templates/web/debug/permisos.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Permisos</title>
+</head>
+<body>
+    <h1>Información del Usuario</h1>
+    
+    <h2>Usuario Django</h2>
+    <pre>{{ data|pprint }}</pre>
+    
+    <h2>Cursos asignados</h2>
+    {% if data.profesor %}
+        <ul>
+        {% for curso in data.profesor.cursos_asignados.all %}
+            <li>{{ curso.nombre }} (ID: {{ curso.id }}) - {{ curso.profesor.nombre_completo }}</li>
+        {% empty %}
+            <li>No tiene cursos asignados</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No tiene perfil de profesor</p>
+    {% endif %}
+</body>
+</html>

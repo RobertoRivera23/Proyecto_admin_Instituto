@@ -1,0 +1,153 @@
+<!-- templates/web/personal/confirmar_eliminar.html -->
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Personal - Sistema Académico{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-slash fa-3x text-danger mb-3"></i>
+                        <h4 class="text-danger">¿Estás seguro de que deseas eliminar este personal?</h4>
+                    </div>
+
+                    <!-- Información del Personal -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-3 text-center">
+                                    <i class="fas fa-user fa-2x text-primary"></i>
+                                </div>
+                                <div class="col-9">
+                                    <h5 class="card-title">{{ personal.nombre_completo }}</h5>
+                                    <p class="card-text mb-1">
+                                        <strong>Legajo:</strong> {{ personal.legajo }}
+                                    </p>
+                                    <p class="card-text mb-1">
+                                        <strong>Tipo:</strong> {{ personal.get_tipo_display }}
+                                    </p>
+                                    <p class="card-text">
+                                        <strong>Estado:</strong> 
+                                        <span class="badge {% if personal.activo %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ personal.activo|yesno:"Activo,Inactivo" }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advertencias -->
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-circle"></i> Importante
+                        </h6>
+                        <ul class="mb-0">
+                            <li>Esta acción <strong>NO se puede deshacer</strong></li>
+                            <li>El personal será marcado como <strong>eliminado</strong> (soft delete)</li>
+                            <li>Si tiene usuario asociado, será <strong>desactivado</strong></li>
+                            <li>La información se mantendrá en el sistema para auditoría</li>
+                            <li>No aparecerá en los listados principales</li>
+                        </ul>
+                    </div>
+
+                    <!-- Verificación de Impacto -->
+                    {% if personal.user %}
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-laptop"></i> Usuario del Sistema
+                        </h6>
+                        <p class="mb-0">
+                            Este personal tiene usuario del sistema: <strong>{{ personal.user.username }}</strong><br>
+                            El usuario será <strong>desactivado</strong> y no podrá acceder al sistema.
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario de Confirmación -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="confirmacion" class="form-label">
+                                <strong>Para confirmar, escribe "ELIMINAR" en el siguiente campo:</strong>
+                            </label>
+                            <input type="text" class="form-control" id="confirmacion" name="confirmacion" 
+                                   placeholder="Escribe ELIMINAR aquí" required
+                                   pattern="ELIMINAR" title="Debes escribir exactamente 'ELIMINAR'">
+                            <div class="form-text text-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Esta acción es irreversible
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'detalle_personal' personal.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger" id="btnEliminar" disabled>
+                                <i class="fas fa-trash"></i> Confirmar Eliminación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Habilitar botón solo cuando se escriba "ELIMINAR" correctamente
+document.getElementById('confirmacion').addEventListener('input', function() {
+    const btnEliminar = document.getElementById('btnEliminar');
+    btnEliminar.disabled = this.value !== 'ELIMINAR';
+});
+
+// Prevenir envío accidental con Enter
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter') {
+        const input = document.getElementById('confirmacion');
+        if (input && input.value !== 'ELIMINAR') {
+            event.preventDefault();
+            alert('Debes escribir "ELIMINAR" para confirmar la eliminación');
+        }
+    }
+});
+
+// Confirmación adicional
+document.querySelector('form').addEventListener('submit', function(event) {
+    const confirmacion = document.getElementById('confirmacion').value;
+    if (confirmacion !== 'ELIMINAR') {
+        event.preventDefault();
+        alert('Debes escribir "ELIMINAR" para confirmar la eliminación');
+        return false;
+    }
+    
+    if (!confirm('¿Estás absolutamente seguro de que deseas eliminar este personal?\n\nEsta acción NO se puede deshacer.')) {
+        event.preventDefault();
+        return false;
+    }
+});
+</script>
+
+<style>
+.card {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+.alert ul {
+    padding-left: 1rem;
+}
+.alert li {
+    margin-bottom: 0.3rem;
+}
+</style>
+{% endblock %}

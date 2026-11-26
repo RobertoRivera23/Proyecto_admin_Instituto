@@ -1,0 +1,605 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+    .concepto-row {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    .remove-row {
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    .remove-row:hover {
+        color: #a71d2a;
+    }
+    .selector-container {
+        min-height: 38px;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container mt-4">
+    <h2>Editar Pago #{{ pago.id }}</h2>
+    <form method="post" id="pago-form">
+        {% csrf_token %}
+        
+        <!-- Checkbox alumno/tercero -->
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="es-alumno" name="es_alumno" {% if pago.alumno %}checked{% endif %}>
+            <label class="form-check-label" for="es-alumno">El pago corresponde a un alumno registrado</label>
+        </div>
+
+        <!-- Sección Alumno -->
+        <div id="seccion-alumno" {% if not pago.alumno %}style="display: none;"{% endif %}>
+            <div class="form-group mb-3">
+                <label for="alumno-select">Alumno *</label>
+                <select id="alumno-select" name="alumno_id" class="form-control" style="width:100%">
+                    {% if pago.alumno %}
+                        <option value="{{ pago.alumno.id }}" selected>{{ pago.alumno.nombre_completo }} - DNI: {{ pago.alumno.dni }}</option>
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Sección Tercero -->
+        <div id="seccion-tercero" {% if pago.alumno %}style="display: none;"{% endif %}>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label>Nombre *</label>
+                        <input type="text" name="tercero_nombre" class="form-control" value="{{ pago.tercero_nombre }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label>Apellido *</label>
+                        <input type="text" name="tercero_apellido" class="form-control" value="{{ pago.tercero_apellido }}">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label>DNI *</label>
+                        <input type="text" name="tercero_dni" class="form-control" value="{{ pago.tercero_dni }}">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label>CUIL</label>
+                        <input type="text" name="tercero_cuil" class="form-control" value="{{ pago.tercero_cuil }}">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label>Domicilio</label>
+                        <input type="text" name="tercero_domicilio" class="form-control" value="{{ pago.tercero_domicilio }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conceptos con formset -->
+        <div class="form-group mb-3">
+            <label>Conceptos</label>
+            {{ formset.management_form }}
+            <div id="conceptos-container">
+                {% for form in formset %}
+                <div class="concepto-row mb-3 p-3 border rounded" data-index="{{ forloop.counter0 }}">
+                    {{ form.id }}
+                    <div class="row">
+                        <div class="col-md-2">
+                            {{ form.tipo.label_tag }}
+                            {{ form.tipo }}
+                        </div>
+                        <div class="col-md-3 selector-container"></div>  <!-- Aquí se cargará el selector dinámico -->
+                        <div class="col-md-1">
+                            {{ form.cantidad.label_tag }}
+                            {{ form.cantidad }}
+                        </div>
+                        <div class="col-md-2">
+                            {{ form.precio_unitario.label_tag }}
+                            {{ form.precio_unitario }}
+                        </div>
+                        <div class="col-md-2">
+                            <label>Subtotal</label>
+                            <input type="text" class="form-control subtotal" readonly value="0.00">
+                        </div>
+                        <div class="col-md-1">
+                            {{ form.mes.label_tag }}
+                            {{ form.mes }}
+                        </div>
+                        <div class="col-md-1">
+                            {{ form.año.label_tag }}
+                            {{ form.año }}
+                        </div>
+                    </div>
+                    <!-- Campos hidden para las relaciones -->
+                    <input type="hidden" class="extra-cuota-id" name="extra_cuota_id_{{ forloop.counter0 }}" value="{{ form.instance.cuota_id|default:'' }}">
+                    <input type="hidden" class="extra-curso-id" name="extra_curso_id_{{ forloop.counter0 }}" value="{{ form.instance.curso_id|default:'' }}">
+                    <input type="hidden" class="extra-producto-id" name="extra_producto_id_{{ forloop.counter0 }}" value="{{ form.instance.producto_id|default:'' }}">
+                    <input type="hidden" class="extra-descripcion" name="extra_descripcion_{{ forloop.counter0 }}" value="{{ form.instance.descripcion }}">
+                    <!-- Campo DELETE del formset -->
+                    {% if form.instance.pk %}
+                    <div class="mt-2">
+                        <span class="remove-row text-danger" style="cursor:pointer;">Eliminar concepto</span>
+                        {{ form.DELETE }}
+                    </div>
+                    {% else %}
+                    <div class="mt-2">
+                        <span class="remove-row text-danger" style="cursor:pointer;">Eliminar concepto</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm mt-2" id="agregar-concepto">
+                <i class="fas fa-plus"></i> Agregar concepto
+            </button>
+        </div>
+
+        <!-- Datos del pago -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group mb-3">
+                    <label>Total $</label>
+                    <input type="text" id="total" name="monto" class="form-control" value="{{ pago.monto }}">
+                </div>
+                <div class="form-group mb-3">
+                    <label>Fecha de pago</label>
+                    <input type="date" name="fecha_pago" class="form-control" value="{{ pago.fecha_pago|date:'Y-m-d' }}" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group mb-3">
+                    <label>Método de pago</label>
+                    <select name="metodo_pago" class="form-control">
+                        <option value="EFECTIVO" {% if pago.metodo_pago == 'EFECTIVO' %}selected{% endif %}>Efectivo</option>
+                        <option value="TRANSFERENCIA" {% if pago.metodo_pago == 'TRANSFERENCIA' %}selected{% endif %}>Transferencia</option>
+                        <option value="TARJETA_CREDITO" {% if pago.metodo_pago == 'TARJETA_CREDITO' %}selected{% endif %}>Tarjeta Crédito</option>
+                        <option value="TARJETA_DEBITO" {% if pago.metodo_pago == 'TARJETA_DEBITO' %}selected{% endif %}>Tarjeta Débito</option>
+                        <option value="MERCADO_PAGO" {% if pago.metodo_pago == 'MERCADO_PAGO' %}selected{% endif %}>Mercado Pago</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.observaciones.id_for_label }}" class="form-label">{{ form.observaciones.label }}</label>
+                    {{ form.observaciones }}
+                </div>
+                <div class="form-group mb-3">
+                    <label>Referencia</label>
+                    <input type="text" name="referencia" class="form-control" value="{{ pago.referencia }}">
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" name="confirmado" class="form-check-input" id="confirmado" {% if pago.confirmado %}checked{% endif %}>
+                    <label class="form-check-label" for="confirmado">Confirmar pago</label>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <a href="{% url 'facturacion:detalle_pago' pago.id %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Prefijo del formset
+    var formsetPrefix = '{{ formset.prefix }}';
+
+    // 1. Agregar la clase 'tipo-concepto' a todos los selects de tipo generados por el formset
+    $('.concepto-row select[name$="-tipo"]').addClass('tipo-concepto');
+
+    // Inicializar Select2 para alumnos
+    $('#alumno-select').select2({
+        ajax: {
+            url: '{% url "facturacion:api_buscar_alumnos" %}',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return { term: params.term };
+            },
+            processResults: function(data) {
+                return { results: data.results };
+            },
+        },
+        placeholder: 'Buscar alumno por nombre, apellido o DNI',
+        minimumInputLength: 2,
+    });
+
+    let cuotasCache = {};
+
+    function cargarCuotas(alumnoId, callback) {
+        if (cuotasCache[alumnoId]) {
+            callback(cuotasCache[alumnoId]);
+        } else {
+            $.getJSON('{% url "facturacion:obtener_cuotas_alumno" 0 %}'.replace('0', alumnoId), function(response) {
+                if (response.success) {
+                    let cuotasPendientes = response.data.filter(c => !c.pagada);
+                    cuotasCache[alumnoId] = cuotasPendientes;
+                    callback(cuotasPendientes);
+                } else {
+                    callback([]);
+                }
+            }).fail(function() {
+                callback([]);
+            });
+        }
+    }
+
+    // --- FUNCIÓN PARA CREAR SELECTOR DE CURSO/PRODUCTO (con preselección) ---
+    function crearSelectorCursoProducto(row, tipo, valorSeleccionado, textoSeleccionado, precioSeleccionado) {
+        let selectorDiv = row.find('.selector-container');
+        selectorDiv.empty();
+
+        let select = $('<select class="form-control concepto-select" style="width:100%"></select>');
+        selectorDiv.html(select);
+
+        let url = tipo === 'CURSO' ? '{% url "facturacion:api_buscar_curso" %}' : '{% url "facturacion:api_buscar_producto" %}';
+
+        // Si tenemos un valor preexistente, agregamos la opción y seleccionamos
+        if (valorSeleccionado && textoSeleccionado && precioSeleccionado) {
+            let newOption = new Option(textoSeleccionado, valorSeleccionado, true, true);
+            select.append(newOption);
+            select.val(valorSeleccionado);
+            row.find('.precio_unitario').val(precioSeleccionado);
+            row.find('.extra-descripcion').val(textoSeleccionado);
+            if (tipo === 'CURSO') {
+                row.find('.extra-curso-id').val(valorSeleccionado);
+            } else {
+                row.find('.extra-producto-id').val(valorSeleccionado);
+            }
+            calcularSubtotal(row);
+        }
+
+        // Inicializar Select2 con AJAX
+        select.select2({
+            ajax: {
+                url: url,
+                dataType: 'json',
+                delay: 250,
+                data: function(params) {
+                    return { term: params.term };
+                },
+                processResults: function(data) {
+                    return { results: data.results };
+                }
+            },
+            placeholder: `Buscar ${tipo === 'CURSO' ? 'curso' : 'producto'}`,
+            minimumInputLength: 2
+        });
+
+        // Si había valor preexistente, forzar la actualización visual (por si acaso)
+        if (valorSeleccionado && textoSeleccionado) {
+            var option = new Option(textoSeleccionado, valorSeleccionado, true, true);
+            select.append(option).trigger('change');
+        }
+    }
+
+    // --- FUNCIÓN PARA CREAR SELECTOR DE CUOTA (con preselección) ---
+    function crearSelectorCuota(row, cuotas, valorSeleccionado) {
+        let selectorDiv = row.find('.selector-container');
+        selectorDiv.empty();
+        if (!cuotas || cuotas.length === 0) {
+            selectorDiv.html('<select class="form-control" disabled><option>No hay cuotas pendientes</option></select>');
+            return;
+        }
+
+        let select = $('<select class="form-control concepto-select" style="width:100%"></select>');
+        selectorDiv.html(select);
+
+        let options = cuotas.map(c => ({
+            id: c.id,
+            text: `Cuota ${c.mes}/${c.año} - $${c.monto}`,
+            precio: c.monto,
+            mes: c.mes,
+            año: c.año
+        }));
+
+        select.select2({
+            data: options,
+            placeholder: 'Seleccionar cuota',
+            minimumResultsForSearch: 5
+        });
+
+        if (valorSeleccionado) {
+            let selectedOption = options.find(opt => opt.id == valorSeleccionado);
+            if (selectedOption) {
+                select.val(valorSeleccionado).trigger('change');
+                row.find('.precio_unitario').val(selectedOption.precio);
+                row.find('.extra-descripcion').val(selectedOption.text.split(' - ')[0]);
+                row.find('.mes').val(selectedOption.mes || '');
+                row.find('.año').val(selectedOption.año || '');
+                row.find('.extra-cuota-id').val(selectedOption.id);
+                calcularSubtotal(row);
+            } else {
+                selectorDiv.html('<select class="form-control" disabled><option>Cuota ya pagada o no disponible</option></select>');
+            }
+        }
+    }
+
+    // --- FUNCIÓN PARA CAMPO DE TEXTO (OTRO, SERVICIO, MATRICULA) ---
+    function crearCampoTexto(row, textoActual) {
+        let selectorDiv = row.find('.selector-container');
+        selectorDiv.empty();
+        selectorDiv.html(`<input type="text" class="form-control descripcion-otro" placeholder="Descripción" value="${textoActual || ''}">`);
+        // Forzar cálculo de subtotal (por si cantidad y precio ya están)
+        calcularSubtotal(row);
+    }
+
+    // --- EVENTO CUANDO CAMBIA EL TIPO DE CONCEPTO ---
+    $(document).on('change', '.tipo-concepto', function() {
+        let row = $(this).closest('.concepto-row');
+        let tipo = $(this).val();
+        let selectorDiv = row.find('.selector-container');
+        selectorDiv.empty();
+
+        // Limpiar campos extra
+        row.find('.extra-cuota-id, .extra-curso-id, .extra-producto-id, .extra-descripcion').val('');
+        if (tipo === 'OTRO' || tipo === 'SERVICIO' || tipo === 'MATRICULA') {
+            let descripcionActual = row.find('.extra-descripcion').val();
+            crearCampoTexto(row, descripcionActual);
+            return;
+        }
+
+        if (tipo === 'CUOTA') {
+            let alumnoId = $('#alumno-select').val();
+            if (!alumnoId) {
+                selectorDiv.html('<select class="form-control" disabled><option>Primero seleccione un alumno</option></select>');
+                return;
+            }
+            let cuotaId = row.find('.extra-cuota-id').val();
+            cargarCuotas(alumnoId, function(cuotas) {
+                crearSelectorCuota(row, cuotas, cuotaId);
+            });
+            return;
+        }
+
+        // CURSO o PRODUCTO
+        let id = tipo === 'CURSO' ? row.find('.extra-curso-id').val() : row.find('.extra-producto-id').val();
+        let texto = row.find('.extra-descripcion').val();
+        let precio = row.find('.precio_unitario').val();
+        crearSelectorCursoProducto(row, tipo, id, texto, precio);
+    });
+
+    // --- EVENTO AL SELECCIONAR UN ELEMENTO EN EL SELECT2 ---
+    $(document).on('select2:select', '.concepto-select', function(e) {
+        let row = $(this).closest('.concepto-row');
+        let tipo = row.find('.tipo-concepto').val();
+        let data = e.params.data;
+
+        row.find('.precio_unitario').val(data.precio);
+        row.find('.extra-descripcion').val(data.text.split(' - ')[0] || data.text);
+        
+        if (tipo === 'CUOTA') {
+            row.find('.mes').val(data.mes || '');
+            row.find('.año').val(data.año || '');
+            row.find('.extra-cuota-id').val(data.id);
+        } else if (tipo === 'CURSO') {
+            row.find('.extra-curso-id').val(data.id);
+        } else if (tipo === 'PRODUCTO') {
+            row.find('.extra-producto-id').val(data.id);
+        }
+        calcularSubtotal(row);
+    });
+
+    // --- EVENTO PARA CAMPO TEXTO ---
+    $(document).on('input', '.descripcion-otro', function() {
+        let row = $(this).closest('.concepto-row');
+        let valor = $(this).val();
+        row.find('.extra-descripcion').val(valor);
+    });
+
+    // --- CÁLCULOS ---
+    function calcularSubtotal(row) {
+        let cantidad = parseFloat(row.find('.cantidad').val()) || 0;
+        let precio = parseFloat(row.find('.precio_unitario').val()) || 0;
+        let subtotal = cantidad * precio;
+        row.find('.subtotal').val(subtotal.toFixed(2));
+        calcularTotal();
+    }
+
+    function calcularTotal() {
+        let total = 0;
+        $('.subtotal').each(function() {
+            total += parseFloat($(this).val()) || 0;
+        });
+        $('#total').val(total.toFixed(2));
+    }
+
+    $(document).on('input', '.cantidad, .precio_unitario', function() {
+        let row = $(this).closest('.concepto-row');
+        calcularSubtotal(row);
+    });
+
+    // --- ELIMINAR FILA ---
+    $(document).on('click', '.remove-row', function() {
+        let row = $(this).closest('.concepto-row');
+        let deleteCheckbox = row.find('input[name$="-DELETE"]');
+        if (deleteCheckbox.length) {
+            deleteCheckbox.prop('checked', true);
+            row.hide();
+        } else {
+            row.remove();
+        }
+        calcularTotal();
+        reindexForms();
+    });
+
+    // --- AGREGAR NUEVO CONCEPTO ---
+    function agregarConcepto() {
+        let totalForms = parseInt($('#id_' + formsetPrefix + '-TOTAL_FORMS').val());
+        let newIndex = totalForms;
+        let newRowHtml = `
+            <div class="concepto-row mb-3 p-3 border rounded" data-index="${newIndex}">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label>Tipo:</label>
+                        <select name="${formsetPrefix}-${newIndex}-tipo" class="form-control tipo-concepto">
+                            <option value="CUOTA">Cuota</option>
+                            <option value="CURSO">Curso</option>
+                            <option value="PRODUCTO">Producto</option>
+                            <option value="SERVICIO">Servicio</option>
+                            <option value="MATRICULA">Matrícula</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 selector-container"></div>
+                    <div class="col-md-1">
+                        <label>Cant.:</label>
+                        <input type="number" name="${formsetPrefix}-${newIndex}-cantidad" class="form-control cantidad" value="1" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <label>Precio unit.:</label>
+                        <input type="number" name="${formsetPrefix}-${newIndex}-precio_unitario" class="form-control precio_unitario" step="0.01">
+                    </div>
+                    <div class="col-md-2">
+                        <label>Subtotal:</label>
+                        <input type="text" class="form-control subtotal" readonly value="0.00">
+                    </div>
+                    <div class="col-md-1">
+                        <label>Mes:</label>
+                        <input type="number" name="${formsetPrefix}-${newIndex}-mes" class="form-control mes" placeholder="Mes (1-12)" min="1" max="12" step="1">
+                    </div>
+                    <div class="col-md-1">
+                        <label>Año:</label>
+                        <input type="number" name="${formsetPrefix}-${newIndex}-año" class="form-control año" placeholder="Año" min="2000" max="2100">
+                    </div>
+                </div>
+                <input type="hidden" class="extra-cuota-id" name="extra_cuota_id_${newIndex}" value="">
+                <input type="hidden" class="extra-curso-id" name="extra_curso_id_${newIndex}" value="">
+                <input type="hidden" class="extra-producto-id" name="extra_producto_id_${newIndex}" value="">
+                <input type="hidden" class="extra-descripcion" name="extra_descripcion_${newIndex}" value="">
+                <div class="mt-2">
+                    <span class="remove-row text-danger" style="cursor:pointer;">Eliminar concepto</span>
+                </div>
+            </div>
+        `;
+        $('#conceptos-container').append(newRowHtml);
+        $('#id_' + formsetPrefix + '-TOTAL_FORMS').val(totalForms + 1);
+        
+        if (!$('#es-alumno').prop('checked')) {
+            let nuevaFila = $('#conceptos-container .concepto-row').last();
+            nuevaFila.find('.tipo-concepto option[value="CUOTA"]').prop('disabled', true);
+        }
+        
+        let nuevaFila = $('#conceptos-container .concepto-row').last();
+        nuevaFila.find('.tipo-concepto').trigger('change');
+    }
+
+    // --- REINDEXAR FORMS (después de eliminar) ---
+    function reindexForms() {
+        let rows = $('.concepto-row:visible');
+        let newTotal = rows.length;
+        $('#id_' + formsetPrefix + '-TOTAL_FORMS').val(newTotal);
+        rows.each(function(idx) {
+            let row = $(this);
+            // Reindexar campos del formset (incluye el campo id)
+            row.find('select[name$="-tipo"], input[name$="-cantidad"], input[name$="-precio_unitario"], input[name$="-mes"], input[name$="-año"], input[name$="-id"], input[name$="-DELETE"]').each(function() {
+                let name = $(this).attr('name');
+                if (name) {
+                    let newName = name.replace(/^[^-]+-\d+-/, formsetPrefix + '-' + idx + '-');
+                    $(this).attr('name', newName);
+                }
+            });
+            // Reindexar campos extra (los que no pertenecen al formset)
+            row.find('.extra-cuota-id, .extra-curso-id, .extra-producto-id, .extra-descripcion').each(function() {
+                let name = $(this).attr('name');
+                if (name) {
+                    let newName = name.replace(/_\d+$/, '_' + idx);
+                    $(this).attr('name', newName);
+                }
+            });
+            row.attr('data-index', idx);
+        });
+    }
+
+    $('#agregar-concepto').on('click', agregarConcepto);
+
+    // --- CAMBIO DE ALUMNO (recarga selectores de cuota) ---
+    $('#alumno-select').on('change', function() {
+        let alumnoId = $(this).val();
+        if (alumnoId) {
+            $('.concepto-row').each(function() {
+                let row = $(this);
+                let tipo = row.find('.tipo-concepto').val();
+                if (tipo === 'CUOTA') {
+                    let cuotaId = row.find('.extra-cuota-id').val();
+                    cargarCuotas(alumnoId, function(cuotas) {
+                        crearSelectorCuota(row, cuotas, cuotaId);
+                    });
+                }
+            });
+        }
+    });
+
+    // --- ALTERNAR ALUMNO / TERCERO ---
+    $('#es-alumno').on('change', function() {
+        let esAlumno = $(this).prop('checked');
+        if (esAlumno) {
+            $('#seccion-alumno').show();
+            $('#seccion-tercero').hide();
+            $('.tipo-concepto option[value="CUOTA"]').prop('disabled', false);
+        } else {
+            $('#seccion-alumno').hide();
+            $('#seccion-tercero').show();
+            $('.tipo-concepto option[value="CUOTA"]').prop('disabled', true);
+            $('.tipo-concepto').each(function() {
+                if ($(this).val() === 'CUOTA') {
+                    $(this).val('OTRO').trigger('change');
+                }
+            });
+        }
+    });
+
+    // --- INICIALIZAR SELECTORES DE LOS CONCEPTOS EXISTENTES ---
+    function inicializarSelectores() {
+        $('.concepto-row').each(function() {
+            let row = $(this);
+            let tipo = row.find('.tipo-concepto').val();
+            let descripcionActual = row.find('.extra-descripcion').val();
+            
+            if (tipo === 'OTRO' || tipo === 'SERVICIO' || tipo === 'MATRICULA') {
+                crearCampoTexto(row, descripcionActual);
+            } 
+            else if (tipo === 'CUOTA') {
+                let alumnoId = $('#alumno-select').val();
+                if (alumnoId) {
+                    let cuotaId = row.find('.extra-cuota-id').val();
+                    cargarCuotas(alumnoId, function(cuotas) {
+                        crearSelectorCuota(row, cuotas, cuotaId);
+                    });
+                } else {
+                    row.find('.selector-container').html('<select class="form-control" disabled><option>Primero seleccione un alumno</option></select>');
+                }
+            }
+            else if (tipo === 'CURSO' || tipo === 'PRODUCTO') {
+                let id = tipo === 'CURSO' ? row.find('.extra-curso-id').val() : row.find('.extra-producto-id').val();
+                let texto = row.find('.extra-descripcion').val();
+                let precio = row.find('.precio_unitario').val();
+                crearSelectorCursoProducto(row, tipo, id, texto, precio);
+            }       
+        });
+    }
+
+    inicializarSelectores();
+
+    // 🔥 NUEVO: Calcular subtotales para todas las filas ya cargadas
+    $('.concepto-row').each(function() {
+        calcularSubtotal($(this));
+    });
+});
+</script>
+{% endblock %}

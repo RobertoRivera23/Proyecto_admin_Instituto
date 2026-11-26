@@ -1,0 +1,135 @@
+<!-- web/templates/permisos/base_permisos.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestión de Permisos{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .sidebar {
+            min-height: calc(100vh - 56px);
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+        .sidebar-sticky {
+            position: sticky;
+            top: 20px;
+        }
+        .permiso-badge {
+            font-size: 0.75em;
+            padding: 0.25em 0.6em;
+        }
+        .grupo-card {
+            transition: transform 0.2s;
+        }
+        .grupo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-shield-lock"></i> Gestión de Permisos
+            </a>
+            <div class="d-flex">
+                <span class="navbar-text text-white me-3">
+                    <i class="bi bi-person-circle"></i> {{ request.user.username }}
+                </span>
+                <a href="{% url 'index' %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-house-door"></i> Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 p-0 sidebar">
+                <div class="sidebar-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_permisos' %}active bg-primary text-white{% endif %}" 
+                               href="{% url 'dashboard_permisos' %}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                           <a class="nav-link {% if request.resolver_match.url_name == 'listar_grupos_permisos' %}activo bg-primary texto-blanco{% endif %}" 
+                                href="{% url 'listar_grupos_permisos' %}">
+                                    <i class="bi bi-people-fill"></i> Grupos y Permisos
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'crear_nuevo_permiso' %}activo fondo-primario texto-blanco{% endif %}" 
+                            href="{% url 'crear_nuevo_permiso' %}">
+                                <i class="bi bi-plus-circle"></i> Crear Nuevo Permiso
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'crear_nuevo_grupo' %}activo fondo-primario texto-blanco{% endif %}" 
+                            href="{% url 'crear_nuevo_grupo' %}">
+                                <i class="bi bi-person-plus"></i> Crear Nuevo Grupo
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                          <a class="nav-link {% if request.resolver_match.url_name == 'asignar_permisos_usuario' %}activo fondo-primario texto-blanco{% endif %}" 
+                            href="{% url 'asignar_permisos_usuario' %}">
+                                <i class="bi bi-person-check"></i> Asignar a Usuario
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="{% url 'dashboard' %}">
+                                <i class="bi bi-box-arrow-left"></i> Salir del Gestor
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% if not request.user.groups.filter.name == 'Coordinador' and not request.user.is_superuser %}
+            <div class="alert alert-danger text-center m-3">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>ACCESO NO AUTORIZADO</strong> - Solo coordinadores pueden acceder a este módulo.
+                <a href="{% url 'dashboard' %}" class="alert-link">Volver al dashboard</a>
+            </div>
+            {% endif %}
+            <!-- Main content -->
+            <main class="col-md-9 col-lg-10 px-md-4 py-4">
+                <!-- Mensajes -->
+                {% if messages %}
+                    <div class="messages mb-4">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Contenido específico -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>{% block page_title %}Gestión de Permisos{% endblock %}</h2>
+                    {% block page_actions %}{% endblock %}
+                </div>
+
+                {% block content %}
+                <!-- El contenido específico de cada página va aquí -->
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DEBUG - Facturación</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .debug-box { border: 3px solid red; padding: 15px; margin: 10px; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🔍 DEBUG TEMPLATE</h1>
+    
+    <div class="debug-box">
+        <h3>Variables disponibles:</h3>
+        <ul>
+            <li>hoy: <span class="success">{{ hoy }}</span></li>
+            <li>total_comprobantes_mes: <span class="success">{{ total_comprobantes_mes }}</span></li>
+            <li>total_ventas_mes: <span class="success">{{ total_ventas_mes }}</span></li>
+            <li>comprobantes_recientes: 
+                {% if comprobantes_recientes %}
+                    <span class="success">{{ comprobantes_recientes|length }} elementos</span>
+                {% else %}
+                    <span class="error">VACÍO</span>
+                {% endif %}
+            </li>
+            <li>contribuyentes: 
+                {% if contribuyentes %}
+                    <span class="success">{{ contribuyentes.count }} elementos</span>
+                {% else %}
+                    <span class="error">VACÍO</span>
+                {% endif %}
+            </li>
+        </ul>
+    </div>
+    
+    {% if comprobantes_recientes %}
+    <div class="debug-box">
+        <h3>Lista de comprobantes:</h3>
+        <table border="1" cellpadding="5">
+            <tr>
+                <th>Número</th>
+                <th>Cliente</th>
+                <th>Total</th>
+            </tr>
+            {% for comp in comprobantes_recientes %}
+            <tr>
+                <td>{{ comp.numero_completo|default:"N/A" }}</td>
+                <td>{{ comp.cliente_razon_social|default:"N/A" }}</td>
+                <td>${{ comp.total|default:0|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+    
+    <div class="debug-box">
+        <h3>Prueba de herencia:</h3>
+        <p>Si ves esta página, el problema está en la herencia de templates.</p>
+        <p><a href="/facturacion/">Volver al dashboard normal</a></p>
+    </div>
+</body>
+</html>

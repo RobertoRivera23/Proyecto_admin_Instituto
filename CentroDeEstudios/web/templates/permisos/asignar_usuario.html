@@ -1,0 +1,154 @@
+<!-- web/templates/permisos/asignar_usuario.html -->
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Asignar Permisos a Usuario{% endblock %}
+{% block page_title %}Asignar Permisos Directamente a Usuario{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'permisos:listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Volver
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-check"></i> Asignar Permisos Directos a Usuario
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Selección de usuario -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person"></i> Seleccionar Usuario
+                        </label>
+                        <select class="form-select" name="username" required>
+                            <option value="">-- Seleccione un usuario --</option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.username }}">
+                                {{ usuario.username }} 
+                                {% if usuario.get_full_name %}
+                                - {{ usuario.get_full_name }}
+                                {% endif %}
+                                {% if usuario.email %}
+                                ({{ usuario.email }})
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Los permisos se asignarán directamente al usuario seleccionado.</small>
+                    </div>
+                    
+                    <!-- Permisos disponibles -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-shield-check"></i> Permisos Disponibles
+                        </label>
+                        
+                        <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                            {% regroup permisos by content_type.app_label as permisos_por_app %}
+                            
+                            {% for app in permisos_por_app %}
+                            <div class="mb-4">
+                                <h6 class="border-bottom pb-2">
+                                    {% if app.grouper == "web" %}
+                                        <i class="bi bi-shield text-primary"></i> Web (Personal)
+                                    {% else %}
+                                        <i class="bi bi-person-badge text-success"></i> Auth (Usuarios)
+                                    {% endif %}
+                                    <span class="badge bg-{% if app.grouper == 'web' %}primary{% else %}success{% endif %}">
+                                        {{ app.list|length }}
+                                    </span>
+                                </h6>
+                                
+                                <div class="row">
+                                    {% for perm in app.list %}
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="permisos_usuario" value="{{ perm.id }}" 
+                                                   id="perm_user_{{ perm.id }}">
+                                            <label class="form-check-label" for="perm_user_{{ perm.id }}">
+                                                <strong>{{ perm.codename }}</strong>
+                                                <small class="d-block text-muted">
+                                                    {{ perm.name|truncatechars:50 }}
+                                                </small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Información importante -->
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Información:</strong> 
+                        <ul class="mb-0 mt-2">
+                            <li>Los permisos asignados aquí son <strong>directos</strong> (no por grupo)</li>
+                            <li>Se suman a los permisos que el usuario ya tenga por grupos</li>
+                            <li>Útil para casos especiales donde un usuario necesita permisos específicos</li>
+                            <li>Puedes ver los permisos actuales del usuario en "Ver Usuario"</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'permisos:listar_grupos_permisos' %}" class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-person-check"></i> Asignar Permisos
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel lateral con usuarios destacados -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people"></i> Usuarios Destacados
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6>Usuarios Activos:</h6>
+                <div class="list-group mb-3">
+                    {% for usuario in usuarios|slice:":5" %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <strong>{{ usuario.username }}</strong>
+                            <span class="badge bg-secondary">{{ usuario.groups.count }} grupos</span>
+                        </div>
+                        <small class="text-muted">
+                            {% if usuario.get_full_name %}
+                            {{ usuario.get_full_name }}
+                            {% else %}
+                            Sin nombre completo
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="bi bi-lightbulb"></i>
+                    <strong>Consejo:</strong> Usa permisos directos solo cuando sea necesario. 
+                    Es mejor asignar permisos a través de grupos para facilitar la gestión.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

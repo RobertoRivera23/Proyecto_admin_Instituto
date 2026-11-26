@@ -1,0 +1,60 @@
+<!-- web/templates/web/profesores/detalle_curso_debug.html -->
+{% extends "web/base.html" %}
+
+{% block main %}
+<div class="container mt-4">
+    <h1>DEBUG - Detalle del Curso</h1>
+    
+    <div class="alert {% if curso %}alert-success{% else %}alert-danger{% endif %}">
+        <h4>Estado del Curso:</h4>
+        <p><strong>Curso encontrado:</strong> {{ curso|yesno:"Sí,No" }}</p>
+        {% if curso %}
+        <p><strong>ID:</strong> {{ curso.id }}</p>
+        <p><strong>Nombre:</strong> {{ curso.nombre }}</p>
+        <p><strong>Profesor asignado:</strong> {{ curso.profesor.nombre_completo }}</p>
+        <p><strong>Activo:</strong> {{ curso.activo|yesno:"Sí,No" }}</p>
+        <p><strong>Eliminado:</strong> {{ curso.eliminado|yesno:"Sí,No" }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="alert alert-info">
+        <h4>Variables de Contexto:</h4>
+        <ul>
+            {% for key, value in request.META.items %}
+                {% if "curso" in key|lower %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+        <p><strong>alumnos_data:</strong> {{ alumnos_data|length }}</p>
+        <p><strong>inscripciones:</strong> {{ inscripciones|length }}</p>
+        <p><strong>profesor (de request):</strong> {{ request.profesor_actual }}</p>
+    </div>
+    
+    {% if curso %}
+    <div class="card">
+        <div class="card-header">
+            <h2>{{ curso.nombre }}</h2>
+        </div>
+        <div class="card-body">
+            <p><strong>Horario:</strong> {{ curso.dias }} {{ curso.horario }}</p>
+            <p><strong>Fecha inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+            <p><strong>Fecha fin:</strong> {{ curso.fecha_fin|date:"d/m/Y" }}</p>
+            
+            <h3>Alumnos Inscritos ({{ inscripciones|length }})</h3>
+            <ul>
+            {% for inscripcion in inscripciones %}
+                <li>{{ inscripcion.alumno.nombre_completo }} - {{ inscripcion.estado }}</li>
+            {% empty %}
+                <li>No hay alumnos inscritos</li>
+            {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+    
+    <a href="{% url 'dashboard_profesor' %}" class="btn btn-secondary mt-3">
+        Volver al Dashboard
+    </a>
+</div>
+{% endblock %}

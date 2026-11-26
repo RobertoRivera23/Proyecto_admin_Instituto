@@ -1,0 +1,1583 @@
+{% load static %}
+{% load profesor_tags %}  <!-- CARGAR LOS NUEVOS TEMPLATE TAGS -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Fuentes -->
+    <link href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700,800,900" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@300;700&display=swap">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/ionicons@4.5.10-0/dist/css/ionicons.min.css">
+    
+    <!-- Tus estilos -->
+    <link rel="stylesheet" href="{% static 'web/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'web/styles/base.css' %}">
+    <link rel="stylesheet" href="{% static 'web/styles/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'web/styles/forms.css' %}">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- jquery-confirm -->
+    <link rel="stylesheet" href="{% static 'web/lib/jquery-confirm-v3.3.4/jquery-confirm.min.css' %}">
+    <script src="{% static 'web/lib/jquery-confirm-v3.3.4/jquery-confirm.min.js' %}"></script>
+
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap5.min.css">
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
+    
+    <!-- Título dinámico -->
+    <title>{% block titulo_pagina %}Sistema de Gestión IACL{% endblock %}</title>
+    
+    {% block extra_css %}
+    <style>
+    /* Solo el hover personalizado - Mínimo CSS necesario */
+    .text-hover-gray:hover {
+        color: #6c757d !important;
+    }
+
+    /* Estilos específicos para el contenedor de notificaciones */
+    #notificaciones-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    /* Items de notificación con bordes de prioridad */
+    .dropdown-item-notification {
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+    }
+
+    .dropdown-item-notification:hover {
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item-notification.border-danger { border-left-color: #dc3545 !important; }
+    .dropdown-item-notification.border-warning { border-left-color: #ffc107 !important; }
+    .dropdown-item-notification.border-info { border-left-color: #0dcaf0 !important; }
+    .dropdown-item-notification.border-success { border-left-color: #198754 !important; }
+
+    /* Estilos para el navbar */
+    .navbar2 {
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 0.5rem 0;
+    }
+
+    .derecha {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .letra {
+        font-size: 0.9rem;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
+    }
+    
+    /* Estilos para el modal de notificación */
+    .notificacion-completa {
+        font-size: 0.95rem;
+    }
+
+    .notificacion-completa .alert-light {
+        background-color: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+    }
+
+    .notificacion-completa p {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Mejorar la visualización de textos largos */
+    .modal-body {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    
+    /* Nuevos estilos para notificaciones de mora */
+    .badge-mora {
+        font-size: 0.7em;
+        padding: 2px 6px;
+    }
+    
+    .icono-mora {
+        color: #dc3545;
+    }
+    
+    .icono-recordatorio {
+        color: #ffc107;
+    }
+    
+    /* Mejoras para notificaciones automáticas */
+    .notificacion-automatica {
+        background-color: #f8f9fa;
+    }
+    
+    .notificacion-automatica:hover {
+        background-color: #e9ecef;
+    }
+    
+    /* Mejoras visuales para deudores */
+    .deuda-alta {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .deuda-media {
+        color: #fd7e14;
+        font-weight: bold;
+    }
+    
+    .deuda-baja {
+        color: #ffc107;
+    }
+    
+    /* Estilos para botones de acción rápida */
+    .btn-accion-rapida {
+        padding: 2px 8px;
+        font-size: 0.8rem;
+    }
+    
+    /* Estilos para el dropdown de notificaciones */
+    .dropdown-menu-notificaciones {
+        min-width: 400px;
+        max-width: 500px;
+    }
+    
+    /* Estilos para estadísticas rápidas */
+    .estadistica-rapida {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    /* Estilos para alertas de mora en el navbar */
+    .alert-mora-navbar {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.6rem;
+        padding: 1px 4px;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+
+    .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control, .form-select {
+    width: 100%;
+}
+
+/* Validación */
+.was-validated .form-control:valid,
+.was-validated .form-select:valid {
+    border-color: #198754;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.was-validated .form-control:invalid,
+.was-validated .form-select:invalid {
+    border-color: #dc3545;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Switch personalizado */
+.form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Estilos para botones de modo profesor/admin */
+.btn-modoprofesor {
+    background-color: #4e73df;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    transition: background-color 0.3s;
+}
+
+.btn-modoprofesor:hover {
+    background-color: #3a5ccc;
+    color: white;
+}
+
+.btn-modoadmin {
+    background-color: #1cc88a;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    transition: background-color 0.3s;
+}
+
+.btn-modoadmin:hover {
+    background-color: #17a673;
+    color: white;
+}
+
+/* Indicador de modo activo */
+.modo-activo {
+    border: 2px solid #2e59d9;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Badge para modo activo */
+.badge-modoprofesor {
+    background-color: #4e73df;
+    color: white;
+    font-size: 0.7em;
+    padding: 3px 6px;
+}
+
+.badge-modoadmin {
+    background-color: #1cc88a;
+    color: white;
+    font-size: 0.7em;
+    padding: 3px 6px;
+}
+    </style>
+    {% endblock %}
+    {% block extra_js %}
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+    {% endblock %}
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div class="sidebar-container">
+            <!-- Header del sidebar -->
+            <div class="sidebar-header">
+                <a href="{% url 'index' %}" class="d-block text-decoration-none">
+                    <img src="{% static 'web/image/Logo_sf.jpg' %}" class="sidebar-logo" alt="Logo IACL">
+                    <h4 class="text-light mb-0">IACL</h4>
+                    <small class="text-muted">Sistema de Gestión</small>
+                </a>
+            </div>
+            
+            <!-- Navegación -->
+            <div class="sidebar-scrollable">
+                <ul class="list-unstyled components mb-0">
+                    {% if user.is_authenticated %}
+                    <!-- Home -->
+                    <li class="nav-item">
+                        <a href="{% url 'index' %}" class="nav-link text-light p-3 d-flex align-items-center">
+                            <i class="icon ion-md-home me-3"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Panel Profesor/Admin (si tiene acceso) -->
+                    {% if user|tiene_acceso_profesor %}
+                    <li class="nav-item">
+                        <a href="#menuProfesorAdmin" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-speedometer me-3"></i>
+                            <span>Panel Profesor</span>
+                            {% if modo_profesor_activo %}
+                            <span class="badge badge-modoprofesor ms-2">Modo Activo</span>
+                            {% endif %}
+                        </a>
+                        <ul class="collapse list-unstyled" id="menuProfesorAdmin">
+                            <li><a href="{% url 'dashboard_profesor' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-analytics me-2"></i>
+                                <span>Dashboard</span>
+                            </a></li>
+                            <li><a href="{% url 'mis_cursos_profesor' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Mis Cursos</span>
+                            </a></li>
+                            <li><a href="{% url 'perfil_profesor' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-person me-2"></i>
+                                <span>Mi Perfil</span>
+                            </a></li>
+                            
+                            <!-- Cambiar modo (solo para admins/coordinadores) -->
+                            {% if user|es_administrador_o_coordinador or user.is_superuser %}
+                                {% if modo_profesor_activo %}
+                                <li><a href="{% url 'switch_modo_profesor' %}?modo=admin" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                    <i class="icon ion-md-swap me-2"></i>
+                                    <span>Cambiar a Modo Admin</span>
+                                </a></li>
+                                {% else %}
+                                <li><a href="{% url 'switch_modo_profesor' %}?modo=profesor" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                    <i class="icon ion-md-swap me-2"></i>
+                                    <span>Cambiar a Modo Profesor</span>
+                                </a></li>
+                                {% endif %}
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Alumnos -->
+                    <li class="nav-item">
+                        <a href="#menuAlumno" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-people me-3"></i>
+                            <span>Alumnos</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menuAlumno">
+                            <li><a href="{% url 'alta_alumno' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nuevo Alumno</span>
+                            </a></li>
+                            <li><a href="{% url 'listar_alumno' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Listar Alumnos</span>
+                            </a></li>
+                            <li><a href="{% url 'alumnos_eliminados' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-archive me-2"></i>
+                                <span>Alumnos Eliminados</span>
+                            </a></li>  
+                        </ul>
+                    </li>
+                    
+                    <!-- Profesores -->
+                    <li class="nav-item">
+                        <a href="#menuProfesor" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-contacts me-3"></i>
+                            <span>Profesores</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menuProfesor">
+                            <li><a href="{% url 'alta_profesor' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nuevo Profesor</span>
+                            </a></li>
+                            <li><a href="{% url 'listar_profesores' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Listar Profesores</span>
+                            </a></li>
+                            <li><a href="{% url 'profesores_eliminados' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-archive me-2"></i>
+                                <span>Profesores Eliminados</span>
+                            </a></li>  
+                        </ul>
+                    </li>
+                    
+                    <!-- Cursos -->
+                    <li class="nav-item">
+                        <a href="#menuCursos" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-school me-3"></i>
+                            <span>Cursos</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menuCursos">
+                            <li><a href="{% url 'alta_curso' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nuevo Curso</span>
+                            </a></li>
+                            <li><a href="{% url 'listar_cursos' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Listar Cursos</span>
+                            </a></li>
+                            <li><a href="{% url 'cursos_eliminados' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-archive me-2"></i>
+                                <span>Cursos Eliminados</span>
+                            </a></li>  
+                        </ul>
+                    </li>
+                    
+                    <!-- Inscripciones -->
+                    <li class="nav-item">
+                        <a href="#menuInscripcion" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-create me-3"></i>
+                            <span>Inscripciones</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menuInscripcion">
+                            <li><a href="{% url 'nueva_inscripcion' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nueva Inscripción</span>
+                            </a></li>
+                            <li><a href="{% url 'listar_inscripciones' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Listar Inscripciones</span>
+                            </a></li>
+                            <li><a href="{% url 'inscripciones_eliminadas' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-archive me-2"></i>
+                                <span>Inscripciones Eliminadas</span>
+                            </a></li>  
+                        </ul>
+                    </li>	
+                    
+                    <!-- Personal -->
+                    <li class="nav-item">
+                        <a href="#menupersonal" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-contact me-3"></i>
+                            <span>Personal</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menupersonal">
+                            <li><a href="{% url 'crear_personal' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nuevo Personal</span>
+                            </a></li>
+                            <li><a href="{% url 'listar_personal' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Listar Personal</span>
+                            </a></li>
+                            
+                            <!-- NUEVO: Gestión de Permisos (solo para coordinadores) -->
+                            {% if user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+                            <li><hr class="dropdown-divider my-2 mx-3 border-secondary"></li>
+                            <a href="{% url 'dashboard_permisos' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-key me-2"></i>
+                                <span>Gestión de Permisos</span>
+                            </a></li>
+                                    
+                            <li><hr class="dropdown-divider my-2 mx-3 border-secondary"></li>
+                            <li><a href="{% url 'gestion_usuarios' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-people me-2"></i>
+                                <span>Gestión de Usuarios</span>
+                            </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider my-2 mx-3 border-secondary"></li>
+                            <li><a href="{% url 'dashboard' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-person me-2"></i>
+                                <span>Mi Perfil</span>
+                            </a></li>
+                        </ul>
+                    </li>
+                    
+                    <!-- Pagos -->
+                    <li class="nav-item">
+                        <a href="#menupagos" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-cash me-3"></i>
+                            <span>Pagos</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menupagos">
+                            <li><a href="{% url 'pago_alta' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nuevo Pago</span>
+                            </a></li>
+                            <li><a href="#" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Consultar Pagos</span>
+                            </a></li>
+                            <!-- NUEVO: Seguimiento de moras para coordinadores -->
+                            {% if user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+                            <li><a href="{% url 'seguimiento_moras' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-alert me-2"></i>
+                                <span>Seguimiento de Moras</span>
+                                {% if moras_count and moras_count > 0 %}
+                                <span class="badge bg-danger ms-2 badge-mora">{{ moras_count }}</span>
+                                {% endif %}
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </li>	
+                    
+                    <!-- Facturación -->
+                    <li class="nav-item">
+                        <a href="#menufacturacion" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-document me-3"></i>
+                            <span>Facturación</span>
+                        </a>
+                        <ul class="collapse list-unstyled" id="menufacturacion">
+                            <li><a href="{% url 'facturacion:listar_pagos' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Gestión de Cuotas</span>
+                            </a></li>
+                            <li><a href="{% url 'facturacion:registrar_pago' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle me-2"></i>
+                                <span>Generar Cuotas</span>
+                            </a></li>
+                            <!-- NUEVO: Reportes de moras -->
+                            {% if user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+                            <li><a href="{% url 'facturacion:reporte_moras_pdf' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-analytics me-2"></i>
+                                <span>Reporte de Moras</span>
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </li>	 
+                    
+                    <!-- Notificaciones -->
+                    <li class="nav-item">
+                        <a href="#menuNotificaciones" data-bs-toggle="collapse" aria-expanded="false" 
+                           class="nav-link text-light p-3 d-flex align-items-center dropdown-toggle">
+                            <i class="icon ion-md-notifications me-3"></i>
+                            <span>Notificaciones</span>
+                            {% if notificaciones_pendientes_count and notificaciones_pendientes_count > 0 %}
+                            <span class="badge bg-danger ms-2 badge-mora">{{ notificaciones_pendientes_count }}</span>
+                            {% endif %}
+                        </a>
+                        <ul class="collapse list-unstyled" id="menuNotificaciones">
+                            <li><a href="{% url 'listar_notificaciones' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-list me-2"></i>
+                                <span>Mis Notificaciones</span>
+                                {% if notificaciones_pendientes_count and notificaciones_pendientes_count > 0 %}
+                                <span class="badge bg-warning ms-2 badge-mora">{{ notificaciones_pendientes_count }}</span>
+                                {% endif %}
+                            </a></li>
+                            <li><a href="{% url 'crear_notificacion_rapida' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-add-circle-outline me-2"></i>
+                                <span>Nuevo Recordatorio</span>
+                            </a></li>
+                            <li><a href="{% url 'asignar_tarea_companero' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-person-add me-2"></i>
+                                <span>Asignar Tarea</span>
+                            </a></li>
+                            {% if user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+                            <li><a href="{% url 'dashboard_notificaciones' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-stats me-2"></i>
+                                <span>Dashboard Coordinador</span>
+                            </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider my-2 mx-3 border-secondary"></li>
+                            <li><a href="{% url 'papelera_notificaciones' %}" class="nav-link text-light py-2 px-5 d-flex align-items-center">
+                                <i class="icon ion-md-trash me-2"></i>
+                                <span>Papelera</span>
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+                {% endif %}
+            </div>
+            
+            <!-- Footer del sidebar -->
+            <div class="sidebar-footer">
+                <div class="d-flex align-items-center">
+                    <img src="{% static 'web/image/LogoC.png' %}" class="developer-logo rounded-circle me-3" alt="Sury-Systems">
+                    <div>
+                        <p class="mb-0 text-light small">Sistema de Gestión</p>
+                        <small class="text-muted">Desarrollado por Sury-Systems</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Botón toggle del sidebar -->
+    <div class="custom-menu">
+        <button type="button" id="sidebarCollapse" class="btn btn-primary">
+            <i class="fa fa-bars"></i>
+            <span class="sr-only">Toggle Menu</span>
+        </button>
+    </div>
+
+    <!-- Overlay para móviles -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Contenido principal -->
+    <div id="content">
+        <div class="w-100">
+            <nav class="navbar2 navbar-expand-lg navbar-light">
+                <div class="container derecha">
+                    <div class="d-flex align-items-center">
+                        <!-- Indicador de modo activo -->
+                        {% if modo_profesor_activo %}
+                        <span class="badge badge-modoprofesor me-3">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Modo Profesor
+                        </span>
+                        {% endif %}
+                        
+                        <!-- Botón para ejecutar tareas rápidas (solo coordinadores) -->
+                        {% if user.is_authenticated and user.personal.tipo == 'COORDINADOR' or user.is_superuser %}
+                        <div class="nav-item dropdown me-2">
+                            <a class="nav-link dropdown-toggle text-dark text-hover-gray" href="#" id="navbarDropdownTareas" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-tasks"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownTareas">
+                                <li><h6 class="dropdown-header">Tareas Rápidas</h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="ejecutarTarea('generar_notificaciones_mora')">
+                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                        Generar Notificaciones de Mora
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="ejecutarTarea('recordatorios_pago')">
+                                        <i class="fas fa-calendar-check text-warning me-2"></i>
+                                        Enviar Recordatorios de Pago
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="javascript:void(0);" onclick="ejecutarTarea('reporte_semanal_moras')">
+                                        <i class="fas fa-chart-bar text-info me-2"></i>
+                                        Generar Reporte Semanal
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'seguimiento_moras' %}">
+                                        <i class="fas fa-search-dollar me-2"></i>
+                                        Ver Seguimiento de Moras
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Dropdown de Notificaciones -->
+                        {% if user.is_authenticated %}
+                        <div class="nav-item dropdown me-3">
+                            <a class="nav-link dropdown-toggle text-dark text-hover-gray position-relative" href="#" id="navbarDropdownNotificaciones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="notificaciones-badge" style="font-size: 0.65em; min-width: 16px; height: 16px; display: none;">
+                                    0
+                                </span>
+                                <!-- Badge para notificaciones de mora urgentes -->
+                                <span class="badge bg-danger alert-mora-navbar" id="mora-urgente-badge" style="display: none;">
+                                    <i class="fas fa-exclamation"></i>
+                                </span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notificaciones" aria-labelledby="navbarDropdownNotificaciones">
+                                <li>
+                                    <h6 class="dropdown-header d-flex justify-content-between">
+                                        <span>
+                                            <i class="fas fa-bell me-2"></i>Notificaciones
+                                            <span class="badge bg-primary ms-2" id="notificaciones-count">0</span>
+                                        </span>
+                                        <span class="estadistica-rapida" id="estadisticas-notificaciones">
+                                            <!-- Estadísticas se cargarán aquí -->
+                                        </span>
+                                    </h6>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <div id="notificaciones-container">
+                                        <div class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                <span class="visually-hidden">Cargando...</span>
+                                            </div>
+                                            <span class="ms-2 text-muted">Cargando notificaciones...</span>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <div class="dropdown-footer px-3 py-2 bg-light rounded">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{% url 'listar_notificaciones' %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-list me-1"></i>Ver todas
+                                            </a>
+                                            <a href="{% url 'crear_notificacion_rapida' %}" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-plus me-1"></i>Recordatorio
+                                            </a>
+                                            {% if puede_asignar_tareas %}
+                                            <a href="{% url 'asignar_tarea_companero' %}" class="btn btn-sm btn-outline-warning">
+                                                <i class="fas fa-user-plus me-1"></i>Asignar
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <!-- Dropdown de usuario -->
+                       {% load static %}
+
+<div class="dropdown">
+    <a class="nav-link dropdown-toggle fw-bold letra" href="#" role="button" 
+       data-bs-toggle="dropdown" aria-expanded="false">
+        <!-- Foto del usuario en el botón del dropdown -->
+        {% if user_photo_url %}
+            <img src="{{ user_photo_url }}" class="img-fluid rounded-circle avatar me-2" 
+                 alt="Foto de {{ user.username }}" style="width: 32px; height: 32px; object-fit: cover;">
+        {% else %}
+            <img src="{% static 'web/image/clautepache.jpg' %}" class="img-fluid rounded-circle avatar me-2"
+                 style="width: 32px; height: 32px; object-fit: cover;">
+        {% endif %}
+        
+        <!-- Estado de conexión -->
+        {% if user.is_authenticated %}
+            <span class="text-success">●</span> {{ user.username }}
+        {% else %}
+            <span class="text-danger">●</span> Desconectado
+        {% endif %}
+    </a>
+    
+    <ul class="dropdown-menu dropdown-menu-end">
+        {% if user.is_authenticated %}
+            <!-- Estado de conexión -->
+            <li><span class="dropdown-item-text text-muted small">
+                <span class="text-success">●</span> Conectado como {{ user.username }}
+            </span></li>
+            <li><hr class="dropdown-divider"></li>
+            
+            <!-- Información del perfil (funciona para Personal, Profesor y Alumno) -->
+            {% if user_profile %}
+            <li>
+                <div class="dropdown-item">
+                    <div class="d-flex align-items-center">
+                        <!-- Foto del perfil -->
+                        {% if user_photo_url %}
+                            <img src="{{ user_photo_url }}" class="rounded-circle me-2" 
+                                 alt="Foto" style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                            <i class="fas fa-user-circle me-2" style="font-size: 20px; color: #6c757d;"></i>
+                        {% endif %}
+                        <div>
+                            <!-- Nombre completo -->
+                            <strong>{{ user_profile.nombre_completo }}</strong>
+                            <br>
+                            <!-- Tipo de perfil -->
+                            <small class="text-muted">
+                                {% if user_profile_type == 'PERSONAL' %}
+                                    {{ user_profile.get_tipo_display|default:"Personal" }}
+                                {% elif user_profile_type == 'PROFESOR' %}
+                                    Profesor
+                                {% elif user_profile_type == 'ALUMNO' %}
+                                    Alumno
+                                {% else %}
+                                    Usuario
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            {% endif %}
+            
+            <!-- Enlace a Mi Perfil (redirige según tipo de usuario) -->
+            <li><a class="dropdown-item" href="{% url 'perfil_usuario' %}">
+                <i class="fa fa-user me-2"></i>Mi Perfil
+            </a></li>
+            
+            <!-- Cambiar contraseña -->
+            <li><a class="dropdown-item" href="{% url 'cambiar_contrasena' %}">
+                <i class="fa fa-key me-2"></i>Cambiar Contraseña
+            </a></li>
+            
+            <!-- Panel de usuario (redirige al dashboard correspondiente) -->
+            <li><a class="dropdown-item" href="{% url 'dashboard' %}">
+                <i class="fa fa-tachometer-alt me-2"></i> Mi Dashboard
+            </a></li>
+            
+            <!-- Gestión de Personal (solo para ADMINISTRATIVO y COORDINADOR) -->
+            {% if user_profile_type == 'PERSONAL' and user_profile.tipo in "ADMINISTRATIVO,COORDINADOR" and user_profile.activo %}
+            <li><a class="dropdown-item" href="{% url 'listar_personal' %}">
+                <i class="fas fa-users me-2"></i> Gestión de Personal
+            </a></li>
+            {% endif %}
+            
+            <!-- Seguimiento de Moras (solo para COORDINADOR o superusuario) -->
+            {% if user_profile_type == 'PERSONAL' and user_profile.tipo == 'COORDINADOR' or user.is_superuser %}
+            <li><a class="dropdown-item" href="{% url 'seguimiento_moras' %}">
+                <i class="fas fa-search-dollar me-2"></i> Seguimiento de Moras
+            </a></li>
+            {% endif %}
+            
+            
+            <!-- Dashboard específico para Profesores -->
+            {% if user_profile_type == 'PROFESOR' %}
+            <li><a class="dropdown-item" href="{% url 'dashboard_profesor' %}">
+                <i class="fas fa-chalkboard-teacher me-2"></i> Panel del Profesor
+            </a></li>
+            {% endif %}
+            
+            <!-- Dashboard específico para Alumnos -->
+            {% if user_profile_type == 'ALUMNO' %}
+            <li><a class="dropdown-item" href="{% url 'dashboard_alumno' %}">
+                <i class="fas fa-graduation-cap me-2"></i> Panel del Alumno
+            </a></li>
+            {% endif %}
+            
+            <li><hr class="dropdown-divider"></li>
+            
+            <!-- Cerrar sesión -->
+            <li>
+                <form method="post" action="{% url 'logout' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                        <i class="fa fa-sign-out me-2"></i>Cerrar Sesión
+                    </button>
+                </form>
+            </li>
+            
+        {% else %}
+            <!-- Usuario no autenticado -->
+            <li><span class="dropdown-item-text text-muted small">
+                <span class="text-danger">●</span> No has iniciado sesión
+            </span></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-success" href="{% url 'login' %}">
+                <i class="fa fa-sign-in me-2"></i>Iniciar Sesión
+            </a></li>
+            <li><a class="dropdown-item" href="{% url 'registro' %}">
+                <i class="fa fa-user-plus me-2"></i>Registrarse
+            </a></li>
+        {% endif %}
+    </ul>
+</div>
+                    </div>
+                </div>
+            </nav>   
+            
+            <!-- Contenido principal -->
+            <main class="container-fluid py-4">
+                {% if messages %}
+                <div class="messages-container">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {% if message.tags == 'success' %}
+                        <i class="fas fa-check-circle me-2"></i>
+                        {% elif message.tags == 'error' %}
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        {% elif message.tags == 'warning' %}
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% elif message.tags == 'info' %}
+                        <i class="fas fa-info-circle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% block main %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+
+    <!-- Modales -->
+    <div class="modal fade" id="modalNotificacion" tabindex="-1" aria-labelledby="modalNotificacionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalNotificacionLabel">
+                        <i class="fas fa-bell text-primary me-2"></i>Notificación
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="notificacion-contenido">
+                        <!-- El contenido se cargará dinámicamente -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <form id="form-marcar-leida" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check me-1"></i>Marcar como leída
+                        </button>
+                    </form>
+                    <!-- Botón para marcar como realizada (solo para tareas) -->
+                    <form id="form-marcar-realizada" method="post" class="d-inline" style="display: none;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-check-double me-1"></i>Marcar como realizada
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEjecutarTarea" tabindex="-1" aria-labelledby="modalEjecutarTareaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEjecutarTareaLabel">Ejecutar Tarea</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="tarea-contenido">
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Ejecutando...</span>
+                            </div>
+                            <p class="mt-2">Ejecutando tarea, por favor espera...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Tus scripts -->
+    <script src="{% static 'web/js/main.js' %}"></script>
+    
+    <!-- Script del sidebar (siempre se ejecuta) -->
+    <script>
+    $(document).ready(function () {
+        // Toggle del sidebar - ESTE CÓDIGO SIEMPRE SE EJECUTA
+        $('#sidebarCollapse').on('click', function () {
+            $('#sidebar').toggleClass('collapsed');
+            $('#content').toggleClass('expanded');
+            
+            // Cambiar ícono del botón
+            var icon = $(this).find('i');
+            if ($('#sidebar').hasClass('collapsed')) {
+                icon.removeClass('fa-times').addClass('fa-bars');
+            } else {
+                icon.removeClass('fa-bars').addClass('fa-times');
+            }
+        });
+
+        // Para móviles: cerrar sidebar al hacer clic en overlay
+        $('#sidebarOverlay').on('click', function () {
+            $('#sidebar').removeClass('active');
+            $('#sidebarOverlay').removeClass('active');
+        });
+
+        // Cerrar sidebar solo en móviles (hasta 767px)
+        $('#sidebar .nav-link').on('click', function (e) {
+            // Solo en móviles (hasta 767px), no en el rango 768-980px
+            if ($(window).width() <= 767) {
+                // Solo cerrar si NO es un dropdown toggle y si es un enlace final (sin hijos)
+                if (!$(this).hasClass('dropdown-toggle') && 
+                    $(this).attr('href') && 
+                    !$(this).attr('href').startsWith('#')) {
+                    
+                    $('#sidebar').removeClass('active');
+                    $('#sidebarOverlay').removeClass('active');
+                }
+            }
+        });
+    });
+    </script>
+
+    <!-- Scripts de notificaciones SOLO para usuarios autenticados -->
+    {% if user.is_authenticated %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verificar que existan los elementos necesarios
+        const notificacionesDropdown = document.getElementById('navbarDropdownNotificaciones');
+        
+        if (!notificacionesDropdown) {
+            console.log('Dropdown de notificaciones no encontrado');
+            return;
+        }
+
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Prevenir comportamiento en enlaces de modal dentro del dropdown
+        var modalLinks = document.querySelectorAll('.dropdown-item[data-bs-toggle="modal"]');
+        modalLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Cargar notificaciones cuando se abre el dropdown
+        const notificacionesContainer = document.getElementById('notificaciones-container');
+        const notificacionesBadge = document.getElementById('notificaciones-badge');
+        const notificacionesCount = document.getElementById('notificaciones-count');
+        const estadisticasNotificaciones = document.getElementById('estadisticas-notificaciones');
+        const moraUrgenteBadge = document.getElementById('mora-urgente-badge');
+        
+        let notificacionesCargadas = false;
+
+        // Cargar notificaciones al hacer hover o click
+        notificacionesDropdown.addEventListener('show.bs.dropdown', function() {
+            if (!notificacionesCargadas && notificacionesContainer) {
+                cargarNotificaciones();
+                notificacionesCargadas = true;
+            }
+        });
+
+        // Cargar notificaciones al cargar la página
+        cargarNotificaciones();
+
+        function cargarNotificaciones() {
+            // Verificar que exista el contenedor
+            if (!notificacionesContainer) return;
+            
+            fetch('{% url "notificaciones_dropdown" %}')
+                .then(response => response.json())
+                .then(data => {
+                    actualizarBadge(data.pendientes_count);
+                    renderizarNotificaciones(data.notificaciones);
+                    actualizarEstadisticas(data.notificaciones);
+                })
+                .catch(error => {
+                    console.error('Error cargando notificaciones:', error);
+                    notificacionesContainer.innerHTML = `
+                        <div class="text-center py-3 text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error cargando notificaciones
+                        </div>
+                    `;
+                });
+        }
+
+        function actualizarBadge(count) {
+            if (notificacionesBadge) {
+                if (count > 0) {
+                    notificacionesBadge.textContent = count > 99 ? '99+' : count;
+                    notificacionesBadge.style.display = 'inline';
+                } else {
+                    notificacionesBadge.style.display = 'none';
+                }
+            }
+            if (notificacionesCount) {
+                notificacionesCount.textContent = count;
+            }
+        }
+
+        function actualizarEstadisticas(notificaciones) {
+            if (!estadisticasNotificaciones) return;
+            
+            let urgentes = 0;
+            let moras = 0;
+            
+            notificaciones.forEach(notif => {
+                if (notif.prioridad === 'URGENTE') urgentes++;
+                if (notif.titulo && notif.titulo.includes('MORA')) moras++;
+            });
+            
+            let estadisticasHTML = '';
+            if (urgentes > 0) {
+                estadisticasHTML += `<span class="badge bg-danger me-1">${urgentes} urg</span>`;
+                if (moraUrgenteBadge) moraUrgenteBadge.style.display = 'inline';
+            } else {
+                if (moraUrgenteBadge) moraUrgenteBadge.style.display = 'none';
+            }
+            if (moras > 0) {
+                estadisticasHTML += `<span class="badge bg-warning">${moras} mora</span>`;
+            }
+            
+            estadisticasNotificaciones.innerHTML = estadisticasHTML;
+        }
+
+        function renderizarNotificaciones(notificaciones) {
+            if (!notificacionesContainer) return;
+
+            if (notificaciones.length === 0) {
+                notificacionesContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-bell-slash fa-2x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No hay notificaciones pendientes</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            notificaciones.forEach(notif => {
+                // Determinar clase de prioridad
+                let prioridadClass = '';
+                let prioridadIcon = '';
+                let prioridadBadge = '';
+                let esMora = notif.titulo && notif.titulo.includes('MORA');
+                
+                switch(notif.prioridad) {
+                    case 'URGENTE':
+                        prioridadClass = 'border-danger';
+                        prioridadIcon = 'fa-exclamation-triangle text-danger';
+                        prioridadBadge = 'bg-danger';
+                        break;
+                    case 'ALTA':
+                        prioridadClass = 'border-warning';
+                        prioridadIcon = 'fa-exclamation-circle text-warning';
+                        prioridadBadge = 'bg-warning';
+                        break;
+                    case 'MEDIA':
+                        prioridadClass = 'border-info';
+                        prioridadIcon = 'fa-info-circle text-info';
+                        prioridadBadge = 'bg-info';
+                        break;
+                    default:
+                        prioridadClass = 'border-success';
+                        prioridadIcon = 'fa-arrow-down text-success';
+                        prioridadBadge = 'bg-success';
+                }
+                
+                // Clase adicional para notificaciones automáticas
+                let claseAdicional = '';
+                let iconoAdicional = '';
+                if (esMora) {
+                    claseAdicional = 'notificacion-automatica';
+                    iconoAdicional = '<i class="fas fa-exclamation-triangle icono-mora me-1"></i>';
+                } else if (notif.titulo && notif.titulo.includes('Recordatorio')) {
+                    iconoAdicional = '<i class="fas fa-calendar-check icono-recordatorio me-1"></i>';
+                }
+
+                // Formatear fecha
+                const fecha = new Date(notif.fecha_creacion);
+                const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Extraer monto si es notificación de mora
+                let montoHTML = '';
+                if (esMora) {
+                    const match = notif.titulo.match(/\$([0-9,.]+)/);
+                    if (match) {
+                        const monto = parseFloat(match[1].replace(',', ''));
+                        let claseMonto = 'deuda-baja';
+                        if (monto > 1000) claseMonto = 'deuda-alta';
+                        else if (monto > 500) claseMonto = 'deuda-media';
+                        
+                        montoHTML = `<span class="${claseMonto}">$${monto.toLocaleString('es-ES', {minimumFractionDigits: 2})}</span>`;
+                    }
+                }
+
+                // CORREGIDO: URL correcta para marcar como leída
+                html += `
+                    <div class="dropdown-item-notification ${prioridadClass} ${claseAdicional} border-start-0 border-end-0 border-top-0 border-3 px-3 py-2">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="me-2 flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                    ${iconoAdicional}
+                                    <i class="fas ${notif.tipo_icono} text-${notif.tipo_color} me-2"></i>
+                                    <strong class="small text-truncate">${notif.titulo}</strong>
+                                    ${montoHTML}
+                                    <span class="badge ${prioridadBadge} ms-2 badge-mora">${notif.prioridad}</span>
+                                </div>
+                                <p class="small text-muted mb-1 text-truncate">${notif.mensaje}</p>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>${notif.origen}
+                            </small>
+                            <small class="text-muted">${fechaFormateada}</small>
+                        </div>
+                        <div class="mt-2 d-flex justify-content-between">
+                            <button type="button" class="btn btn-sm btn-outline-primary ver-notificacion-btn btn-accion-rapida" 
+                                    data-notificacion-id="${notif.id}"
+                                    data-notificacion-titulo="${notif.titulo}"
+                                    data-notificacion-mensaje="${notif.mensaje}"
+                                    data-notificacion-prioridad="${notif.prioridad}"
+                                    data-notificacion-origen="${notif.origen}"
+                                    data-notificacion-fecha="${fechaFormateada}"
+                                    data-notificacion-tipo="${notif.tipo_icono}"
+                                    data-notificacion-color="${notif.tipo_color}"
+                                    data-notificacion-es-mora="${esMora}">
+                                <i class="fas fa-eye me-1"></i>Ver
+                            </button>
+                            
+                            <!-- CORREGIDO: URL correcta para marcar como leída -->
+                            <form method="post" action="/web/notificaciones/marcar_leida/${notif.id}/" class="d-inline">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-success btn-accion-rapida">
+                                    <i class="fas fa-check me-1"></i>Leída
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider my-1"></div>
+                `;
+            });
+
+            notificacionesContainer.innerHTML = html;
+
+            // Agregar event listeners a los botones "Ver mensaje"
+            document.querySelectorAll('.ver-notificacion-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    mostrarNotificacionModal(
+                        this.dataset.notificacionId,
+                        this.dataset.notificacionTitulo,
+                        this.dataset.notificacionMensaje,
+                        this.dataset.notificacionPrioridad,
+                        this.dataset.notificacionOrigen,
+                        this.dataset.notificacionFecha,
+                        this.dataset.notificacionTipo,
+                        this.dataset.notificacionColor,
+                        this.dataset.notificacionEsMora === 'true'
+                    );
+                });
+            });
+        }
+
+        // Función para mostrar el modal con la notificación completa
+        function mostrarNotificacionModal(id, titulo, mensaje, prioridad, origen, fecha, tipo, color, esMora) {
+            // Determinar estilos según prioridad
+            let prioridadClass = '';
+            let prioridadIcon = '';
+            switch(prioridad) {
+                case 'URGENTE':
+                    prioridadClass = 'border-danger text-danger';
+                    prioridadIcon = 'fa-exclamation-triangle';
+                    break;
+                case 'ALTA':
+                    prioridadClass = 'border-warning text-warning';
+                    prioridadIcon = 'fa-exclamation-circle';
+                    break;
+                case 'MEDIA':
+                    prioridadClass = 'border-info text-info';
+                    prioridadIcon = 'fa-info-circle';
+                    break;
+                default:
+                    prioridadClass = 'border-success text-success';
+                    prioridadIcon = 'fa-arrow-down';
+            }
+            
+            // Icono adicional para moras
+            let iconoMora = '';
+            if (esMora) {
+                iconoMora = '<i class="fas fa-exclamation-triangle icono-mora me-2"></i>';
+            }
+
+            // Construir el contenido del modal
+            const contenido = `
+                <div class="notificacion-completa">
+                    <div class="d-flex align-items-center mb-3">
+                        ${iconoMora}
+                        <i class="fas ${tipo} text-${color} fa-2x me-3"></i>
+                        <div>
+                            <h4 class="mb-0">${titulo}</h4>
+                            <span class="badge ${prioridadClass}">
+                                <i class="fas ${prioridadIcon} me-1"></i>${prioridad}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Mensaje:</h6>
+                        <div class="alert alert-light border">
+                            <p class="mb-0" style="white-space: pre-line;">${mensaje}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row text-muted small">
+                        <div class="col-md-6">
+                            <p><i class="fas fa-user me-2"></i><strong>De:</strong> ${origen}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><i class="fas fa-clock me-2"></i><strong>Fecha:</strong> ${fecha}</p>
+                        </div>
+                    </div>
+                    
+                    ${esMora ? `
+                    <div class="alert alert-warning mt-3">
+                        <h6 class="alert-heading"><i class="fas fa-lightbulb me-2"></i>Acciones recomendadas:</h6>
+                        <ul class="mb-0">
+                            <li>Contactar al alumno o contacto de emergencia</li>
+                            <li>Revisar historial de pagos</li>
+                            <li>Verificar si hay acuerdo de pago pendiente</li>
+                        </ul>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            // Verificar que el modal existe antes de actualizarlo
+            const modalNotificacion = document.getElementById('modalNotificacion');
+            if (!modalNotificacion) {
+                console.error('Modal de notificación no encontrado');
+                return;
+            }
+
+            // Verificar que exista el contenedor del contenido
+            const notificacionContenido = document.getElementById('notificacion-contenido');
+            if (!notificacionContenido) {
+                console.error('Contenedor de notificación no encontrado');
+                return;
+            }
+
+            // Actualizar el contenido del modal
+            notificacionContenido.innerHTML = contenido;
+
+            // Actualizar los formularios solo si existen
+            const formLeida = document.getElementById('form-marcar-leida');
+            const formRealizada = document.getElementById('form-marcar-realizada');
+            
+            if (formLeida) formLeida.action = `/web/notificaciones/marcar_leida/${id}/`;
+            if (formRealizada) formRealizada.action = `/web/notificaciones/marcar_realizada/${id}/`;
+            
+            // Mostrar/ocultar formularios según tipo de notificación
+            if (formRealizada) {
+                if (esMora) {
+                    formRealizada.style.display = 'none';
+                } else {
+                    formRealizada.style.display = 'inline';
+                }
+            }
+
+            // Mostrar el modal
+            const modal = new bootstrap.Modal(modalNotificacion);
+            modal.show();
+        }
+
+        // Event listener para el formulario de marcar como leída en el modal
+        const formLeidaModal = document.getElementById('form-marcar-leida');
+        if (formLeidaModal) {
+            formLeidaModal.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Enviar el formulario via AJAX
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: new FormData(this)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Cerrar el modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
+                        modal.hide();
+                        
+                        // Recargar las notificaciones
+                        cargarNotificaciones();
+                        
+                        // Mostrar mensaje de éxito
+                        mostrarMensaje('Notificación marcada como leída', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mostrarMensaje('Error al marcar como leída', 'error');
+                });
+            });
+        }
+
+        // Event listener para el formulario de marcar como realizada
+        const formRealizadaModal = document.getElementById('form-marcar-realizada');
+        if (formRealizadaModal) {
+            formRealizadaModal.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: new FormData(this)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacion'));
+                        modal.hide();
+                        cargarNotificaciones();
+                        mostrarMensaje('Tarea marcada como realizada', 'success');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mostrarMensaje('Error al marcar como realizada', 'error');
+                });
+            });
+        }
+
+        // Función auxiliar para mostrar mensajes
+        function mostrarMensaje(mensaje, tipo) {
+            // Ejemplo simple:
+            alert(mensaje);
+        }
+
+        // Recargar notificaciones cada 30 segundos
+        setInterval(cargarNotificaciones, 30000);
+    });
+
+    // Función para ejecutar tareas desde el dropdown (solo para coordinadores)
+    window.ejecutarTarea = function(tarea) {
+        console.log('Ejecutando tarea:', tarea);
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalEjecutarTarea'));
+        const tareaContenido = document.getElementById('tarea-contenido');
+
+        // Verificar que existan los elementos
+        if (!modal || !tareaContenido) {
+            console.error('Modal de ejecutar tarea no encontrado');
+            return;
+        }
+
+        // Configurar según la tarea
+        let titulo = '';
+        let url = '';
+        let method = 'POST';
+
+        // URLs CORRECTAS con /web/ al inicio
+        switch(tarea) {
+            case 'generar_notificaciones_mora':
+                titulo = 'Generar Notificaciones de Mora';
+                url = '/web/notificaciones/generar-mora/';
+                method = 'POST';
+                break;
+            case 'recordatorios_pago':
+                titulo = 'Enviar Recordatorios de Pago';
+                url = '/web/notificaciones/recordatorios-pago/';
+                method = 'POST';
+                break;
+            case 'reporte_semanal_moras':
+                titulo = 'Generar Reporte Semanal de Moras';
+                url = '/web/notificaciones/exportar-excel/?dias_mora=7&estado_alumno=activos&action=reporte_semanal';
+                method = 'GET';
+                // Para reportes, abrimos en nueva pestaña
+                window.open(url, '_blank');
+                return;
+        }
+        
+        console.log('URL configurada:', url);
+        console.log('Método:', method);
+
+        // Verificar que el modal existe
+        const modalEjecutarTareaLabel = document.getElementById('modalEjecutarTareaLabel');
+        if (modalEjecutarTareaLabel) {
+            modalEjecutarTareaLabel.textContent = titulo;
+        }
+
+        // Mostrar modal solo para tareas POST (no para descargas)
+        if (method === 'POST') {
+            // Configurar contenido inicial
+            tareaContenido.innerHTML = `
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Ejecutando...</span>
+                    </div>
+                    <p class="mt-2">Ejecutando tarea, por favor espera...</p>
+                </div>
+            `;
+        
+            modal.show();
+        
+            // Obtener token CSRF
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            const csrftoken = getCookie('csrftoken');
+            
+            console.log('CSRF Token obtenido:', csrftoken ? 'SÍ' : 'NO');
+        
+            // Ejecutar la tarea
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                console.log('Respuesta recibida:', response.status, response.statusText);
+                
+                // Primero verificar si es JSON
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    // Si no es JSON, obtener el texto para debug
+                    return response.text().then(text => {
+                        console.error('El servidor devolvió HTML:', text.substring(0, 200));
+                        throw new Error(`Error del servidor (${response.status}): ${text.substring(0, 100)}`);
+                    });
+                }
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                
+                if (data.success) {
+                    tareaContenido.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check-circle me-2"></i>${titulo} - Éxito</h6>
+                            <p class="mb-0">${data.message}</p>
+                            ${data.notificaciones_creadas ? `<p class="mt-2"><strong>Notificaciones creadas:</strong> ${data.notificaciones_creadas}</p>` : ''}
+                            ${data.alumnos_procesados ? `<p class="mt-2"><strong>Alumnos procesados:</strong> ${data.alumnos_procesados}</p>` : ''}
+                        </div>
+                    `;
+                
+                    // Recargar notificaciones después de ejecutar
+                    setTimeout(() => {
+                        if (typeof cargarNotificaciones === 'function') {
+                            cargarNotificaciones();
+                        }
+                    }, 1000);
+                } else {
+                    tareaContenido.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Error ejecutando tarea</h6>
+                            <p class="mb-0">${data.error || 'Error desconocido'}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error completo:', error);
+                tareaContenido.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Error de conexión</h6>
+                        <p class="mb-0">${error.message}</p>
+                        <small class="d-block mt-2">URL intentada: ${url}</small>
+                        <small class="d-block">Método: POST</small>
+                    </div>
+                `;
+            });
+        }
+    };
+    </script>
+    {% endif %}
+    
+    {% block extra_js_fin_html %}{% endblock %}	
+</body>
+</html>

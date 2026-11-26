@@ -1,0 +1,99 @@
+{% extends 'permisos/base_permisos.html' %}
+
+{% block title %}Seleccionar Usuario{% endblock %}
+{% block page_title %}Seleccionar Usuario para Asignar Permisos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people"></i> Lista de Usuarios
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Grupos</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for usuario in usuarios %}
+                            <tr>
+                                <td>
+                                    <strong>{{ usuario.username }}</strong>
+                                </td>
+                                <td>
+                                    {{ usuario.first_name }} {{ usuario.last_name }}
+                                </td>
+                                <td>{{ usuario.email|default:"-" }}</td>
+                                <td>
+                                    {% for grupo in usuario.groups.all %}
+                                    <span class="badge bg-secondary">{{ grupo.name }}</span>
+                                    {% empty %}
+                                    <span class="text-muted">Sin grupos</span>
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% if usuario.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'asignar_permisos_usuario' usuario.id %}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="bi bi-person-check"></i> Asignar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    No hay usuarios registrados.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> Instrucciones
+                </h6>
+            </div>
+            <div class="card-body">
+                <p>
+                    Selecciona un usuario de la lista para asignarle permisos y grupos.
+                </p>
+                <ul>
+                    <li>Los permisos pueden ser asignados directamente o a través de grupos.</li>
+                    <li>Los permisos de grupo se heredan automáticamente.</li>
+                    <li>Un usuario puede pertenecer a múltiples grupos.</li>
+                </ul>
+                <div class="alert alert-info">
+                    <small>
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Consejo:</strong> Usa grupos para gestionar permisos de manera más eficiente.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

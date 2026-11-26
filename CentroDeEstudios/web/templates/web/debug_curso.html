@@ -1,0 +1,26 @@
+<!-- templates/web/debug_curso.html -->
+{% extends "web/base.html" %}
+{% block main %}
+<div class="container">
+    <h1>Debug Curso ID: {{ curso_id }}</h1>
+    {% if existe %}
+    <div class="alert alert-success">
+        <h4>✅ Curso encontrado</h4>
+        <table class="table table-bordered">
+            {% for key, value in campos.items %}
+            <tr>
+                <th>{{ key }}</th>
+                <td>{{ value }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">
+        <h4>❌ Curso NO encontrado</h4>
+        <p>No existe un curso con ID: {{ curso_id }}</p>
+    </div>
+    {% endif %}
+    <a href="{% url 'cursos_eliminados' %}" class="btn btn-secondary">Volver a Cursos Eliminados</a>
+</div>
+{% endblock %}

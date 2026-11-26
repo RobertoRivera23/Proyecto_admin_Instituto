@@ -1,0 +1,86 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} Centro de Artes y Oficios {% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'web/styles/index.css' %}"> {% endblock %}
+<div class="container">
+{% block main %}
+
+<div>
+    <main class="container">
+        <h1 class="pl-5"> Alta de Profesores</div>
+        <div class="row gx-3 gy-2 aligin-align-items-center">
+           
+            <div class="col-md-3"></div>
+             
+                <div class="col-form-label-sm col-md-6">
+                   
+                        <form  method="POST" action="{% url 'alta_profesor' %}">
+                            {% csrf_token %}
+                            <form>
+                                <div class="form-row">
+                                        <div class="col">
+                                            <label>Nombre</label>
+                                            <input type="text" class="form-control" placeholder="Nombre" name="nombre">
+                                        </div>
+                                        <div class="col">
+                                            <label>Apellido</label>
+                                            <input type="text" class="form-control" placeholder="Apellido" name="apellido">
+                                        </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="inputDNI">DNI</label>
+                                        <input type="text" class="form-control" placeholder="DNI" name="dni">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="inputCUIT">CUIT</label>
+                                        <input type="text" class="form-control" placeholder="CUIT" name="cuit">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="InputFechaNac">Fecha de Nacimiento</label>
+                                        <input type="date" class="form-control" placeholder="Fecha" name="fecha_nacimiento">
+                                    </div>
+                                </div>    
+                                <div class="form-group">
+                                  <label for="inputAddress">Dirección</label>
+                                  <input type="text" class="form-control" id="inputAddress" placeholder="1234 Main St" name="direccion">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="inputDNI">Teléfono</label>
+                                        <input type="text" class="form-control" placeholder="Tel" name="telefono">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="inputCUIT">Teléfono de Contacto</label>
+                                        <input type="text" class="form-control" placeholder="Tel de Contacto" name="telefono_contacto">
+                                    </div>
+                                </div> 
+                                <div class="form-group">
+                                    <label for="exampleInputEmail1">Email</label>
+                                    <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" name="email">
+                                    <small id="emailHelp" class="form-text text-muted">Nunca compartiremos tu correo con nadie mas.</small>
+                                  </div>
+                                
+                                <div class="form-group">
+                                  <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="gridCheck" name="activo">
+                                    <label class="form-check-label" for="gridCheck">
+                                      Activo
+                                    </label>
+                                  </div>
+                                </div>
+                               
+                           <button type="submit" class="btn bg-primary"> Guardar </button>
+                                
+                        </form>
+                </div>        
+            </div>
+            
+        </div>
+    </main>
+
+</div> 
+{% endblock %}
+</div>

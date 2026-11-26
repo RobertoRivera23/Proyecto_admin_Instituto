@@ -1,0 +1,259 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}{{ curso.nombre }} - Detalle del Curso{% endblock %}
+
+{% block main %}
+<div class="container-fluid mt-4">
+    <!-- Cabecera del curso -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-book me-2"></i>{{ curso.nombre }}
+                    </h3>
+                    <div>
+                        <span class="badge bg-light text-dark me-2">
+                            <i class="fas fa-users me-1"></i>{{ alumnos_inscritos }} alumnos
+                        </span>
+                        <span class="badge bg-{% if curso.activo %}success{% else %}secondary{% endif %}">
+                            {% if curso.activo %}Activo{% else %}Inactivo{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Información del Curso</h5>
+                            <p><strong><i class="fas fa-calendar-day me-2"></i>Fecha de inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+                            <p><strong><i class="fas fa-calendar-times me-2"></i>Fecha de fin:</strong> {{ curso.fecha_fin|date:"d/m/Y" }}</p>
+                            <p><strong><i class="fas fa-clock me-2"></i>Horario:</strong> {{ curso.horario_estructurado }}</p>
+                            <p><strong><i class="fas fa-calendar-alt me-2"></i>Días:</strong> {{ curso.dias }}</p>
+                            <p><strong><i class="fas fa-user-tie me-2"></i>Profesor:</strong> {{ curso.profesor.nombre_completo }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Detalles Adicionales</h5>
+                            <p><strong><i class="fas fa-layer-group me-2"></i>Modalidad:</strong> 
+                                <span class="badge bg-{% if curso.modalidad == 'PRESENCIAL' %}primary{% elif curso.modalidad == 'VIRTUAL' %}success{% else %}warning{% endif %}">
+                                    {{ curso.modalidad }}
+                                </span>
+                            </p>
+                            {% if curso.modalidad in 'VIRTUAL,HIBRIDO' and curso.enlace_clase %}
+                            <p><strong><i class="fas fa-link me-2"></i>Enlace de clase:</strong> 
+                                <a href="{{ curso.enlace_clase }}" target="_blank" class="text-decoration-none">
+                                    {{ curso.enlace_clase|truncatechars:30 }}
+                                </a>
+                            </p>
+                            {% endif %}
+                            {% if curso.plataforma_virtual %}
+                            <p><strong><i class="fas fa-laptop-house me-2"></i>Plataforma:</strong> {{ curso.plataforma_virtual }}</p>
+                            {% endif %}
+                            {% if curso.duracion %}
+                            <p><strong><i class="fas fa-hourglass-half me-2"></i>Duración:</strong> {{ curso.duracion }}</p>
+                            {% endif %}
+                            {% if curso.precio %}
+                            <p><strong><i class="fas fa-dollar-sign me-2"></i>Precio:</strong> ${{ curso.precio }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'dashboard_profesor' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver al Dashboard
+                        </a>
+                        <div>
+                            <a href="{% url 'tomar_asistencia_profesor' curso.id %}" class="btn btn-success">
+                                <i class="fas fa-clipboard-check me-2"></i>Tomar Asistencia
+                            </a>
+                            <a href="{% url 'gestionar_notas' curso.id %}" class="btn btn-warning">
+                                <i class="fas fa-star me-2"></i>Gestionar Notas
+                            </a>
+                            <a href="{% url 'mis_cursos_profesor' %}" class="btn btn-info">
+                                <i class="fas fa-list me-2"></i>Ver Todos Mis Cursos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas para diferentes secciones -->
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="cursoTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="alumnos-tab" data-bs-toggle="tab" data-bs-target="#alumnos" type="button" role="tab">
+                        <i class="fas fa-user-graduate me-2"></i>Alumnos Inscritos ({{ alumnos_inscritos }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="asistencias-tab" data-bs-toggle="tab" data-bs-target="#asistencias" type="button" role="tab">
+                        <i class="fas fa-clipboard-check me-2"></i>Asistencias Recientes
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="material-tab" data-bs-toggle="tab" data-bs-target="#material" type="button" role="tab">
+                        <i class="fas fa-file-alt me-2"></i>Material del Curso
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content p-3 border border-top-0" id="cursoTabContent">
+                <!-- Tab 1: Alumnos Inscritos -->
+                <div class="tab-pane fade show active" id="alumnos" role="tabpanel">
+                    {% if inscripciones %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Teléfono</th>
+                                    <th>Estado</th>
+                                    <th>Fecha Inscripción</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inscripcion in inscripciones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ inscripcion.alumno.nombre_completo }}</strong>
+                                    </td>
+                                    <td>{{ inscripcion.alumno.mail|default:"No especificado" }}</td>
+                                    <td>{{ inscripcion.alumno.telefono|default:"No especificado" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if inscripcion.estado == 'INSCRIPTO' %}info{% elif inscripcion.estado == 'CURSANDO' %}success{% else %}warning{% endif %}">
+                                            {{ inscripcion.estado }}
+                                        </span>
+                                    </td>
+                                    <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="verAlumno('{{ inscripcion.alumno.id }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <a href="{% url 'agregar_examen_individual' inscripcion.id %}" 
+       class="btn btn-sm btn-outline-primary" 
+       title="Agregar examen">
+        <i class="fas fa-plus-circle"></i>
+    </a>
+                                       
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No hay alumnos inscritos en este curso.
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tab 2: Asistencias Recientes -->
+                <div class="tab-pane fade" id="asistencias" role="tabpanel">
+                    {% if asistencias_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Alumno</th>
+                                    <th>Estado</th>
+                                    <th>Observaciones</th>
+                                    <th>Registrada por</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asistencia in asistencias_recientes %}
+                                <tr>
+                                    <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                                    <td>{{ asistencia.alumno.nombre_completo }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if asistencia.estado == 'PRESENTE' %}success{% elif asistencia.estado == 'AUSENTE' %}danger{% elif asistencia.estado == 'TARDE' %}warning{% else %}secondary{% endif %}">
+                                            {{ asistencia.estado }}
+                                        </span>
+                                    </td>
+                                    <td>{{ asistencia.observaciones|default:"-"|truncatechars:30 }}</td>
+                                    <td>{{ asistencia.registrada_por.username|default:"Sistema" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No hay asistencias registradas en los últimos 30 días.
+                    </div>
+                    {% endif %}
+                   
+                </div>
+                
+                <!-- Tab 3: Material del Curso -->
+                <div class="tab-pane fade" id="material" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <i class="fas fa-file-pdf me-2"></i>Documentos
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">No hay documentos cargados.</p>
+                                    <button class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-upload me-1"></i>Subir Documento
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <i class="fas fa-link me-2"></i>Enlaces Importantes
+                                </div>
+                                <div class="card-body">
+                                    {% if curso.modalidad in 'VIRTUAL,HIBRIDO' and curso.enlace_clase %}
+                                    <div class="mb-2">
+                                        <strong><i class="fas fa-video me-1"></i> Enlace de Clase:</strong><br>
+                                        <a href="{{ curso.enlace_clase }}" target="_blank" class="text-decoration-none">
+                                            {{ curso.enlace_clase }}
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                    {% if curso.plataforma_virtual %}
+                                    <div class="mb-2">
+                                        <strong><i class="fas fa-laptop me-1"></i> Plataforma:</strong><br>
+                                        {{ curso.plataforma_virtual }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function verAlumno(alumnoId) {
+    // Aquí puedes implementar un modal para ver detalles del alumno
+    alert('Ver detalles del alumno ID: ' + alumnoId);
+    // O usar AJAX para cargar información
+}
+
+// Activar tooltips
+$(document).ready(function() {
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

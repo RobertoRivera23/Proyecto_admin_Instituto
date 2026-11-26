@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ titulo }}</h1>
+    
+    <!-- Indicador de modo -->
+    <div class="alert alert-info">
+        <strong>{{ mensaje_bienvenida }}</strong>
+        <br>
+        <small>Tipo de acceso: {{ tipo_acceso }}</small>
+        
+        {% if es_administrador and profesor %}
+        <div class="mt-2">
+            <a href="{% url 'switch_modo_profesor' %}?modo=profesor" class="btn btn-sm btn-warning">
+                📚 Cambiar a Modo Profesor
+            </a>
+            <a href="{% url 'switch_modo_profesor' %}?modo=admin" class="btn btn-sm btn-secondary">
+                ⚙️ Cambiar a Modo Administrador
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ total_cursos }}</h5>
+                    <p class="card-text">Cursos</p>
+                </div>
+            </div>
+        </div>
+        
+        {% if not es_administrador or profesor %}
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ cursos_proximos|length }}</h5>
+                    <p class="card-text">Próximas Clases</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Cursos -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                {% if es_administrador %}
+                Todos los Cursos
+                {% else %}
+                Mis Cursos Asignados
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if cursos_asignados %}
+            <div class="list-group">
+                {% for curso in cursos_asignados %}
+                <a href="{% url 'detalle_curso_profesor' curso.id %}" 
+                   class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ curso.nombre }}</h6>
+                        <small>{{ curso.dias }} {{ curso.horario }}</small>
+                    </div>
+                    <p class="mb-1">
+                        {% if es_administrador and curso.profesor %}
+                        <strong>Profesor:</strong> {{ curso.profesor.nombre_completo }}
+                        {% endif %}
+                    </p>
+                    <small>
+                        {{ curso.fecha_inicio|date:"d/m/Y" }} - {{ curso.fecha_fin|date:"d/m/Y" }}
+                        | {{ curso.get_modalidad_display }}
+                    </small>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                {% if es_administrador %}
+                No hay cursos activos en el sistema.
+                {% else %}
+                No tienes cursos asignados actualmente.
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="mt-3">
+                <a href="{% url 'mis_cursos_profesor' %}" class="btn btn-primary">
+                    {% if es_administrador %}
+                    Ver Todos los Cursos
+                    {% else %}
+                    Ver Todos Mis Cursos
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notificaciones -->
+    {% if notificaciones %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Notificaciones Recientes</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                {% for notif in notificaciones %}
+                <div class="list-group-item">
+                    <h6 class="mb-1">{{ notif.titulo }}</h6>
+                    <p class="mb-1">{{ notif.mensaje|truncatechars:100 }}</p>
+                    <small class="text-muted">{{ notif.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

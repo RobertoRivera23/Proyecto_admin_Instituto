@@ -1,0 +1,191 @@
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}Detalle de {{ alumno.nombre_completo }} - {{ curso.nombre }}{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header con navegación -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-user-graduate text-info"></i>
+                {{ alumno.apellido }}, {{ alumno.nombre }}
+            </h1>
+            <p class="text-muted mb-0">
+                Curso: {{ curso.nombre }} | 
+                Inscripción: {{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'gestionar_curso' curso.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver al curso
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Asistencia</h6>
+                    <h3>{{ porcentaje_asistencia }}%</h3>
+                    <small>{{ asistencias_presente }}/{{ total_asistencias }} clases</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Promedio</h6>
+                    <h3>{% if promedio %}{{ promedio }}{% else %}-{% endif %}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Estado</h6>
+                    <h5>{{ inscripcion.get_estado_display }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Contacto</h6>
+                    <small>{{ alumno.telefono|default:"Sin teléfono" }}</small><br>
+                    <small>{{ alumno.email|default:"Sin email" }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pestañas de información -->
+    <ul class="nav nav-tabs mb-3" id="alumnoTab" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="asistencias-tab" data-bs-toggle="tab" href="#asistencias" role="tab">Asistencias</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="examenes-tab" data-bs-toggle="tab" href="#examenes" role="tab">Exámenes</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="observaciones-tab" data-bs-toggle="tab" href="#observaciones" role="tab">Observaciones</a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="alumnoTabContent">
+        <!-- Pestaña Asistencias -->
+        <div class="tab-pane fade show active" id="asistencias" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Registro de Asistencias</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th>Observaciones</th>
+                                    <th>Registrado por</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for asistencia in asistencias %}
+                                <tr>
+                                    <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if asistencia.presente %}
+                                        <span class="badge bg-success">Presente</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Ausente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ asistencia.observaciones|default:"-" }}</td>
+                                    <td>{{ asistencia.registrado_por.get_full_name|default:asistencia.registrado_por.username }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No hay registros de asistencia.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña Exámenes -->
+        <div class="tab-pane fade" id="examenes" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Notas de Exámenes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Fecha</th>
+                                    <th>Nota</th>
+                                    <th>Incluir en promedio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for examen in examenes %}
+                                <tr>
+                                    <td>{{ examen.get_tipo_display|default:examen.tipo }}</td>
+                                    <td>{{ examen.fecha|date:"d/m/Y" }}</td>
+                                    <td><strong>{{ examen.nota }}</strong></td>
+                                    <td>
+                                        {% if examen.incluir_en_promedio %}
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        {% else %}
+                                        <i class="fas fa-times-circle text-danger"></i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No hay exámenes registrados.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña Observaciones -->
+        <div class="tab-pane fade" id="observaciones" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Observaciones del Alumno</h5>
+                </div>
+                <div class="card-body">
+                    {% for obs in observaciones %}
+                    <div class="card mb-2 {% if obs.importancia == 'ALTA' %}border-danger{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6>{{ obs.titulo }}</h6>
+                                <small class="text-muted">{{ obs.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <p>{{ obs.descripcion|linebreaks }}</p>
+                            <small>Creado por: {{ obs.creado_por.get_full_name|default:obs.creado_por.username }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-center text-muted">No hay observaciones para este alumno.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

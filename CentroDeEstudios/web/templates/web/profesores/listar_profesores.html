@@ -1,0 +1,365 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} Lista de Profesores {% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-actions {
+        white-space: nowrap;
+    }
+    .btn-compact {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+    .profesor-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    .profesor-card:hover {
+        transform: translateY(-2px);
+    }
+    .contact-info {
+        font-size: 0.8rem;
+    }
+    .dni-badge {
+        font-size: 0.75rem;
+        font-family: 'Courier New', monospace;
+    }
+    .cursos-badge {
+        font-size: 0.75rem;
+    }
+    .estado-badge {
+        font-size: 0.75rem;
+    }
+    .btn-sm-square {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header con botones - MEJORADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4 py-3 border-bottom">
+        <div>
+            <h1 class="h3 mb-1">👨‍🏫 Lista de Profesores Activos</h1>
+            <p class="text-muted mb-0">Gestiona todos los profesores del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if total_eliminados > 0 %}
+            <a href="{% url 'profesores_eliminados' %}" class="btn btn-outline-warning btn-sm">
+                <i class="fa fa-trash me-1"></i> Eliminados ({{ total_eliminados }})
+            </a>
+            {% endif %}
+            <a href="{% url 'alta_profesor' %}" class="btn btn-primary btn-sm">
+                <i class="fa fa-plus me-1"></i> Nuevo Profesor
+            </a>
+        </div>
+    </div>
+
+    <!-- Buscador - MEJORADO -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-search me-2"></i>Buscar Profesores
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{% url 'listar_profesores' %}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-10">
+                        <label for="buscar" class="form-label small fw-bold">Término de búsqueda</label>
+                        <input type="text" 
+                               class="form-control form-control-sm" 
+                               id="buscar"
+                               name="buscar" 
+                               placeholder="Buscar por nombre, apellido, DNI, teléfono, email o CUIT..."
+                               value="{{ busqueda_actual }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary btn-sm w-100" type="submit">
+                            <i class="fa fa-search me-1"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                {% if busqueda_actual %}
+                <div class="mt-3">
+                    <a href="{% url 'listar_profesores' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa fa-times me-1"></i> Limpiar Búsqueda
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados de búsqueda - MEJORADO -->
+    {% if busqueda_actual %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="fa fa-info-circle me-2"></i>
+        <div class="flex-grow-1">
+            Mostrando resultados para: <strong>"{{ busqueda_actual }}"</strong>
+        </div>
+        <span class="badge bg-primary">{{ profesores.count }} resultado{{ profesores.count|pluralize }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Tabla de profesores - COMPLETAMENTE REDISEÑADA -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0">
+                <i class="fa fa-chalkboard-teacher me-2"></i>Profesores Registrados
+                <span class="badge bg-primary ms-2">{{ profesores.count }}</span>
+            </h6>
+            <small class="text-muted">Mostrando {{ profesores.count }} profesor{{ profesores.count|pluralize:"es" }}</small>
+        </div>
+        <div class="card-body p-0">
+            {% if profesores %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Profesor</th>
+                            <th>DNI</th>
+                            <th>Contacto</th>
+                            <th>Cursos</th>
+                            <th>Estado</th>
+                            <th class="text-center pe-3">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profesor in profesores %}
+                        <tr class="profesor-card">
+                            <!-- Columna Profesor - MEJORADA -->
+                            <td class="ps-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0">
+                                        {% if profesor.foto %}
+                                        <img src="{{ profesor.foto.url }}" 
+                                             class="rounded-circle me-3" 
+                                             style="width: 40px; height: 40px; object-fit: cover;"
+                                             alt="Foto de {{ profesor.nombre_completo }}"
+                                             onerror="this.style.display='none'">
+                                        {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3"
+                                             style="width: 40px; height: 40px;">
+                                            <i class="fa fa-user text-muted"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <strong class="text-primary">{{ profesor.nombre_completo }}</strong>
+                                        <small class="text-muted d-block">
+                                            {{ profesor.cuit|default:"Sin CUIT" }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Columna DNI - MEJORADA -->
+                            <td>
+                                <span class="badge text-bg-secondary dni-badge">
+                                    {{ profesor.dni }}
+                                </span>
+                            </td>
+
+                            <!-- Columna Contacto - MEJORADA -->
+                            <td>
+                                <div class="contact-info">
+                                    {% if profesor.telefono %}
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fa fa-phone text-muted me-2" style="width: 16px;"></i>
+                                        <a href="tel:{{ profesor.telefono }}" class="text-decoration-none">{{ profesor.telefono }}</a>
+                                    </div>
+                                    {% endif %}
+                                    {% if profesor.mail %}
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-envelope text-muted me-2" style="width: 16px;"></i>
+                                        <a href="mailto:{{ profesor.mail }}" class="text-decoration-none text-truncate">{{ profesor.mail }}</a>
+                                    </div>
+                                    {% endif %}
+                                    {% if not profesor.telefono and not profesor.mail %}
+                                    <span class="text-muted small">Sin contacto</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Columna Cursos - MEJORADA -->
+                            <td>
+                                {% if profesor.curso_set.count > 0 %}
+                                    <span class="badge text-bg-success cursos-badge">
+                                        {{ profesor.curso_set.count }} curso{{ profesor.curso_set.count|pluralize }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge text-bg-secondary cursos-badge">Sin cursos</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Columna Estado - MEJORADA -->
+                            <td>
+                                {% if profesor.activo %}
+                                    <span class="badge bg-success estado-badge">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-warning estado-badge">Inactivo</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Columna Acciones - ACTUALIZADA CON LOS NUEVOS BOTONES -->
+                            <td class="text-center pe-3 table-actions">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <!-- Botón VER PERFIL -->
+                                    <a href="{% url 'perfil_profesor_detalle' profesor.id %}" 
+                                       class="btn btn-info btn-sm btn-sm-square"
+                                       title="Ver perfil completo de {{ profesor.nombre_completo }}">
+                                        <i class="fa fa-user"></i>
+                                    </a>
+                                    
+                                    <!-- Botón VER CURSOS -->
+                                    <a href="{% url 'mis_cursos_profesor_detalle' profesor.id %}" 
+                                       class="btn btn-primary btn-sm btn-sm-square"
+                                       title="Ver cursos de {{ profesor.nombre_completo }}">
+                                        <i class="fa fa-book"></i>
+                                    </a>
+                                    
+                                    <!-- Botón VER DASHBOARD -->
+                                    <a href="{% url 'dashboard_profesor_detalle' profesor.id %}" 
+                                       class="btn btn-success btn-sm btn-sm-square"
+                                       title="Ver dashboard de {{ profesor.nombre_completo }}">
+                                        <i class="fa fa-tachometer-alt"></i>
+                                    </a>
+                                    
+                                    <!-- Botón VER DETALLES (Existente) -->
+                                    <a href="{% url 'mostrar_profesor' profesor.id %}?from_eliminados=true" 
+                                       class="btn btn-outline-info btn-sm btn-sm-square"
+                                       title="Ver detalles administrativos">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                    
+                                    <!-- Botón EDITAR (Existente) -->
+                                    <a href="{% url 'editar_profesor' profesor.id %}" 
+                                       class="btn btn-outline-warning btn-sm btn-sm-square" 
+                                       title="Editar profesor">
+                                        <i class="fa fa-edit"></i>
+                                    </a>
+                                    
+                                    <!-- Botón ELIMINAR (Existente) -->
+                                    <a href="{% url 'eliminar_profesor' profesor.id %}" 
+                                       class="btn btn-outline-danger btn-sm btn-sm-square" 
+                                       title="Eliminar profesor">
+                                        <i class="fa fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Estado vacío - MEJORADO -->
+            <div class="text-center py-5">
+                {% if busqueda_actual %}
+                <div class="text-warning">
+                    <i class="fa fa-search fa-3x mb-3 opacity-50"></i>
+                    <h4 class="text-warning">No se encontraron resultados</h4>
+                    <p class="mb-3">No hay profesores que coincidan con "{{ busqueda_actual }}"</p>
+                    <a href="{% url 'listar_profesores' %}" class="btn btn-primary">
+                        <i class="fa fa-arrow-left me-2"></i> Ver todos los profesores
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-muted">
+                    <i class="fa fa-chalkboard-teacher fa-3x mb-3 opacity-50"></i>
+                    <h4 class="text-muted">No hay profesores registrados</h4>
+                    <p class="mb-3">Comienza agregando el primer profesor al sistema</p>
+                    <a href="{% url 'alta_profesor' %}" class="btn btn-primary">
+                        <i class="fa fa-plus me-2"></i> Agregar Primer Profesor
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información adicional - ACTUALIZADA -->
+    {% if profesores %}
+    <div class="mt-3">
+        <div class="alert alert-light border d-flex align-items-center">
+            <i class="fa fa-info-circle text-primary me-2"></i>
+            <small class="text-muted">
+                <strong>Nuevas vistas para administradores:</strong> Ahora puedes acceder directamente a las vistas del profesor.
+                <span class="ms-2">
+                    <i class="fa fa-user text-info mx-1"></i>Perfil | 
+                    <i class="fa fa-book text-primary mx-1"></i>Cursos | 
+                    <i class="fa fa-tachometer-alt text-success mx-1"></i>Dashboard |
+                    <i class="fa fa-eye text-info mx-1"></i>Detalles | 
+                    <i class="fa fa-edit text-warning mx-1"></i>Editar | 
+                    <i class="fa fa-trash text-danger mx-1"></i>Eliminar
+                </span>
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para mostrar las diferencias entre vistas -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="infoModalLabel">
+                    <i class="fa fa-info-circle me-2 text-primary"></i>Explicación de las vistas
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6>Diferencia entre las vistas:</h6>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong><i class="fa fa-user text-info me-2"></i>Perfil:</strong>
+                        <span class="text-muted">Vista personal del profesor (como él la vería)</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fa fa-book text-primary me-2"></i>Cursos:</strong>
+                        <span class="text-muted">Lista de cursos asignados al profesor</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fa fa-tachometer-alt text-success me-2"></i>Dashboard:</strong>
+                        <span class="text-muted">Panel de control y estadísticas del profesor</span>
+                    </li>
+                    <li class="list-group-item">
+                        <strong><i class="fa fa-eye text-info me-2"></i>Detalles:</strong>
+                        <span class="text-muted">Vista administrativa completa (ficha técnica)</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Tooltip para los botones
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Información sobre las vistas
+        document.getElementById('viewInfo').addEventListener('click', function() {
+            var infoModal = new bootstrap.Modal(document.getElementById('infoModal'));
+            infoModal.show();
+        });
+    });
+</script>
+{% endblock %}

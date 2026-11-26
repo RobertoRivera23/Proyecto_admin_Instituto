@@ -1,0 +1,247 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %} {{ titulo }} - Sistema Académico {% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header - Mismo estilo que gestion_usuarios -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="fas fa-user-shield text-primary me-2"></i>
+            {{ titulo }}
+        </h1>
+        <div>
+            <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Volver a Gestión de Usuarios
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjeta Principal - Mismo diseño -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-key me-2"></i>Configurar Permisos del Usuario
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Mensajes -->
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message|safe }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Información del Usuario en tabla estilo original -->
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        <tr>
+                            <th class="table-light" style="width: 30%;">Usuario del Sistema</th>
+                            <td>
+                                <strong>{{ personal.user.username }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    Creado: {{ personal.user.date_joined|date:"d/m/Y" }}
+                                </small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="table-light">Nombre</th>
+                            <td>
+                                <strong>
+                                    {% if personal.id == 0 %}
+                                        {{ personal.nombre_completo }}
+                                    {% else %}
+                                        {{ personal.nombre_completo }}
+                                    {% endif %}
+                                </strong>
+                                {% if personal.id != 0 %}
+                                <br>
+                                <small class="text-muted">{{ personal.legajo }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="table-light">Estado</th>
+                            <td>
+                                {% if personal.user.is_active %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Activo
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times-circle"></i> Inactivo
+                                    </span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    Staff: {{ personal.user.is_staff|yesno:"Sí,No" }}
+                                </small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="table-light">Último Login</th>
+                            <td>
+                                {% if personal.user.last_login %}
+                                    {{ personal.user.last_login|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">Nunca</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if personal.id != 0 %}
+                        <tr>
+                            <th class="table-light">Tipo de Personal</th>
+                            <td>
+                                <span class="badge 
+                                    {% if personal.tipo == 'ADMINISTRATIVO' %}bg-primary
+                                    {% elif personal.tipo == 'COORDINADOR' %}bg-info
+                                    {% elif personal.tipo == 'SECRETARIA' %}bg-success
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ personal.get_tipo_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th class="table-light">Grupo Actual</th>
+                            <td>
+                                {% if personal.user.groups.all %}
+                                    {% for group in personal.user.groups.all %}
+                                        <span class="badge bg-dark me-1">{{ group.name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="badge bg-secondary">Sin grupo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Formulario -->
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Grupo -->
+                <div class="mb-4">
+                    <label for="{{ form.grupo.id_for_label }}" class="form-label fw-bold">
+                        <i class="fas fa-users me-1"></i> {{ form.grupo.label }}
+                    </label>
+                    <select name="{{ form.grupo.name }}" id="{{ form.grupo.id_for_label }}" 
+                            class="form-select" required>
+                        <option value="">Selecciona un grupo...</option>
+                        {% for value, label in form.grupo.field.choices %}
+                        <option value="{{ value }}" {% if form.grupo.value == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.grupo.errors %}
+                    <div class="text-danger small mt-2">
+                        {% for error in form.grupo.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="form-text">
+                        Selecciona el grupo principal de permisos para este usuario.
+                    </div>
+                </div>
+                
+                <!-- Permisos Especiales -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-user-shield me-1"></i> {{ form.permisos_especiales.label }}
+                    </label>
+                    <div class="border p-3 rounded bg-light">
+                        {% for checkbox in form.permisos_especiales %}
+                        <div class="form-check mb-2">
+                            {{ checkbox.tag }}
+                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                {{ checkbox.choice_label }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.permisos_especiales.errors %}
+                    <div class="text-danger small mt-2">
+                        {% for error in form.permisos_especiales.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="form-text">
+                        Permisos adicionales específicos (opcional).
+                    </div>
+                </div>
+                
+                <!-- Botones -->
+                <div class="d-flex justify-content-between pt-3 border-top">
+                    <a href="{% url 'gestion_usuarios' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </a>
+                    <div>
+                        {% if personal.id != 0 %}
+                        <a href="{% url 'cambiar_password_usuario' personal.id %}" 
+                           class="btn btn-warning me-2">
+                            <i class="fas fa-key me-1"></i> Cambiar Contraseña
+                        </a>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Guardar Permisos
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información sobre Grupos - Similar al original -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-info-circle text-primary me-2"></i>Información sobre Grupos
+                    </h6>
+                    <ul class="small mb-0">
+                        <li><strong>Administrador:</strong> Acceso completo al sistema</li>
+                        <li><strong>Coordinador:</strong> Gestión académica y reportes</li>
+                        <li><strong>Secretaría:</strong> Gestión de alumnos y cursos</li>
+                        <li><strong>Profesor:</strong> Gestión de sus cursos</li>
+                        <li><strong>Consulta:</strong> Solo lectura</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.table th {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

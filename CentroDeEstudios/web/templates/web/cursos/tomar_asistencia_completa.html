@@ -1,0 +1,294 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} Asistencia Completa - {{ curso.nombre }} {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/styles.css' %}">
+<style>
+    .payment-warning { border-left: 4px solid #ffc107; }
+    .payment-danger { border-left: 4px solid #dc3545; }
+    .table-fixed { table-layout: fixed; }
+    .fecha-col { min-width: 80px; width: 80px; }
+    .alumno-col { min-width: 200px; width: 200px; position: sticky; left: 0; background: white; z-index: 10; }
+    .nota-col { min-width: 100px; width: 100px; }
+    .sticky-header { position: sticky; top: 0; background: white; z-index: 20; }
+    .asistencia-cell { text-align: center; padding: 2px !important; }
+    .presente { background-color: #d4edda !important; }
+    .ausente { background-color: #f8d7da !important; }
+    
+    /* Scroll horizontal para móviles */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Mejoras para móviles */
+    @media (max-width: 768px) {
+        .fecha-col { min-width: 60px; width: 60px; }
+        .alumno-col { min-width: 150px; width: 150px; }
+        .nota-col { min-width: 80px; width: 80px; }
+        .table th, .table td { padding: 4px; font-size: 0.8rem; }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.775rem; }
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">📊 Asistencia Completa 1- {{ curso.nombre }}</h1>
+        <div>
+            <a href="{% url 'listar_cursos' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del curso -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <p><strong>Días:</strong> {{ curso.dias }}</p>
+                    <p><strong>Horario:</strong> {{ curso.horario }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Profesor:</strong> {{ curso.profesor.nombre_completo }}</p>
+                    <p><strong>Alumnos:</strong> {{ alumnos|length }}</p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</p>
+                    <p><strong>Hoy:</strong> {{ hoy|date:"d/m/Y" }}</p>
+                </div>
+                <div class="col-md-3">
+                    {% if not permite_editar_pasado %}
+                    <div class="alert alert-warning py-2">
+                        <small><i class="fa fa-info-circle"></i> Solo puede editar asistencias futuras</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de asistencia completo -->
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-table me-2"></i>Registro de Asistencia y Calificaciones
+            </h5>
+            <div>
+                <button type="button" id="marcar-todos-hoy" class="btn btn-light btn-sm">
+                    <i class="fa fa-check-double me-1"></i>Marcar Hoy
+                </button>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            <form method="POST" action="{% url 'tomar_asistencia_completa' curso.id %}">
+                {% csrf_token %}
+                
+                {% if alumnos %}
+                <div class="table-container">
+                    <table class="table table-bordered table-hover table-sm table-fixed mb-0">
+                        <thead class="table-light sticky-header">
+                            <tr>
+                                <th class="alumno-col">Alumno / DNI</th>
+                                <th class="alumno-col">Estado Pago</th>
+                                
+                                <!-- Columnas de fechas -->
+                                {% for fecha in fechas_clase %}
+                                <th class="fecha-col text-center {% if fecha.date == hoy %}bg-warning{% endif %}">
+                                    <small>
+                                        <div>{{ fecha|date:"d/m" }}</div>
+                                        <div class="fw-normal">{{ fecha|date:"D"|slice:":2" }}</div>
+                                    </small>
+                                </th>
+                                {% endfor %}
+                                
+                                <!-- Columnas de calificaciones -->
+                                <th class="nota-col bg-info text-white">Nota 1</th>
+                                <th class="nota-col bg-info text-white">Nota 2</th>
+                                <th class="nota-col bg-success text-white">Prom.</th>
+                                <th class="nota-col bg-success text-white">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumno_data in alumnos %}
+                            <tr class="{% if alumno_data.estado_pago == 'NARANJA' %}payment-warning{% elif alumno_data.estado_pago == 'ROJO' %}payment-danger{% endif %}">
+                                <!-- Información del alumno -->
+                                <td class="alumno-col position-sticky left-0 bg-white">
+                                    <strong>{{ alumno_data.alumno.nombre_completo }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ alumno_data.alumno.dni }}</small>
+                                    {% if alumno_data.estado_pago == 'ROJO' %}
+                                    <br><small class="text-danger"><i class="fa fa-exclamation-triangle"></i> No examen</small>
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="alumno-col">
+                                    {% if alumno_data.estado_pago == 'NARANJA' %}
+                                        <span class="badge bg-warning">Pendiente</span>
+                                    {% elif alumno_data.estado_pago == 'ROJO' %}
+                                        <span class="badge bg-danger">Vencido</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Al día</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Asistencias por fecha -->
+                                {% for fecha in fechas_clase %}
+                                {% with asistencia=alumno_data.asistencias|get_item:fecha.date %}
+                                <td class="asistencia-cell {% if asistencia.presente %}presente{% else %}ausente{% endif %} 
+                                    {% if fecha.date == hoy %}border-warning border-2{% endif %}">
+                                    {% if fecha.date <= hoy or permite_editar_pasado %}
+                                    <input type="checkbox" 
+                                           name="asistencia_{{ alumno_data.inscripcion.id }}_{{ fecha|date:'Y-m-d' }}"
+                                           {% if asistencia.presente %}checked{% endif %}
+                                           class="form-check-input asistencia-checkbox"
+                                           data-fecha="{{ fecha|date:'Y-m-d' }}"
+                                           {% if fecha.date < hoy and not permite_editar_pasado %}disabled{% endif %}>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endwith %}
+                                {% endfor %}
+                                
+                                <!-- Calificaciones -->
+                                <td class="nota-col">
+                                    <input type="number" name="nota_{{ alumno_data.inscripcion.id }}_1" 
+                                           class="form-control form-control-sm nota-input" min="0" max="10" step="0.1"
+                                           placeholder="0-10"
+                                           value="{{ alumno_data.examenes.0.nota|default:'' }}">
+                                    <input type="hidden" name="fecha_examen_{{ alumno_data.inscripcion.id }}_1" value="{{ hoy|date:'Y-m-d' }}">
+                                    <input type="hidden" name="tipo_examen_{{ alumno_data.inscripcion.id }}_1" value="TEORICO">
+                                </td>
+                                
+                                <td class="nota-col">
+                                    <input type="number" name="nota_{{ alumno_data.inscripcion.id }}_2" 
+                                           class="form-control form-control-sm nota-input" min="0" max="10" step="0.1"
+                                           placeholder="0-10"
+                                           value="{{ alumno_data.examenes.1.nota|default:'' }}">
+                                    <input type="hidden" name="fecha_examen_{{ alumno_data.inscripcion.id }}_2" value="{{ hoy|date:'Y-m-d' }}">
+                                    <input type="hidden" name="tipo_examen_{{ alumno_data.inscripcion.id }}_2" value="PRACTICO">
+                                </td>
+                                
+                                <td class="nota-col text-center">
+                                    <span class="fw-bold {% if alumno_data.promedio >= 7 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ alumno_data.promedio|default:"-" }}
+                                    </span>
+                                </td>
+                                
+                                <td class="nota-col text-center">
+                                    {% if alumno_data.estado_academico == 'APROBADO' %}
+                                        <span class="badge bg-success">Aprobado</span>
+                                    {% elif alumno_data.estado_academico == 'DESAPROBADO' %}
+                                        <span class="badge bg-danger">Desaprobado</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sin notas</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Resumen y acciones -->
+                <div class="p-3 border-top">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div id="resumen-asistencia" class="text-muted"></div>
+                            <small class="text-muted">
+                                <i class="fa fa-info-circle"></i> 
+                                {% if permite_editar_pasado %}
+                                    Puede editar todas las fechas
+                                {% else %}
+                                    Solo puede editar fechas futuras
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-save me-2"></i>Guardar Todo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="text-muted">
+                        <i class="fa fa-users fa-3x mb-3"></i>
+                        <h4>No hay alumnos inscritos</h4>
+                    </div>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.asistencia-checkbox:not([disabled])');
+    const marcarTodosHoyBtn = document.getElementById('marcar-todos-hoy');
+    const resumenSpan = document.getElementById('resumen-asistencia');
+    const hoy = '{{ hoy|date:"Y-m-d" }}';
+    
+    // Botón "Marcar Todos Hoy"
+    marcarTodosHoyBtn.addEventListener('click', function() {
+        const checkboxesHoy = document.querySelectorAll(`.asistencia-checkbox[data-fecha="${hoy}"]:not([disabled])`);
+        const algunMarcado = Array.from(checkboxesHoy).some(cb => cb.checked);
+        
+        checkboxesHoy.forEach(checkbox => {
+            checkbox.checked = !algunMarcado;
+            // Disparar evento change para actualizar estilos
+            checkbox.dispatchEvent(new Event('change'));
+        });
+        
+        actualizarResumen();
+        this.innerHTML = algunMarcado ? 
+            '<i class="fa fa-check-double me-1"></i>Marcar Hoy' : 
+            '<i class="fa fa-times me-1"></i>Desmarcar Hoy';
+    });
+    
+    // Actualizar estilos de celdas cuando cambia checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const cell = this.closest('td');
+            if (this.checked) {
+                cell.classList.add('presente');
+                cell.classList.remove('ausente');
+            } else {
+                cell.classList.add('ausente');
+                cell.classList.remove('presente');
+            }
+            actualizarResumen();
+        });
+    });
+    
+    function actualizarResumen() {
+        const totalAlumnos = {{ alumnos|length }};
+        const checkboxesHoy = document.querySelectorAll(`.asistencia-checkbox[data-fecha="${hoy}"]`);
+        const presentesHoy = Array.from(checkboxesHoy).filter(cb => cb.checked).length;
+        
+        resumenSpan.textContent = `Hoy: ${presentesHoy} de ${totalAlumnos} presentes`;
+    }
+    
+    // Calcular promedios automáticamente
+    document.querySelectorAll('.nota-input').forEach(input => {
+        input.addEventListener('change', function() {
+            // En una implementación real, aquí podrías calcular el promedio automáticamente
+            // y actualizar la interfaz sin recargar la página
+        });
+    });
+    
+    // Inicializar
+    actualizarResumen();
+});
+</script>
+{% endblock %}

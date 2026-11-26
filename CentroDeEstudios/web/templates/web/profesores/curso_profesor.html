@@ -1,0 +1,181 @@
+<!-- templates/web/profesores/cursos_profesor.html -->
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}Mis Cursos - Sistema Académico{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-chalkboard-teacher text-primary"></i>
+            {% if es_profesor %}
+                Mis Cursos Asignados
+            {% else %}
+                Gestión de Cursos
+            {% endif %}
+        </h1>
+        <div class="d-flex gap-2">
+            {% if es_administracion %}
+            <a href="{% url 'admin:cursos_curso_changelist' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-cog"></i> Admin Cursos
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-filter"></i> Filtros
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    {{ form_filtro.estado.label_tag }}
+                    {{ form_filtro.estado }}
+                </div>
+                <div class="col-md-4">
+                    {{ form_filtro.mes.label_tag }}
+                    {{ form_filtro.mes }}
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'cursos_profesor' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-refresh"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Cursos -->
+    <div class="row">
+        {% for curso in cursos %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 curso-card {% if not curso.esta_activo %}border-warning{% endif %}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ curso.nombre }}</h5>
+                    <span class="badge {% if curso.esta_activo %}bg-success{% else %}bg-warning{% endif %}">
+                        {% if curso.esta_activo %}Activo{% else %}Finalizado{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="curso-info mb-3">
+                        <p class="mb-1">
+                            <i class="fas fa-calendar-alt text-muted"></i>
+                            <strong>Inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}
+                        </p>
+                        <p class="mb-1">
+                            <i class="fas fa-calendar-check text-muted"></i>
+                            <strong>Fin:</strong> {{ curso.fecha_fin|date:"d/m/Y" }}
+                        </p>
+                        <p class="mb-1">
+                            <i class="fas fa-clock text-muted"></i>
+                            <strong>Horario:</strong> {{ curso.dias }} {{ curso.horario }}
+                        </p>
+                        <p class="mb-1">
+                            <i class="fas fa-users text-muted"></i>
+                            <strong>Alumnos:</strong> {{ curso.total_alumnos }}
+                        </p>
+                        {% if curso.profesor %}
+                        <p class="mb-0">
+                            <i class="fas fa-user-tie text-muted"></i>
+                            <strong>Profesor:</strong> {{ curso.profesor.nombre_completo }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="curso-progress mb-3">
+                        {% widthratio curso.dias_transcurridos curso.total_dias 100 as progress %}
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar {% if curso.esta_activo %}bg-primary{% else %}bg-success{% endif %}" 
+                                 style="width: {{ progress }}%"></div>
+                        </div>
+                        <small class="text-muted">{{ progress }}% completado</small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'gestionar_curso' curso.id %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-tasks"></i> Gestionar Curso
+                        </a>
+                        <div class="btn-group w-100" role="group">
+                            <a href="{% url 'reporte_asistencias' curso.id %}" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-clipboard-list"></i> Asistencias
+                            </a>
+                            <a href="#" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-chart-bar"></i> Reportes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle fa-2x mb-3"></i>
+                <h4>No hay cursos asignados</h4>
+                <p class="mb-0">
+                    {% if es_profesor %}
+                        No tienes cursos asignados actualmente.
+                    {% else %}
+                        No hay cursos activos en el sistema.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Resumen -->
+    {% if cursos %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h3 class="text-primary">{{ cursos|length }}</h3>
+                            <p class="text-muted mb-0">Total Cursos</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-success">{{ cursos_activos_count }}</h3>
+                            <p class="text-muted mb-0">Cursos Activos</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-warning">{{ cursos_finalizados_count }}</h3>
+                            <p class="text-muted mb-0">Cursos Finalizados</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-info">{{ total_alumnos }}</h3>
+                            <p class="text-muted mb-0">Total Alumnos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.curso-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.curso-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.curso-info p {
+    margin-bottom: 0.3rem;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,289 @@
+<!-- templates/web/profesores/gestionar_curso.html -->
+{% extends 'web/base.html' %}
+{% load static %}
+
+{% block title %}Gestionar {{ curso.nombre }} - Sistema Académico{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-tasks text-primary"></i>
+                {{ curso.nombre }}
+            </h1>
+            <p class="text-muted mb-0">
+                {{ curso.dias }} {{ curso.horario }} | 
+                {{ curso.fecha_inicio|date:"d/m/Y" }} - {{ curso.fecha_fin|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'reporte_asistencia_curso' curso.id %}" class="btn btn-info">
+                <i class="fas fa-clipboard-list"></i> Reporte Asistencias
+            </a>
+            <a href="{% url 'detalle_curso_profesor' curso.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Menú de pestañas -->
+    {% include 'web/profesores/_menu_curso.html' %}
+
+    <!-- ========== CONTENIDO DE GESTIÓN ========== -->
+
+    <!-- Tarjetas de resumen -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Alumnos Inscriptos</h6>
+                            <h2 class="mb-0">{{ total_inscriptos }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Asistencia General</h6>
+                            <h2 class="mb-0">{{ porcentaje_asistencia }}%</h2>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Clases Dictadas</h6>
+                            <h2 class="mb-0">{{ asistencias_totales }}</h2>
+                        </div>
+                        <i class="fas fa-calendar-check fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Próxima Clase</h6>
+                            {% if proximas_clases %}
+                            <h5 class="mb-0">{{ proximas_clases.0|date:"d/m/Y" }}</h5>
+                            {% else %}
+                            <h5 class="mb-0">-</h5>
+                            {% endif %}
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <!-- Lista de Alumnos mejorada -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-users"></i> Alumnos Inscriptos
+            </h5>
+            <span class="badge bg-light text-dark">{{ total_inscriptos }} alumnos</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Alumno</th>
+                            <th>Contacto</th>
+                            <th>Estado</th>
+                            <th>Nota Final</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inscripcion in inscripciones %}
+                        <tr>
+                            <td>
+                                <strong>{{ inscripcion.alumno.apellido }}, {{ inscripcion.alumno.nombre }}</strong>
+                                {% if not inscripcion.cuota_pagada %}
+                                <span class="badge bg-danger" title="Cuota impaga">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>
+                                    <i class="fas fa-envelope"></i> {{ inscripcion.alumno.email|default:"N/I" }}<br>
+                                    <i class="fas fa-phone"></i> {{ inscripcion.alumno.telefono|default:"N/I" }}
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if inscripcion.estado == 'APROBADO' %}bg-success
+                                    {% elif inscripcion.estado == 'REPROBADO' %}bg-danger
+                                    {% elif inscripcion.estado == 'CURSANDO' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ inscripcion.get_estado_display }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if inscripcion.nota_final %}
+                                    <strong>{{ inscripcion.nota_final }}</strong>
+                                {% else %}
+                                    S/N
+                                {% endif %}
+                            </td>
+                            <td>
+                                
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'detalle_alumno_profesor' curso.id inscripcion.alumno.id %}" class="btn btn-outline-info" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'gestionar_notas' curso.id %}?alumno={{ inscripcion.alumno.id }}" class="btn btn-outline-warning" title="Notas">
+                                        <i class="fas fa-star"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-users fa-2x mb-2"></i>
+                                <p>No hay alumnos inscriptos en este curso.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Próximas Clases -->
+    {% if proximas_clases %}
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-calendar-alt"></i> Próximas Clases
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                {% for fecha in proximas_clases %}
+                <a href="{% url 'tomar_asistencia_profesor' curso.id %}?fecha={{ fecha|date:'Y-m-d' }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="fas fa-calendar-day me-2"></i>
+                        {{ fecha|date:"l d/m/Y" }}
+                    </span>
+                    <span class="badge bg-primary rounded-pill">Tomar asistencia</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Agregar Alumno -->
+<div class="modal fade" id="modalAgregarAlumno" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'gestionar_curso' curso.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Alumno al Curso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ form_alumno.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" name="agregar_alumno" class="btn btn-primary">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Curso (si permisos) -->
+{% if permisos.puede_editar %}
+<div class="modal fade" id="modalEditarCurso" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'gestionar_curso' curso.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Curso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ form_curso.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" name="actualizar_curso" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+// Actualizar etiqueta del switch de asistencia
+document.querySelectorAll('.form-check-input').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const label = this.nextElementSibling;
+        label.textContent = this.checked ? 'Presente' : 'Ausente';
+    });
+});
+
+// Validar fecha de asistencia (no puede ser futura)
+document.getElementById('fecha_lista').addEventListener('change', function() {
+    const hoy = new Date().toISOString().split('T')[0];
+    if (this.value > hoy) {
+        alert('No se puede tomar lista para fechas futuras');
+        this.value = hoy;
+    }
+});
+</script>
+
+<style>
+.table-danger {
+    background-color: #f8d7da !important;
+}
+.border-danger {
+    border: 2px solid #dc3545 !important;
+}
+</style>
+{% endblock %}

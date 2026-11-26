@@ -1,0 +1,244 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Eliminar Alumno - {{ alumno.nombre_completo }}{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-user-slash me-2"></i>Eliminar Alumno
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Alerta de advertencia -->
+                    <div class="alert alert-warning">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="fa fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h5 class="alert-heading">¡Atención!</h5>
+                                <p class="mb-0">
+                                    Está a punto de eliminar al alumno <strong>{{ alumno.nombre_completo }}</strong>. 
+                                    Esta acción no se puede deshacer fácilmente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información del alumno -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Información del Alumno:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Nombre:</strong> {{ alumno.nombre_completo }}</li>
+                                <li><strong>DNI:</strong> {{ alumno.dni }}</li>
+                                <li><strong>Email:</strong> {{ alumno.mail|default:"No especificado" }}</li>
+                                <li><strong>Teléfono:</strong> {{ alumno.telefono|default:"No especificado" }}</li>
+                                <li><strong>Edad:</strong> {{ alumno.edad|default:"No especificada" }} años</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Detalles Académicos:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Total inscripciones:</strong> {{ alumno.total_inscripciones }}</li>
+                                <li><strong>Cursos activos:</strong> {{ total_cursos_activos }}</li>
+                                <li><strong>Cuotas pendientes:</strong> {{ total_cuotas_pendientes }}</li>
+                                <li><strong>Estado actual:</strong> 
+                                    {% if alumno.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </li>
+                                <li><strong>Fecha de creación:</strong> {{ alumno.fecha_creacion|date:"d/m/Y" }}</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Advertencias específicas -->
+                    {% if inscripciones_activas or cuotas_pendientes %}
+                    <div class="alert alert-danger">
+                        <h6><i class="fa fa-exclamation-circle me-2"></i>Impacto de la eliminación:</h6>
+                        <ul class="mb-0">
+                            {% if inscripciones_activas %}
+                            <li>Se desactivarán <strong>{{ total_inscripciones }} inscripción(es)</strong> asociadas</li>
+                            {% endif %}
+                            {% if cuotas_pendientes %}
+                            <li>Hay <strong>{{ total_cuotas_pendientes }} cuota(s) pendiente(s)</strong> de pago</li>
+                            {% endif %}
+                            <li>El alumno ya no aparecerá en los listados activos</li>
+                            <li>Los datos históricos (asistencias, notas) se conservarán</li>
+                            <li>Podrás restaurar el alumno posteriormente si es necesario</li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle me-2"></i>
+                        Este alumno no tiene inscripciones activas ni cuotas pendientes. La eliminación no afectará cursos en progreso.
+                    </div>
+                    {% endif %}
+
+                    <!-- Lista de inscripciones afectadas -->
+                    {% if inscripciones_activas %}
+                    <div class="mb-4">
+                        <h6>Inscripciones que se desactivarán:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Curso</th>
+                                        <th>Fecha Inscripción</th>
+                                        <th>Estado</th>
+                                        <th>Nota Final</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for inscripcion in inscripciones_activas %}
+                                    <tr>
+                                        <td>{{ inscripcion.curso.nombre }}</td>
+                                        <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if inscripcion.estado == 'CURSANDO' %}bg-warning
+                                                {% elif inscripcion.estado == 'INSCRIPTO' %}bg-info
+                                                {% elif inscripcion.estado == 'APROBADO' %}bg-success
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ inscripcion.get_estado_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if inscripcion.nota_final %}
+                                                {{ inscripcion.nota_final }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Lista de cuotas pendientes -->
+                    {% if cuotas_pendientes %}
+                    <div class="mb-4">
+                        <h6>Cuotas pendientes de pago:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Curso</th>
+                                        <th>Mes/Año</th>
+                                        <th>Monto</th>
+                                        <th>Vencimiento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cuota in cuotas_pendientes %}
+                                    <tr class="{% if cuota.esta_vencida %}table-danger{% endif %}">
+                                        <td>{{ cuota.inscripcion.curso.nombre }}</td>
+                                        <td>{{ cuota.get_mes_display }}/{{ cuota.año }}</td>
+                                        <td>${{ cuota.monto }}</td>
+                                        <td>
+                                            {{ cuota.fecha_vencimiento|date:"d/m/Y" }}
+                                            {% if cuota.esta_vencida %}
+                                            <span class="badge bg-danger ms-1">Vencida</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario de confirmación -->
+                    <form method="POST" action="{% url 'eliminar_alumno' alumno.id %}">
+                        {% csrf_token %}
+                        
+                        <!-- Campo de motivo opcional -->
+                        <div class="mb-3">
+                            <label for="motivo_eliminacion" class="form-label">
+                                <strong>Motivo de eliminación (opcional):</strong>
+                            </label>
+                            <textarea class="form-control" id="motivo_eliminacion" 
+                                      name="motivo_eliminacion" rows="2" 
+                                      placeholder="Ej: Alumno se dio de baja, finalizó cursos, etc."></textarea>
+                        </div>
+
+                        <!-- Checkbox de confirmación -->
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="confirmar_eliminacion" required>
+                            <label class="form-check-label" for="confirmar_eliminacion">
+                                <strong>Comprendo que esta acción:</strong>
+                                <ul class="mb-0 mt-1">
+                                    <li>Marca al alumno como eliminado (soft delete)</li>
+                                    <li>Desactiva todas sus inscripciones activas</li>
+                                    <li>Conserva todos los datos históricos</li>
+                                    <li>Puede ser revertida desde la sección de eliminados</li>
+                                    <li>No elimina permanentemente los datos del sistema</li>
+                                </ul>
+                            </label>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'listar_alumno' %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left me-2"></i>Cancelar y Volver
+                            </a>
+                            
+                            <button type="submit" class="btn btn-danger" id="btn-eliminar" disabled>
+                                <i class="fa fa-trash me-2"></i>Confirmar Eliminación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirmar_eliminacion');
+    const btnEliminar = document.getElementById('btn-eliminar');
+    
+    checkbox.addEventListener('change', function() {
+        btnEliminar.disabled = !this.checked;
+    });
+    
+    // Confirmación adicional antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const hasInscripciones = {{ total_inscripciones }} > 0;
+        const hasCuotas = {{ total_cuotas_pendientes }} > 0;
+        
+        let mensaje = '¿Está completamente seguro de que desea eliminar este alumno?';
+        
+        if (hasInscripciones || hasCuotas) {
+            mensaje += '\n\n⚠️  Este alumno tiene:';
+            if (hasInscripciones) {
+                mensaje += `\n• {{ total_inscripciones }} inscripción(es) activa(s)`;
+            }
+            if (hasCuotas) {
+                mensaje += `\n• {{ total_cuotas_pendientes }} cuota(s) pendiente(s)`;
+            }
+        }
+        
+        if (!confirm(mensaje)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

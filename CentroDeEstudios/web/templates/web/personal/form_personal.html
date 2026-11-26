@@ -1,0 +1,335 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }} - Sistema Académico{% endblock %}
+
+{% block main %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>
+                    <i class="fas fa-user-plus text-primary me-2"></i>
+                    {{ titulo }}
+                </h1>
+                <a href="{% url 'listar_personal' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Listado
+                </a>
+            </div>
+
+            <!-- Mensajes -->
+            {% if messages %}
+            <div class="messages mb-4">
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                    <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Formulario -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user me-2"></i>Datos del Personal
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Foto Centrada -->
+                    <div class="text-center mb-4">
+                        <div class="d-inline-block">
+                            {% if personal.foto %}
+                                <img src="{{ personal.foto.url }}" 
+                                     alt="Foto de {{ personal.nombre }} {{ personal.apellido }}"
+                                     class="img-fluid rounded-circle mb-3 profile-photo"
+                                     style="width: 160px; height: 160px; object-fit: cover; border: 4px solid #e9ecef;">
+                            {% else %}
+                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto mb-3 profile-placeholder"
+                                     style="width: 160px; height: 160px; border: 4px solid #e9ecef;">
+                                    <i class="fas fa-user fa-4x text-muted"></i>
+                                </div>
+                            {% endif %}
+                            
+                            <h5 class="mb-1">{{ personal.nombre }} {{ personal.apellido }}</h5>
+                            <p class="text-muted mb-2">{{ personal.get_tipo_display }}</p>
+                            
+                            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                <span class="badge {% if personal.activo %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ personal.activo|yesno:"Activo,Inactivo" }}
+                                </span>
+                                {% if personal.user %}
+                                    <span class="badge bg-info">Usuario Activo</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Errores generales -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <!-- Columna 1: Información Básica -->
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-id-card me-2"></i>Información Básica
+                                </h6>
+                                
+                                <!-- Tipo y Legajo -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Tipo de Personal *</label>
+                                            {{ form.tipo }}
+                                            {% if form.tipo.errors %}
+                                            <div class="text-danger small">{{ form.tipo.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Legajo</label>
+                                            {{ form.legajo }}
+                                            {% if form.legajo.errors %}
+                                            <div class="text-danger small">{{ form.legajo.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Nombre y Apellido -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Nombre *</label>
+                                            {{ form.nombre }}
+                                            {% if form.nombre.errors %}
+                                            <div class="text-danger small">{{ form.nombre.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Apellido *</label>
+                                            {{ form.apellido }}
+                                            {% if form.apellido.errors %}
+                                            <div class="text-danger small">{{ form.apellido.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- DNI y Fecha Nacimiento -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">DNI *</label>
+                                            {{ form.dni }}
+                                            {% if form.dni.errors %}
+                                            <div class="text-danger small">{{ form.dni.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Fecha Nacimiento</label>
+                                            {{ form.fecha_nacimiento }}
+                                            {% if form.fecha_nacimiento.errors %}
+                                            <div class="text-danger small">{{ form.fecha_nacimiento.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Columna 2: Información Laboral -->
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-briefcase me-2"></i>Información Laboral
+                                </h6>
+                                
+                                <!-- Fecha Ingreso y Salario -->
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Fecha Ingreso *</label>
+                                            {{ form.fecha_ingreso }}
+                                            {% if form.fecha_ingreso.errors %}
+                                            <div class="text-danger small">{{ form.fecha_ingreso.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Salario</label>
+                                            {{ form.salario }}
+                                            {% if form.salario.errors %}
+                                            <div class="text-danger small">{{ form.salario.errors }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Campo Foto -->
+                                <div class="mb-3">
+                                    <label for="{{ form.foto.id_for_label }}" class="form-label">{{ form.foto.label }}</label>
+                                    {{ form.foto }}
+                                    {% if form.foto.help_text %}
+                                        <div class="form-text"> 
+                                            Formatos soportados: JPG, PNG, GIF. Tamaño máximo: 5MB<br>
+                                            <small class="text-muted">Selecciona una nueva imagen para reemplazar la actual.</small>
+                                        </div>
+                                    {% endif %}
+                                    {% if form.foto.errors %}
+                                        <div class="text-danger small">{{ form.foto.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Crear Usuario -->
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.crear_usuario }}
+                                        <label class="form-check-label" for="{{ form.crear_usuario.id_for_label }}">
+                                            {{ form.crear_usuario.label }}
+                                        </label>
+                                    </div>
+                                    {% if form.crear_usuario.help_text %}
+                                    <small class="form-text text-muted">{{ form.crear_usuario.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.crear_usuario.errors %}
+                                    <div class="text-danger small">{{ form.crear_usuario.errors }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Activo (solo en edición) -->
+                                {% if form.activo %}
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        {{ form.activo }}
+                                        <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                            {{ form.activo.label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Contacto -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-address-book me-2"></i>Información de Contacto
+                                </h6>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Teléfono</label>
+                                    {{ form.telefono }}
+                                    {% if form.telefono.errors %}
+                                    <div class="text-danger small">{{ form.telefono.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    {{ form.mail }}
+                                    {% if form.mail.errors %}
+                                    <div class="text-danger small">{{ form.mail.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Teléfono de Contacto</label>
+                                    {{ form.telefono_contacto }}
+                                    {% if form.telefono_contacto.errors %}
+                                    <div class="text-danger small">{{ form.telefono_contacto.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Sexo</label>
+                                    {{ form.sexo }}
+                                    {% if form.sexo.errors %}
+                                    <div class="text-danger small">{{ form.sexo.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label class="form-label">Dirección</label>
+                                    {{ form.direccion }}
+                                    {% if form.direccion.errors %}
+                                    <div class="text-danger small">{{ form.direccion.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3">
+                                    <i class="fas fa-sticky-note me-2"></i>Observaciones
+                                </h6>
+                                <div class="mb-3">
+                                    {{ form.observaciones }}
+                                    {% if form.observaciones.errors %}
+                                    <div class="text-danger small">{{ form.observaciones.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'listar_personal' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ boton_texto }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-photo {
+    transition: transform 0.3s ease;
+}
+.profile-photo:hover {
+    transform: scale(1.05);
+}
+.profile-placeholder {
+    transition: all 0.3s ease;
+}
+.profile-placeholder:hover {
+    background-color: #f8f9fa !important;
+    border-color: #007bff !important;
+}
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+</style>
+{% endblock %}

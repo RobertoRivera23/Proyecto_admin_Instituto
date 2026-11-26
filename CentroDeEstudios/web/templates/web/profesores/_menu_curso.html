@@ -1,0 +1,28 @@
+{% load static %}
+<ul class="nav nav-tabs mb-4">
+  <li class="nav-item">
+    <a class="nav-link {% if request.resolver_match.url_name == 'tomar_asistencia_profesor' %}active{% endif %}" 
+       href="{% url 'tomar_asistencia_profesor' curso.id %}">
+      <i class="fas fa-clipboard-check"></i> Asistencia
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if request.resolver_match.url_name == 'gestionar_notas' %}active{% endif %}" 
+       href="{% url 'gestionar_notas' curso.id %}">
+      <i class="fas fa-edit"></i> Notas
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if request.resolver_match.url_name == 'reporte_asistencias' %}active{% endif %}" 
+       href="{% url 'reporte_asistencia_curso' curso.id %}">
+      <i class="fas fa-chart-bar"></i> Reportes
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link {% if request.resolver_match.url_name == 'gestionar_curso' %}active{% endif %}" 
+       href="{% url 'gestionar_curso' curso.id %}">
+      <i class="fas fa-cog"></i> Gestión
+    </a>
+  </li>
+        
+</ul>

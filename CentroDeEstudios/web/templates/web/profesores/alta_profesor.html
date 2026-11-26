@@ -1,0 +1,193 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %} Alta de Profesor {% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'web/styles/styles.css' %}">
+<link rel="stylesheet" href="{% static 'web/styles/alumnos.css' %}">
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <!-- Header con botones - Mismo estilo que alumnos -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">👨‍🏫 Alta de Nuevo Profesor</h1>
+        <div>
+            <a href="{% url 'listar_profesores' %}" class="btn btn-secondary">
+                <i class="fa fa-arrow-left me-2"></i> Volver a Lista
+            </a>
+        </div>
+    </div>
+    
+    <!-- Mensajes - Mismo estilo -->
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            <i class="fa fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulario en card - Mismo estilo que alumnos -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="fa fa-user-plus me-2"></i>Datos del Profesor
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{% url 'alta_profesor' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Errores generales -->
+                {% if alta_profesor_form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle me-2"></i>
+                    {% for error in alta_profesor_form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Organizar campos en filas -->
+                <div class="row">
+                    <!-- Columna 1: Datos personales -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-id-card me-2"></i>Información Personal
+                        </h6>
+                        
+                        <!-- Nombre y Apellido en misma fila -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.nombre|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.apellido|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DNI y Fecha Nacimiento -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.dni|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.fecha_nacimiento|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sexo y Foto -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.sexo|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.foto|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Datos de contacto y específicos -->
+                    <div class="col-md-6">
+                        <h6 class="border-bottom pb-2 mb-3 text-primary">
+                            <i class="fa fa-address-book me-2"></i>Información de Contacto
+                        </h6>
+                        
+                        <!-- Dirección completa -->
+                        <div class="mb-3">
+                            {{ alta_profesor_form.direccion|as_crispy_field }}
+                        </div>
+
+                        <!-- Teléfonos -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.telefono|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.telefono_contacto|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3">
+                            {{ alta_profesor_form.mail|as_crispy_field }}
+                        </div>
+
+                        <!-- Campos específicos de Profesor -->
+                        <h6 class="border-bottom pb-2 mb-3 text-primary mt-4">
+                            <i class="fa fa-briefcase me-2"></i>Información Profesional
+                        </h6>
+
+                        <!-- CUIT y Entidad -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.cuit|as_crispy_field }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    {{ alta_profesor_form.entidad|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CBU -->
+                        <div class="mb-3">
+                            {{ alta_profesor_form.cbu|as_crispy_field }}
+                        </div>
+
+                        <!-- Estado activo -->
+                        <div class="mb-3">
+                            {{ alta_profesor_form.activo|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end gap-3">
+                            <a href="{% url 'listar_profesores' %}" class="btn btn-secondary">
+                                <i class="fa fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-save me-2"></i>Guardar Profesor
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="alert alert-info mt-4">
+        <i class="fa fa-info-circle me-2"></i>
+        <strong>Nota:</strong> Los campos marcados con <span class="text-danger">*</span> son obligatorios.
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+#Para Facturacion
+reportlab 
+django-import-export 
+xhtml2pdf 
+openpyxl 
+python-barcode 
+qrcode 
+Pillow

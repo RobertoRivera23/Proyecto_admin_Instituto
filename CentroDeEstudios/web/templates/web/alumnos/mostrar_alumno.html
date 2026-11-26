@@ -1,0 +1,201 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}
+    {% if alumno.eliminado %}
+        🗑️ Alumno Eliminado - {{ alumno.nombre_completo }}
+    {% else %}
+        👤 Detalles del Alumno - {{ alumno.nombre_completo }}
+    {% endif %}
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid">
+    <!-- Alert si el alumno está eliminado -->
+    {% if alumno.eliminado %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fa fa-exclamation-triangle me-2"></i>
+        <strong>Este alumno está marcado como eliminado</strong>
+        <ul class="mb-0 mt-2">
+            <li>Eliminado por: {{ alumno.eliminado_por.username|default:"Sistema" }}</li>
+            <li>Fecha de eliminación: {{ alumno.fecha_eliminacion|date:"d/m/Y H:i" }}</li>
+            <li>No aparece en los listados activos</li>
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Información principal del alumno -->
+            <div class="card">
+                <div class="card-header {% if alumno.eliminado %}bg-warning text-dark{% else %}bg-primary text-white{% endif %}">
+                    <h5 class="card-title mb-0">
+                        {% if alumno.eliminado %}
+                            <i class="fa fa-user-slash me-2"></i>Alumno Eliminado
+                        {% else %}
+                            <i class="fa fa-user me-2"></i>Detalles del Alumno
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            {% if alumno.foto %}
+                                <img src="{{ alumno.foto.url }}" alt="Foto" class="img-fluid rounded" style="max-height: 250px;">
+                            {% else %}
+                                <img src="{% static 'imagenes_bd/foto_por_defecto.png' %}" alt="Foto por defecto" class="img-fluid rounded" style="max-height: 250px;">
+                            {% endif %}
+                            
+                            <!-- Estado del alumno -->
+                            <div class="mt-3">
+                                {% if alumno.eliminado %}
+                                    <span class="badge bg-warning text-dark fs-6">
+                                        <i class="fa fa-trash me-1"></i>ELIMINADO
+                                    </span>
+                                {% elif alumno.activo %}
+                                    <span class="badge bg-success fs-6">
+                                        <i class="fa fa-check me-1"></i>ACTIVO
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary fs-6">
+                                        <i class="fa fa-times me-1"></i>INACTIVO
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Nombre:</strong> {{ alumno.nombre_completo }}</p>
+                                    <p><strong>DNI:</strong> {{ alumno.dni }}</p>
+                                    <p><strong>Fecha de Nacimiento:</strong> {{ alumno.fecha_nacimiento|date:"d/m/Y"|default:"-" }}</p>
+                                    <p><strong>Edad:</strong> {{ alumno.edad|default:"-" }} años</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Teléfono:</strong> {{ alumno.telefono|default:"-" }}</p>
+                                    <p><strong>Email:</strong> {{ alumno.mail|default:"-" }}</p>
+                                    <p><strong>Sexo:</strong> {{ alumno.get_sexo_display|default:"-" }}</p>
+                                    <p><strong>Fecha creación:</strong> {{ alumno.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <p><strong>Dirección:</strong> {{ alumno.direccion|default:"-" }}</p>
+                                    <p><strong>Teléfono de Contacto:</strong> {{ alumno.telefono_contacto|default:"-" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        {% if alumno.eliminado %}
+                            <a href="{% url 'restaurar_alumno' alumno.id %}" class="btn btn-success">
+                                <i class="fa fa-undo me-2"></i>Restaurar Alumno
+                            </a>
+                            <a href="{% url 'alumnos_eliminados' %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left me-2"></i>Volver al Listado
+                            </a>
+                        {% else %}
+                            <a href="{% url 'edit_alumno' alumno.id %}" class="btn btn-warning">
+                                <i class="fa fa-edit me-2"></i>Editar Alumno
+                            </a>
+                        {% endif %}
+                        
+                        <div>
+                            {% if not alumno.eliminado %}
+                            <a href="{% url 'listar_alumno' %}" class="btn btn-secondary">
+                                <i class="fa fa-arrow-left me-2"></i>Volver al Listado
+                            </a>
+                            <a href="{% url 'confirmar_eliminar_alumno' alumno.id %}" class="btn btn-danger">
+                                <i class="fa fa-trash me-2"></i>Eliminar
+                            </a>
+                                <a href="{% url 'historial_completo_alumno' alumno.id %}" class="btn btn-warning">
+                                <i class="fa fa-trash me-2"></i>Hisotrial
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Sección de Archivos Adicionales -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-paperclip me-2"></i>Archivos Adicionales
+                        <span class="badge bg-light text-dark ms-2">{{ archivos_adicionales.count }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if archivos_adicionales %}
+                    <div class="archivos-container">
+                        {% for archivo in archivos_adicionales %}
+                        <div class="archivo-item {% if archivo.es_imagen %}foto{% elif archivo.es_pdf %}pdf{% else %}documento{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center">
+                                        {% if archivo.es_imagen %}
+                                        <i class="fa fa-image text-success archivo-icono"></i>
+                                        {% elif archivo.es_pdf %}
+                                        <i class="fa fa-file-pdf text-danger archivo-icono"></i>
+                                        {% else %}
+                                        <i class="fa fa-file text-warning archivo-icono"></i>
+                                        {% endif %}
+                                        <strong>{{ archivo.nombre }}</strong>
+                                    </div>
+                                    <small class="text-muted d-block">
+                                        {{ archivo.get_tipo_display }} • {{ archivo.tamaño_archivo }}
+                                    </small>
+                                    {% if archivo.descripcion %}
+                                    <small class="d-block">{{ archivo.descripcion }}</small>
+                                    {% endif %}
+                                    <small class="text-muted d-block">
+                                        Subido: {{ archivo.fecha_subida|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                                <div>
+                                    <a href="{{ archivo.archivo.url }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="Ver archivo">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fa fa-folder-open fa-2x mb-2"></i>
+                        <p>No hay archivos adicionales</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Información de eliminación (solo si está eliminado) -->
+            {% if alumno.eliminado %}
+            <div class="card mt-3">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fa fa-info-circle me-2"></i>Información de Eliminación
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>Eliminado por:</strong> {{ alumno.eliminado_por.username|default:"Sistema" }}</li>
+                        <li><strong>Fecha de eliminación:</strong> {{ alumno.fecha_eliminacion|date:"d/m/Y H:i" }}</li>
+                        <li><strong>Hace:</strong> {{ alumno.fecha_eliminacion|timesince }}</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

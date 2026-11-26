@@ -1,0 +1,969 @@
+{% extends "web/base.html" %}
+{% load static %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-bell text-primary me-2"></i>
+            {% if es_coordinador %}
+            <span class="text-warning">Todas las Notificaciones</span>
+            {% else %}
+            Mis Notificaciones y Tareas Asignadas
+            {% endif %}
+            {% if eliminadas_count > 0 %}
+            <a href="{% url 'papelera_notificaciones' %}" class="btn btn-outline-warning btn-sm ms-2">
+                <i class="fas fa-trash me-1"></i>Papelera ({{ eliminadas_count }})
+            </a>
+            {% endif %}
+        </h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNotificacionRapida">
+                <i class="fas fa-plus me-2"></i>Recordatorio Rápido
+            </button>
+            <!-- Mostrar "Asignar Tarea" a todos los usuarios -->
+            <a href="{% url 'asignar_tarea_companero' %}" class="btn btn-success">
+                <i class="fas fa-user-plus me-2"></i>Asignar Tarea
+            </a>
+            {% if eliminadas_count > 0 %}
+            <a href="{% url 'papelera_notificaciones' %}" class="btn btn-outline-warning">
+                <i class="fas fa-trash me-2"></i>Papelera
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Estadísticas Mejoradas -->
+    <div class="row mb-4">
+        <div class="col-md-2 col-6 mb-3">
+            <div class="card border-primary">
+                <div class="card-body text-center py-2">
+                    <h5 class="card-title text-primary mb-0">{{ total_notificaciones }}</h5>
+                    <small class="text-muted">Total</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="card border-warning">
+                <div class="card-body text-center py-2">
+                    <h5 class="card-title text-warning mb-0">{{ pendientes }}</h5>
+                    <small class="text-muted">Pendientes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="card border-success">
+                <div class="card-body text-center py-2">
+                    <h5 class="card-title text-success mb-0">{{ realizadas }}</h5>
+                    <small class="text-muted">Realizadas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card border-info">
+                <div class="card-body text-center py-2">
+                    <h5 class="card-title text-info mb-0">{{ tareas_asignadas_por_mi }}</h5>
+                    <small class="text-muted">Tareas que asigné</small>
+                    {% if tareas_asignadas_por_mi_pendientes > 0 %}
+                    <br>
+                    <small class="text-warning">
+                        ({{ tareas_asignadas_por_mi_pendientes }} pendientes)
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-12">
+            <div class="card border-light">
+                <div class="card-body py-2">
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <span class="text-danger fw-bold">{{ urgentes }}</span>
+                            <br>
+                            <small class="text-muted">Urgente</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="text-warning fw-bold">{{ altas }}</span>
+                            <br>
+                            <small class="text-muted">Alta</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="text-info fw-bold">{{ medias }}</span>
+                            <br>
+                            <small class="text-muted">Media</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="text-success fw-bold">{{ bajas }}</span>
+                            <br>
+                            <small class="text-muted">Baja</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda Avanzada -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-search me-2"></i>Búsqueda y Filtros
+                {% if es_coordinador %}
+                <span class="badge bg-warning ms-2">
+                    <i class="fas fa-eye me-1"></i>Vista de Coordinador
+                </span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <!-- Primera fila: Búsqueda y Fechas -->
+                <div class="col-md-6">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search_query }}" placeholder="Buscar en títulos, mensajes, destinatarios...">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_desde" class="form-label">Desde</label>
+                    <input type="date" class="form-control" id="fecha_desde" name="fecha_desde" 
+                           value="{{ fecha_desde }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="fecha_hasta" class="form-label">Hasta</label>
+                    <input type="date" class="form-control" id="fecha_hasta" name="fecha_hasta" 
+                           value="{{ fecha_hasta }}">
+                </div>
+
+                <!-- Segunda fila: Filtros -->
+                <div class="col-md-2">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="estado" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="PENDIENTE" {% if request.GET.estado == 'PENDIENTE' %}selected{% endif %}>Pendientes</option>
+                        <option value="LEIDA" {% if request.GET.estado == 'LEIDA' %}selected{% endif %}>Leídas</option>
+                        <option value="REALIZADA" {% if request.GET.estado == 'REALIZADA' %}selected{% endif %}>Realizadas</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="prioridad" class="form-label">Prioridad</label>
+                    <select name="prioridad" id="prioridad" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="URGENTE" {% if request.GET.prioridad == 'URGENTE' %}selected{% endif %}>Urgente</option>
+                        <option value="ALTA" {% if request.GET.prioridad == 'ALTA' %}selected{% endif %}>Alta</option>
+                        <option value="MEDIA" {% if request.GET.prioridad == 'MEDIA' %}selected{% endif %}>Media</option>
+                        <option value="BAJA" {% if request.GET.prioridad == 'BAJA' %}selected{% endif %}>Baja</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="tipo" class="form-label">Tipo</label>
+                    <select name="tipo" id="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        {% for tipo in tipos_notificacion %}
+                        <option value="{{ tipo.id }}" {% if request.GET.tipo == tipo.id|stringformat:"i" %}selected{% endif %}>
+                            {{ tipo.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- FILTRO ACTUALIZADO: SOLO PARA COORDINADORES, usando usuarios_filtro -->
+                {% if es_coordinador and usuarios_filtro %}
+<div class="col-md-3">
+    <label for="usuario_destino" class="form-label">Filtrar por Personal</label>
+    <select name="usuario_destino" id="usuario_destino" class="form-select">
+        <option value="">Todos los destinatarios</option>
+        {% for usuario in usuarios_filtro %}
+        <option value="{{ usuario.id }}" 
+            {% if usuario_destino_id == usuario.id|stringformat:"s" %}selected{% endif %}>
+            {{ usuario.get_full_name|default:usuario.username }}
+            {% if usuario.personal_relacionado %}
+                ({{ usuario.personal_relacionado.get_tipo_display }})
+            {% endif %}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+                
+                <div class="col-md-{% if es_coordinador and usuarios_filtro %}2{% else %}3{% endif %}">
+                    <label for="orden" class="form-label">Ordenar por</label>
+                    <select name="orden" id="orden" class="form-select">
+                        <option value="estado_prioridad" {% if orden_actual == 'estado_prioridad' %}selected{% endif %}>Estado → Prioridad</option>
+                        <option value="prioridad" {% if orden_actual == 'prioridad' %}selected{% endif %}>Solo Prioridad</option>
+                        <option value="fecha_creacion" {% if orden_actual == 'fecha_creacion' %}selected{% endif %}>Fecha Creación</option>
+                        <option value="fecha_vencimiento" {% if orden_actual == 'fecha_vencimiento' %}selected{% endif %}>Fecha Vencimiento</option>
+                    </select>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="col-12">
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                        </button>
+                        <a href="{% url 'listar_notificaciones' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-refresh me-2"></i>Limpiar
+                        </a>
+                        {% if search_query or request.GET.estado or request.GET.prioridad or usuario_destino_id %}
+                        <span class="badge bg-info ms-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            {{ notificaciones|length }} resultado(s)
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Indicador de filtro por personal - ACTUALIZADO usando usuario_filtrado_info -->
+    {% if usuario_filtrado_info %}
+    <div class="alert alert-info mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-user-filter me-2"></i>
+                <strong>Filtro activo:</strong> 
+                Mostrando notificaciones para 
+                <strong>{{ usuario_filtrado_info.nombre }}</strong>
+                {% if usuario_filtrado_info.tipo %}
+                    <span class="badge bg-secondary ms-2">{{ usuario_filtrado_info.tipo }}</span>
+                {% endif %}
+                <small class="text-muted ms-2">
+                    ({{ notificaciones|length }} notificación{{ notificaciones|pluralize:"es" }})
+                </small>
+            </div>
+            <a href="{% url 'listar_notificaciones' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-times me-1"></i> Remover filtro
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Lista de notificaciones -->
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    {% if es_coordinador %}
+                    <span class="text-warning">Todas las Notificaciones</span>
+                    {% else %}
+                    Mis Notificaciones y Tareas Asignadas
+                    {% endif %}
+                    <span class="badge bg-primary ms-2">{{ notificaciones|length }}</span>
+                </h5>
+                <div class="text-muted small">
+                    {% if es_coordinador %}
+                    <span class="badge bg-warning me-2">
+                        <i class="fas fa-eye me-1"></i>Vista de Coordinador
+                    </span>
+                    {% endif %}
+                    <i class="fas fa-sort me-1"></i>Orden: 
+                    {% if orden_actual == 'estado_prioridad' %}Estado → Prioridad
+                    {% elif orden_actual == 'prioridad' %}Prioridad
+                    {% elif orden_actual == 'fecha_creacion' %}Fecha Creación
+                    {% else %}Fecha Vencimiento{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if notificaciones %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="70" class="text-center">Prioridad</th>
+                            <th width="80" class="text-center">Estado</th>
+                            <th width="50" class="text-center">Tipo</th>
+                            <th>Título</th>
+                            <th>Contenido</th>
+                            <th width="120" class="text-center">Origen</th>
+                            <th width="120" class="text-center">Destino</th>
+                            <th width="100" class="text-center">Vence</th>
+                            <th width="120" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notificacion in notificaciones %}
+                        <tr class="{% if notificacion.usuario_destino == request.user %}table-info{% endif %}
+                                  {% if notificacion.usuario_origen == request.user and notificacion.usuario_destino != request.user %}table-warning{% endif %}
+                                  {% if notificacion.estado == 'PENDIENTE' and notificacion.usuario_destino == request.user %}table-warning{% endif %}
+                                  {% if notificacion.estado == 'REALIZADA' %}table-success{% endif %}
+                                  {% if notificacion.fecha_vencimiento and notificacion.fecha_vencimiento < now %}table-danger{% endif %}">
+                            
+                            <!-- Prioridad -->
+                            <td class="text-center">
+                                {% if notificacion.prioridad == 'URGENTE' %}
+                                <span class="badge bg-danger" title="Urgente">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </span>
+                                {% elif notificacion.prioridad == 'ALTA' %}
+                                <span class="badge bg-warning" title="Alta">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </span>
+                                {% elif notificacion.prioridad == 'MEDIA' %}
+                                <span class="badge bg-info" title="Media">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                {% else %}
+                                <span class="badge bg-success" title="Baja">
+                                    <i class="fas fa-arrow-down"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Estado - MEJORADO para mostrar mejor -->
+                            <td class="text-center">
+                                <div class="btn-group-vertical" role="group">
+                                    {% if notificacion.estado == 'PENDIENTE' %}
+                                    <span class="badge bg-warning" title="Pendiente">
+                                        <i class="fas fa-clock"></i> Pendiente
+                                    </span>
+                                    {% elif notificacion.estado == 'LEIDA' %}
+                                    <span class="badge bg-info" title="Leída">
+                                        <i class="fas fa-eye"></i> Leída
+                                    </span>
+                                    {% elif notificacion.estado == 'REALIZADA' %}
+                                    <span class="badge bg-success" title="Realizada">
+                                        <i class="fas fa-check"></i> Realizada
+                                    </span>
+                                    {% endif %}
+                                    
+                                    <!-- Indicador de tarea asignada por mí -->
+                                    {% if notificacion.usuario_origen == request.user and notificacion.usuario_destino != request.user %}
+                                    <small class="text-info mt-1" title="Tarea que asignaste">
+                                        <i class="fas fa-paper-plane"></i> Asignada por ti
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            
+                            <!-- Tipo - Compacto -->
+                            <td class="text-center">
+                                <i class="fas {{ notificacion.tipo.icono }} text-{{ notificacion.tipo.color }}" 
+                                   data-bs-toggle="tooltip" 
+                                   title="{{ notificacion.tipo.nombre }}"></i>
+                            </td>
+                            
+                            <!-- Título -->
+                            <td>
+                                <div class="fw-bold">{{ notificacion.titulo }}</div>
+                                <small class="text-muted">
+                                    {{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}
+                                    {% if notificacion.es_manual %}
+                                    <span class="badge bg-primary ms-1">
+                                        <i class="fas fa-user-edit me-1"></i>Manual
+                                    </span>
+                                    {% endif %}
+                                </small>
+                            </td>
+                            
+                            <!-- Contenido con acceso al mensaje completo -->
+                            <td>
+                                <div class="d-flex align-items-start">
+                                    <span class="text-truncate me-2" style="max-width: 200px;">
+                                        {{ notificacion.mensaje|truncatechars:100 }}
+                                    </span>
+                                    {% if notificacion.mensaje|length > 100 %}
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-muted" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalMensaje{{ notificacion.id }}"
+                                            title="Ver mensaje completo">
+                                        <i class="fas fa-expand-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Origen -->
+                            <td class="text-center">
+                                {% if notificacion.usuario_origen %}
+                                    {% if notificacion.usuario_origen == request.user %}
+                                    <small class="text-primary fw-bold">Yo</small>
+                                    {% else %}
+                                    <small class="text-muted" data-bs-toggle="tooltip" title="{{ notificacion.usuario_origen.get_full_name }}">
+                                        {{ notificacion.usuario_origen.get_full_name|truncatewords:2 }}
+                                    </small>
+                                    {% endif %}
+                                {% else %}
+                                <small class="text-muted">Sistema</small>
+                                {% endif %}
+                            </td>
+
+                            <!-- Destino -->
+                            <td class="text-center">
+                                {% if notificacion.usuario_destino == request.user %}
+                                <small class="text-primary fw-bold">Mí</small>
+                                {% else %}
+                                <small class="text-muted" data-bs-toggle="tooltip" title="{{ notificacion.usuario_destino.get_full_name }}">
+                                    {{ notificacion.usuario_destino.get_full_name|truncatewords:2 }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Vencimiento -->
+                            <td class="text-center">
+                                {% if notificacion.fecha_vencimiento %}
+                                    {% if notificacion.fecha_vencimiento < now %}
+                                    <small class="text-danger fw-bold">
+                                        {{ notificacion.fecha_vencimiento|date:"d/m H:i" }}
+                                    </small>
+                                    <br>
+                                    <span class="badge bg-danger small">Vencida</span>
+                                    {% else %}
+                                    <small class="text-muted">
+                                        {{ notificacion.fecha_vencimiento|date:"d/m H:i" }}
+                                    </small>
+                                    {% endif %}
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Acciones - Dropdown Compacto MODIFICADO para toggle -->
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" 
+                                            type="button" data-bs-toggle="dropdown" 
+                                            aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <!-- Ver mensaje completo -->
+                                        <li>
+                                            <a href="#" class="dropdown-item" 
+                                               data-bs-toggle="modal" 
+                                               data-bs-target="#modalMensaje{{ notificacion.id }}"
+                                               onclick="event.preventDefault(); event.stopPropagation();">
+                                                <i class="fas fa-eye me-2"></i>Ver mensaje completo
+                                            </a>
+                                        </li>
+                                        
+                                        <!-- Acciones de estado (solo para destinatario o coordinador) -->
+                                        {% if notificacion.usuario_destino == request.user or es_coordinador %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li class="dropdown-header">Cambiar estado</li>
+                                        
+                                        <!-- Cambiar a PENDIENTE -->
+                                        {% if notificacion.estado != 'PENDIENTE' %}
+                                        <li>
+                                            <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=PENDIENTE" 
+                                               class="dropdown-item text-warning">
+                                                <i class="fas fa-clock me-2"></i>Marcar como Pendiente
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li>
+                                            <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=LEIDA" 
+                                               class="dropdown-item text-info">
+                                                <i class="fas fa-eye me-2"></i>Marcar como Leída
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        <!-- Cambiar a LEIDA -->
+                                        {% if notificacion.estado != 'LEIDA' %}
+                                        <li>
+                                            <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=LEIDA" 
+                                               class="dropdown-item text-info">
+                                                <i class="fas fa-eye me-2"></i>Marcar como Leída
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li>
+                                            <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=PENDIENTE" 
+                                               class="dropdown-item text-warning">
+                                                <i class="fas fa-eye-slash me-2"></i>Marcar como No Leída
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        <!-- Cambiar a REALIZADA -->
+                                        {% if notificacion.estado != 'REALIZADA' %}
+                                        <li>
+                                            <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=REALIZADA" 
+                                               class="dropdown-item text-success">
+                                                <i class="fas fa-check me-2"></i>Marcar como Realizada
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li>
+                                            <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=LEIDA" 
+                                               class="dropdown-item text-info">
+                                                <i class="fas fa-times me-2"></i>Marcar como No Realizada
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        {% endif %}
+                                        
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <!-- Enlace a la página de confirmación de eliminación -->
+                                            <a class="dropdown-item text-danger" href="{% url 'eliminar_notificacion' notificacion.id %}">
+                                                <i class="fas fa-trash me-2"></i>Mover a papelera
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay notificaciones</h5>
+                <p class="text-muted mb-4">
+                    {% if search_query or request.GET.estado or request.GET.prioridad or usuario_destino_id %}
+                    No se encontraron notificaciones con los filtros aplicados.
+                    {% if usuario_filtrado_info %}
+                    <br>
+                    <span class="text-info">
+                        Para: {{ usuario_filtrado_info.nombre }}
+                    </span>
+                    {% endif %}
+                    {% else %}
+                    No tienes notificaciones en este momento.
+                    {% endif %}
+                </p>
+                {% if search_query or request.GET.estado or request.GET.prioridad or usuario_destino_id %}
+                <a href="{% url 'listar_notificaciones' %}" class="btn btn-primary">
+                    <i class="fas fa-refresh me-2"></i>Ver todas
+                </a>
+                {% else %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNotificacionRapida">
+                    <i class="fas fa-plus me-2"></i>Crear recordatorio
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Información del ordenamiento actual -->
+        {% if notificaciones %}
+        <div class="card-footer bg-light">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        Mostrando <strong>{{ notificaciones|length }}</strong> de <strong>{{ total_notificaciones }}</strong> notificaciones
+                        {% if not es_coordinador %}
+                        <br>
+                        <span class="text-info">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Incluye tus tareas y las que asignaste a otros
+                        </span>
+                        {% endif %}
+                        <!-- Información adicional del filtro por personal -->
+                        {% if usuario_filtrado_info %}
+                        <br>
+                        <span class="text-info">
+                            <i class="fas fa-user me-1"></i>
+                            Filtrado por: {{ usuario_filtrado_info.nombre }}
+                        </span>
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">
+                        Orden: 
+                        {% if orden_actual == 'estado_prioridad' %}
+                        <strong>Estado → Prioridad → Vencimiento</strong>
+                        {% elif orden_actual == 'prioridad' %}
+                        <strong>Prioridad → Estado</strong>
+                        {% elif orden_actual == 'fecha_creacion' %}
+                        <strong>Fecha de creación</strong>
+                        {% else %}
+                        <strong>Fecha de vencimiento</strong>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- MODALES PARA CADA NOTIFICACIÓN - FUERA DE LA TABLA -->
+{% for notificacion in notificaciones %}
+<div class="modal fade" id="modalMensaje{{ notificacion.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas {{ notificacion.tipo.icono }} text-{{ notificacion.tipo.color }} me-2"></i>
+                    {{ notificacion.titulo }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Mensaje:</strong>
+                    <p class="mt-2">{{ notificacion.mensaje|linebreaksbr }}</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <strong>Creación:</strong><br>
+                            {{ notificacion.fecha_creacion|date:"d/m/Y H:i" }}
+                        </small>
+                    </div>
+                    {% if notificacion.fecha_vencimiento %}
+                    <div class="col-md-6">
+                        <small class="{% if notificacion.fecha_vencimiento < now %}text-danger{% else %}text-muted{% endif %}">
+                            <strong>Vencimiento:</strong><br>
+                            {{ notificacion.fecha_vencimiento|date:"d/m/Y H:i" }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <strong>Origen:</strong> 
+                            {% if notificacion.usuario_origen %}
+                                {% if notificacion.usuario_origen == request.user %}
+                                <span class="text-primary fw-bold">Tú</span>
+                                {% else %}
+                                {{ notificacion.usuario_origen.get_full_name }}
+                                {% endif %}
+                            {% else %}
+                                Sistema
+                            {% endif %}
+                            <br>
+                            <strong>Destino:</strong> 
+                            {% if notificacion.usuario_destino == request.user %}
+                            <span class="text-primary fw-bold">Tú</span>
+                            {% else %}
+                            {{ notificacion.usuario_destino.get_full_name }}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- Información de fechas de estado -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            {% if notificacion.fecha_leida %}
+                            <strong>Leída el:</strong> {{ notificacion.fecha_leida|date:"d/m/Y H:i" }}<br>
+                            {% endif %}
+                            {% if notificacion.fecha_realizado %}
+                            <strong>Realizada el:</strong> {{ notificacion.fecha_realizado|date:"d/m/Y H:i" }}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                
+                <!-- Botones para cambiar estado desde el modal -->
+                {% if notificacion.usuario_destino == request.user or es_coordinador %}
+                <div class="btn-group">
+                    {% if notificacion.estado != 'PENDIENTE' %}
+                    <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=PENDIENTE" class="btn btn-warning">
+                        <i class="fas fa-clock me-1"></i>Pendiente
+                    </a>
+                    {% endif %}
+                    {% if notificacion.estado != 'LEIDA' %}
+                    <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=LEIDA" class="btn btn-info">
+                        <i class="fas fa-eye me-1"></i>Leída
+                    </a>
+                    {% else %}
+                    <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=PENDIENTE" class="btn btn-warning">
+                        <i class="fas fa-eye-slash me-1"></i>No Leída
+                    </a>
+                    {% endif %}
+                    {% if notificacion.estado != 'REALIZADA' %}
+                    <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=REALIZADA" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>Realizada
+                    </a>
+                    {% else %}
+                    <a href="{% url 'cambiar_estado_notificacion' notificacion.id %}?estado=LEIDA" class="btn btn-info">
+                        <i class="fas fa-times me-1"></i>No Realizada
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal para crear recordatorio rápido -->
+<div class="modal fade" id="modalNotificacionRapida" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Crear Recordatorio Rápido
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formNotificacionRapida" method="post" action="{% url 'crear_notificacion_rapida' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Título -->
+                    <div class="mb-3">
+                        <label for="titulo" class="form-label">
+                            <i class="fas fa-heading me-1"></i>Título *
+                        </label>
+                        <input type="text" class="form-control" id="titulo" name="titulo" 
+                               placeholder="Ej: Reunión mañana" required maxlength="200">
+                        <div class="form-text">Máximo 200 caracteres</div>
+                    </div>
+                    
+                    <!-- Mensaje -->
+                    <div class="mb-3">
+                        <label for="mensaje" class="form-label">
+                            <i class="fas fa-comment me-1"></i>Mensaje *
+                        </label>
+                        <textarea class="form-control" id="mensaje" name="mensaje" 
+                                  rows="3" placeholder="Describe el recordatorio..." required></textarea>
+                    </div>
+                    
+                    <!-- Usuario Destino - TODOS pueden seleccionar CUALQUIER usuario -->
+                    <div class="mb-3">
+                        <label for="usuario_destino" class="form-label">
+                            <i class="fas fa-user me-1"></i>Destinatario *
+                        </label>
+                        <select class="form-select" id="usuario_destino" name="usuario_destino" required>
+    <option value="">Seleccione un destinatario</option>
+    <option value="{{ request.user.id }}" selected>
+        Para mí ({{ request.user.get_full_name|default:request.user.username }})
+    </option>
+    {% for usuario in usuarios_personal %}
+        {% if usuario.id != request.user.id %}
+        <option value="{{ usuario.id }}">
+            {{ usuario.get_full_name|default:usuario.username }}
+            {% if usuario.personal_relacionado %}
+                ({{ usuario.personal_relacionado.get_tipo_display }})
+            {% endif %}
+        </option>
+        {% endif %}
+    {% endfor %}
+</select>
+                        <div class="form-text">
+                            Puedes asignar este recordatorio a cualquier miembro del personal
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Fecha Vencimiento -->
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_vencimiento" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>Fecha Límite
+                            </label>
+                            <input type="datetime-local" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento">
+                            <div class="form-text">Opcional</div>
+                        </div>
+                        
+                        <!-- Prioridad -->
+                        <div class="col-md-6 mb-3">
+                            <label for="prioridad" class="form-label">
+                                <i class="fas fa-exclamation-circle me-1"></i>Prioridad
+                            </label>
+                            <select class="form-select" id="prioridad" name="prioridad">
+                                <option value="BAJA">Baja</option>
+                                <option value="MEDIA" selected>Media</option>
+                                <option value="ALTA">Alta</option>
+                                <option value="URGENTE">Urgente</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Información:</strong>
+                        <ul class="mb-0 mt-1">
+                            <li>Todos pueden crear recordatorios para cualquier usuario</li>
+                            <li>Cada usuario verá solo los recordatorios que le enviaron o que él envió</li>
+                            <li>Los coordinadores pueden ver todos los recordatorios</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitNotificacionRapida">
+                        <i class="fas fa-save me-1"></i>Guardar Recordatorio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Inicializar tooltips -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Prevenir comportamiento en enlaces de modal dentro del dropdown
+    var modalLinks = document.querySelectorAll('.dropdown-item[data-bs-toggle="modal"]');
+    modalLinks.forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+
+    // Formulario de notificación rápida
+    const formNotificacionRapida = document.getElementById('formNotificacionRapida');
+    
+    if (formNotificacionRapida) {
+        formNotificacionRapida.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            console.log('Enviando formulario de recordatorio rápido...');
+            
+            // Mostrar spinner
+            const submitBtn = this.querySelector('#submitNotificacionRapida');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+            submitBtn.disabled = true;
+            
+            // Obtener datos del formulario
+            const formData = new FormData(this);
+            
+            // Enviar via AJAX
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': this.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Respuesta recibida:', response.status);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                    alertDiv.style.zIndex = '1060';
+                    alertDiv.innerHTML = `
+                        <strong><i class="fas fa-check-circle me-2"></i>Éxito!</strong> ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alertDiv);
+                    
+                    // Auto-eliminar la alerta después de 5 segundos
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+                    
+                    // Cerrar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificacionRapida'));
+                    modal.hide();
+                    
+                    // Resetear formulario
+                    formNotificacionRapida.reset();
+                    
+                    // Recargar la página para ver los cambios
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    // Mostrar error
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión. Por favor, intenta nuevamente.');
+            })
+            .finally(() => {
+                // Restaurar botón
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+    
+    // Configurar fecha mínima (ahora) para el campo de fecha
+    const fechaInput = document.getElementById('fecha_vencimiento');
+    if (fechaInput) {
+        const ahora = new Date();
+        const offset = ahora.getTimezoneOffset() * 60000;
+        const fechaLocal = new Date(ahora.getTime() - offset);
+        fechaInput.min = fechaLocal.toISOString().slice(0, 16);
+    }
+    
+    // Auto-ajustar altura del textarea mientras escribe
+    const textareaMensaje = document.getElementById('mensaje');
+    if (textareaMensaje) {
+        textareaMensaje.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        // Inicializar altura
+        textareaMensaje.style.height = 'auto';
+        textareaMensaje.style.height = (textareaMensaje.scrollHeight) + 'px';
+    }
+    
+    // Manejar cambios de estado con confirmación (opcional)
+    const estadoLinks = document.querySelectorAll('a[href*="cambiar_estado_notificacion"]');
+    estadoLinks.forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            // Podrías agregar una confirmación aquí si lo deseas
+            // e.preventDefault();
+            // if (confirm('¿Estás seguro de cambiar el estado?')) {
+            //     window.location.href = this.href;
+            // }
+        });
+    });
+});
+</script>
+
+<style>
+/* Mejoras de estilo para los estados */
+.badge.bg-warning {
+    color: #000;
+}
+.badge.bg-info {
+    color: #fff;
+}
+.badge.bg-success {
+    color: #fff;
+}
+.badge.bg-danger {
+    color: #fff;
+}
+
+/* Mejorar la visualización de los botones de estado en el modal */
+.modal-footer .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.modal-footer .btn-group .btn {
+    flex: 1;
+    min-width: 100px;
+}
+
+/* Mejorar visualización de estados en la tabla */
+.btn-group-vertical {
+    gap: 2px;
+}
+</style>
+{% endblock %}
